@@ -1,0 +1,362 @@
+<Window x:Class="Zevision.Views.RecipeEditorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:vm="clr-namespace:Zevision.ViewModels"
+        xmlns:t="clr-namespace:Zevision.Views"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance Type=vm:RecipeEditorViewModel, IsDesignTimeCreatable=False}"
+        Title="{Binding Title}"
+        Icon="/Assets/Zevision.ico"
+        Width="1080" Height="760" MinWidth="820" MinHeight="520"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        Background="{DynamicResource MaterialDesign.Brush.Background}"
+        TextElement.Foreground="{DynamicResource MaterialDesign.Brush.Foreground}"
+        TextElement.FontSize="13">
+
+    <!-- Ctrl+S 保存;Esc 写入期间取消写入,否则关闭 (有未保存的修改时先确认);Ctrl+F 定位到筛选框 (代码隐藏) -->
+    <Window.InputBindings>
+        <KeyBinding Modifiers="Control" Key="S" Command="{Binding SaveCommand}" />
+        <KeyBinding Key="Escape" Command="{Binding CancelCommand}" />
+    </Window.InputBindings>
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibility" />
+
+        <!-- 输入栏:文本框 (勾选后) -->
+        <DataTemplate x:Key="TextEditorTemplate" DataType="{x:Type vm:RecipeItemViewModel}">
+            <TextBox x:Name="ValueBox" FontFamily="Consolas" VerticalAlignment="Center"
+                     Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"
+                     materialDesign:TextFieldAssist.HasClearButton="False" />
+            <DataTemplate.Triggers>
+                <!-- 已修改:值加粗,提示原值 -->
+                <DataTrigger Binding="{Binding IsModified}" Value="True">
+                    <Setter TargetName="ValueBox" Property="FontWeight" Value="Bold" />
+                    <Setter TargetName="ValueBox" Property="ToolTip" Value="{Binding OriginalValue}" />
+                    <Setter TargetName="ValueBox" Property="ToolTipService.InitialShowDelay" Value="200" />
+                </DataTrigger>
+                <!-- 值不合法:红色并提示原因 -->
+                <DataTrigger Binding="{Binding HasError}" Value="True">
+                    <Setter TargetName="ValueBox" Property="Foreground" Value="{DynamicResource MaterialDesign.Brush.ValidationError}" />
+                    <Setter TargetName="ValueBox" Property="ToolTip" Value="{Binding Error}" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <!-- 输入栏:下拉框 (枚举或引用,勾选后) -->
+        <DataTemplate x:Key="OptionsEditorTemplate" DataType="{x:Type vm:RecipeItemViewModel}">
+            <ComboBox x:Name="ValueBox" VerticalAlignment="Center"
+                      ItemsSource="{Binding Options}"
+                      DisplayMemberPath="Label"
+                      SelectedValuePath="Value"
+                      SelectedValue="{Binding Value}" />
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsModified}" Value="True">
+                    <Setter TargetName="ValueBox" Property="FontWeight" Value="Bold" />
+                    <Setter TargetName="ValueBox" Property="ToolTip" Value="{Binding OriginalValue}" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <!-- 未勾选时只显示值 (TextBlock):膜页有几百行,每行都建输入控件会让展开明显变慢 -->
+        <!-- 点击值即勾选并进入编辑 -->
+        <DataTemplate x:Key="DisplayValueTemplate" DataType="{x:Type vm:RecipeItemViewModel}">
+            <TextBlock Text="{Binding DisplayValue}" FontFamily="Consolas" VerticalAlignment="Center" Padding="0,4"
+                       TextTrimming="CharacterEllipsis" Foreground="{DynamicResource MaterialDesign.Brush.ForegroundLight}"
+                       Background="Transparent" Cursor="IBeam" MouseLeftButtonUp="OnValueClicked" />
+        </DataTemplate>
+
+        <!-- 输入栏:未勾选显示值;勾选后有选项的用下拉框,其余用文本框 -->
+        <Style x:Key="ValueEditorStyle" TargetType="ContentControl">
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="ContentTemplate" Value="{StaticResource DisplayValueTemplate}" />
+            <Style.Triggers>
+                <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding IsChecked}" Value="True" />
+                        <Condition Binding="{Binding UsesOptions}" Value="False" />
+                    </MultiDataTrigger.Conditions>
+                    <Setter Property="ContentTemplate" Value="{StaticResource TextEditorTemplate}" />
+                </MultiDataTrigger>
+                <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding IsChecked}" Value="True" />
+                        <Condition Binding="{Binding UsesOptions}" Value="True" />
+                    </MultiDataTrigger.Conditions>
+                    <Setter Property="ContentTemplate" Value="{StaticResource OptionsEditorTemplate}" />
+                </MultiDataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- 可写的一行:复选框 | 名称 (单位) | 输入栏 | ID。鼠标停在行上显示说明、范围和设备说明。 -->
+        <DataTemplate x:Key="ItemTemplate" DataType="{x:Type vm:RecipeItemViewModel}">
+            <Grid Margin="0,1" Background="Transparent" ToolTip="{Binding ToolTip}"
+                  Visibility="{Binding IsVisible, Converter={StaticResource BooleanToVisibility}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="36" />
+                    <ColumnDefinition Width="*" MinWidth="220" />
+                    <ColumnDefinition Width="300" />
+                    <ColumnDefinition Width="120" />
+                    <ColumnDefinition Width="32" />
+                </Grid.ColumnDefinitions>
+                <CheckBox Grid.Column="0" VerticalAlignment="Center" IsChecked="{Binding IsChecked}" Click="OnItemCheckBoxClick"
+                          ToolTip="{x:Static t:UiText.CheckToEditToolTip}" />
+                <TextBlock Grid.Column="1" Text="{Binding Label}" VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis" Margin="0,0,12,0" />
+                <ContentControl Grid.Column="2" Content="{Binding}" Style="{StaticResource ValueEditorStyle}" />
+                <TextBlock Grid.Column="3" Text="{Binding Id}" VerticalAlignment="Center" Margin="12,0,0,0"
+                           FontFamily="Consolas" Foreground="{DynamicResource MaterialDesign.Brush.ForegroundLight}" />
+                <!-- 工艺膜层列表的一项:删除 (后面的前移,再删除最后一项) -->
+                <Button Grid.Column="4" Command="{Binding RemoveCommand}" Width="26" Height="26" Padding="0"
+                        Style="{StaticResource MaterialDesignFlatButton}"
+                        Foreground="{DynamicResource MaterialDesign.Brush.ValidationError}"
+                        ToolTip="{x:Static t:UiText.RemoveListEntryToolTip}" ToolTipService.ShowOnDisabled="True"
+                        Visibility="{Binding CanRemove, Converter={StaticResource BooleanToVisibility}}">
+                    <materialDesign:PackIcon Kind="Close" />
+                </Button>
+            </Grid>
+        </DataTemplate>
+
+        <!-- 只读的一行:名称 (单位) | 当前值 | ID -->
+        <DataTemplate x:Key="ReadOnlyItemTemplate" DataType="{x:Type vm:ReadOnlyItemViewModel}">
+            <Grid Margin="0,3" Background="Transparent" ToolTip="{Binding ToolTip}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="260" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="120" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="{Binding Label}" TextTrimming="CharacterEllipsis" Margin="0,0,12,0" />
+                <TextBlock Grid.Column="1" Text="{Binding Value}" FontFamily="Consolas" TextTrimming="CharacterEllipsis" />
+                <TextBlock Grid.Column="2" Text="{Binding Id}" Margin="12,0,0,0"
+                           FontFamily="Consolas" Foreground="{DynamicResource MaterialDesign.Brush.ForegroundLight}" />
+            </Grid>
+        </DataTemplate>
+    </Window.Resources>
+
+    <DockPanel Margin="16">
+        <!-- 顶部:来源 -->
+        <TextBlock DockPanel.Dock="Top" Text="{Binding SourceText}" Margin="0,0,0,8"
+                   Foreground="{DynamicResource MaterialDesign.Brush.ForegroundLight}" />
+
+        <!-- 底部:状态、进度、按钮 -->
+        <DockPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button Margin="0,0,8,0" Command="{Binding CancelCommand}">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource MaterialDesignOutlinedButton}">
+                            <Setter Property="Content" Value="{x:Static t:UiText.Close}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsBusy}" Value="True">
+                                    <Setter Property="Content" Value="{x:Static t:UiText.CancelWriting}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+                <Button Command="{Binding SaveCommand}" Style="{StaticResource MaterialDesignRaisedButton}"
+                        ToolTip="{x:Static t:UiText.SaveEditsToolTip}">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="ContentSave" VerticalAlignment="Center" />
+                        <TextBlock Text="{x:Static t:UiText.Save}" Margin="6,0,0,0" />
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+            <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
+                <TextBlock Text="{Binding SelectionText}" />
+                <StackPanel Margin="0,6,0,0" Visibility="{Binding IsBusy, Converter={StaticResource BooleanToVisibility}}">
+                    <TextBlock Text="{Binding Operation.Text}" Foreground="{DynamicResource MaterialDesign.Brush.ForegroundLight}" />
+                    <ProgressBar Height="4" Margin="0,4,0,0"
+                                 Value="{Binding Operation.Progress, Mode=OneWay}"
+                                 IsIndeterminate="{Binding Operation.IsIndeterminate}" />
+                </StackPanel>
+            </StackPanel>
+        </DockPanel>
+
+        <!-- 中部:只读 / 可写 两页 -->
+        <TabControl>
+            <!-- 只读:设备当前值 -->
+            <TabItem Header="{x:Static t:UiText.ReadOnlyTab}">
+                <DockPanel Margin="0,8,0,0" DataContext="{Binding Info}">
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                        <Button DockPanel.Dock="Right" Command="{Binding RefreshCommand}"
+                                Style="{StaticResource MaterialDesignFlatButton}" ToolTip="{x:Static t:UiText.RefreshToolTip}">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Refresh" VerticalAlignment="Center" />
+                                <TextBlock Text="{x:Static t:UiText.Refresh}" Margin="6,0,0,0" />
+                            </StackPanel>
+                        </Button>
+                        <TextBlock Text="{Binding Status}" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource MaterialDesign.Brush.ForegroundLight}" />
+                    </DockPanel>
+                    <materialDesign:Card UniformCornerRadius="8">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="16,8">
+                            <ItemsControl ItemsSource="{Binding Sections}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type vm:ReadOnlySectionViewModel}">
+                                        <StackPanel Margin="0,0,0,12">
+                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" Margin="0,4,0,4" />
+                                            <ItemsControl ItemsSource="{Binding Items}" ItemTemplate="{StaticResource ReadOnlyItemTemplate}" Margin="16,0,0,0" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </materialDesign:Card>
+                </DockPanel>
+            </TabItem>
+
+            <!-- 可写:按类别分页,页内按对象分组 (写入期间禁止编辑) -->
+            <TabItem Header="{x:Static t:UiText.WritableTab}">
+                <DockPanel Margin="0,8,0,0">
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Bottom">
+                            <Button Content="{x:Static t:UiText.ExpandAll}" Command="{Binding ExpandAllCommand}" Style="{StaticResource MaterialDesignFlatButton}" />
+                            <Button Content="{x:Static t:UiText.CollapseAll}" Command="{Binding CollapseAllCommand}" Style="{StaticResource MaterialDesignFlatButton}" />
+                        </StackPanel>
+                        <TextBox x:Name="FilterBox" Width="360" HorizontalAlignment="Left"
+                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                 materialDesign:HintAssist.Hint="{x:Static t:UiText.FilterHint}"
+                                 materialDesign:TextFieldAssist.HasClearButton="True"
+                                 Text="{Binding FilterText, UpdateSourceTrigger=PropertyChanged, Delay=200}" />
+                    </DockPanel>
+                    <!-- 类别页宽度按标题:英文标题较长,等宽时 9 页放不下 -->
+                    <TabControl x:Name="SettingsTabs" ItemsSource="{Binding Tabs}" SelectedIndex="{Binding SelectedTabIndex}" IsEnabled="{Binding IsEditable}"
+                                ScrollViewer.ScrollChanged="OnSettingsScrollChanged" SelectionChanged="OnSettingsTabChanged"
+                                materialDesign:TabAssist.HasUniformTabWidth="False">
+                        <TabControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:RecipeTabViewModel}">
+                                <TextBlock Text="{Binding Header}" />
+                            </DataTemplate>
+                        </TabControl.ItemTemplate>
+                        <TabControl.ContentTemplate>
+                            <DataTemplate DataType="{x:Type vm:RecipeTabViewModel}">
+                                <materialDesign:Card UniformCornerRadius="8" Margin="0,8,0,0">
+                                    <DockPanel>
+                                    <!-- 实机数据模式的材料/膜/工艺页:在设备上新建对象,完成后重新读取并刷新页面 -->
+                                    <DockPanel DockPanel.Dock="Top" Margin="8,8,8,0"
+                                               Visibility="{Binding CanCreate, Converter={StaticResource BooleanToVisibility}}">
+                                        <Button DockPanel.Dock="Left" Command="{Binding NewCommand}" Padding="10,0" Height="28"
+                                                Style="{StaticResource MaterialDesignOutlinedButton}"
+                                                ToolTip="{x:Static t:UiText.NewObjectToolTip}" ToolTipService.ShowOnDisabled="True">
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="Plus" VerticalAlignment="Center" />
+                                                <TextBlock Text="{Binding NewText}" Margin="4,0,0,0" />
+                                            </StackPanel>
+                                        </Button>
+                                        <TextBlock Text="{Binding DataContext.ObjectChangeHint, RelativeSource={RelativeSource AncestorType=Window}}" Margin="12,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap"
+                                                   Foreground="{DynamicResource MaterialDesign.Brush.ForegroundLight}" />
+                                    </DockPanel>
+                                    <ScrollViewer x:Name="GroupScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="8">
+                                        <ItemsControl ItemsSource="{Binding Groups}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type vm:RecipeGroupViewModel}">
+                                                    <Expander IsExpanded="{Binding IsExpanded}" Margin="0,0,0,4"
+                                                              Visibility="{Binding IsVisible, Converter={StaticResource BooleanToVisibility}}">
+                                                        <Expander.Header>
+                                                            <DockPanel>
+                                                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                                                    <!-- 工艺:选择已有的膜层,点添加即在设备上追加到这个工艺膜层列表的末尾 -->
+                                                                    <StackPanel Orientation="Horizontal" Margin="0,0,12,0" VerticalAlignment="Center"
+                                                                                DataContext="{Binding LayerAdd}"
+                                                                                ToolTip="{Binding ToolTip}" ToolTipService.ShowOnDisabled="True"
+                                                                                Visibility="{Binding DataContext.HasLayerAdd, RelativeSource={RelativeSource AncestorType=Expander}, Converter={StaticResource BooleanToVisibility}}">
+                                                                        <TextBlock Text="{x:Static t:UiText.LayerLabel}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                                                        <ComboBox Width="180" VerticalAlignment="Center"
+                                                                                  ItemsSource="{Binding Options}"
+                                                                                  DisplayMemberPath="Label"
+                                                                                  SelectedValuePath="Value"
+                                                                                  SelectedValue="{Binding SelectedValue}" />
+                                                                        <Button Margin="6,0,0,0" Padding="8,0" Height="24"
+                                                                                Style="{StaticResource MaterialDesignOutlinedButton}"
+                                                                                Command="{Binding AddCommand}" ToolTip="{Binding ToolTip}" ToolTipService.ShowOnDisabled="True">
+                                                                            <StackPanel Orientation="Horizontal">
+                                                                                <materialDesign:PackIcon Kind="Plus" VerticalAlignment="Center" />
+                                                                                <TextBlock Text="{x:Static t:UiText.AddListEntry}" Margin="4,0,0,0" />
+                                                                            </StackPanel>
+                                                                        </Button>
+                                                                    </StackPanel>
+                                                                    <!-- 子列表:+ 追加一条 (设备默认值),− 删除最后一条 (膜系的预条件/后条件,膜层的膜系) -->
+                                                                    <ItemsControl ItemsSource="{Binding ListActions}" VerticalAlignment="Center">
+                                                                        <ItemsControl.ItemsPanel>
+                                                                            <ItemsPanelTemplate>
+                                                                                <StackPanel Orientation="Horizontal" />
+                                                                            </ItemsPanelTemplate>
+                                                                        </ItemsControl.ItemsPanel>
+                                                                        <ItemsControl.ItemTemplate>
+                                                                            <DataTemplate DataType="{x:Type vm:ListActionViewModel}">
+                                                                                <StackPanel Orientation="Horizontal" Margin="0,0,8,0">
+                                                                                    <Button Content="{Binding AddText}" Padding="6,0" Height="24" Command="{Binding AddCommand}"
+                                                                                            Style="{StaticResource MaterialDesignFlatButton}"
+                                                                                            ToolTip="{Binding AddToolTip}" ToolTipService.ShowOnDisabled="True" />
+                                                                                    <Button Content="{Binding RemoveText}" Padding="6,0" Height="24" Command="{Binding RemoveLastCommand}"
+                                                                                            Style="{StaticResource MaterialDesignFlatButton}"
+                                                                                            Foreground="{DynamicResource MaterialDesign.Brush.ValidationError}"
+                                                                                            ToolTip="{Binding RemoveToolTip}" ToolTipService.ShowOnDisabled="True" />
+                                                                                </StackPanel>
+                                                                            </DataTemplate>
+                                                                        </ItemsControl.ItemTemplate>
+                                                                    </ItemsControl>
+                                                                    <Button Content="{x:Static t:UiText.CheckAll}" Padding="6,0" Height="24" Command="{Binding CheckAllCommand}"
+                                                                            Style="{StaticResource MaterialDesignFlatButton}" ToolTip="{x:Static t:UiText.CheckAllToolTip}" />
+                                                                    <Button Content="{x:Static t:UiText.ClearChecks}" Padding="6,0" Height="24" Command="{Binding UncheckAllCommand}"
+                                                                            Style="{StaticResource MaterialDesignFlatButton}" ToolTip="{x:Static t:UiText.ClearChecksToolTip}" />
+                                                                    <Button Content="{x:Static t:UiText.DeleteObject}" Padding="6,0" Height="24" Command="{Binding DeleteCommand}"
+                                                                            Style="{StaticResource MaterialDesignFlatButton}"
+                                                                            Foreground="{DynamicResource MaterialDesign.Brush.ValidationError}"
+                                                                            ToolTip="{x:Static t:UiText.DeleteObjectToolTip}" ToolTipService.ShowOnDisabled="True"
+                                                                            Visibility="{Binding CanDelete, Converter={StaticResource BooleanToVisibility}}" />
+                                                                </StackPanel>
+                                                                <TextBlock Text="{Binding Header}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                                            </DockPanel>
+                                                        </Expander.Header>
+                                                        <StackPanel Margin="24,0,8,8">
+                                                            <ItemsControl ItemsSource="{Binding Items}" ItemTemplate="{StaticResource ItemTemplate}" />
+                                                            <!-- 为空的子列表:说明 + 添加按钮 (如新建的膜层还没有膜系,添加后才有膜系、速率、最终厚度) -->
+                                                            <ItemsControl ItemsSource="{Binding EmptyLists}">
+                                                                <ItemsControl.ItemTemplate>
+                                                                    <DataTemplate DataType="{x:Type vm:ListActionViewModel}">
+                                                                        <Grid Margin="0,1" Background="Transparent" ToolTip="{Binding AddToolTip}" ToolTipService.ShowOnDisabled="True">
+                                                                            <Grid.ColumnDefinitions>
+                                                                                <ColumnDefinition Width="36" />
+                                                                                <ColumnDefinition Width="*" MinWidth="220" />
+                                                                                <ColumnDefinition Width="300" />
+                                                                                <ColumnDefinition Width="120" />
+                                                                                <ColumnDefinition Width="32" />
+                                                                            </Grid.ColumnDefinitions>
+                                                                            <materialDesign:PackIcon Grid.Column="0" Kind="InformationOutline" VerticalAlignment="Center"
+                                                                                                     Foreground="{DynamicResource MaterialDesign.Brush.Primary}" />
+                                                                            <TextBlock Grid.Column="1" Text="{Binding EmptyHint}" VerticalAlignment="Center"
+                                                                                       TextWrapping="Wrap" Margin="0,0,12,0" />
+                                                                            <Button Grid.Column="2" HorizontalAlignment="Left" Padding="10,0" Height="26"
+                                                                                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                                                                                    Command="{Binding AddCommand}" ToolTip="{Binding AddToolTip}" ToolTipService.ShowOnDisabled="True">
+                                                                                <StackPanel Orientation="Horizontal">
+                                                                                    <materialDesign:PackIcon Kind="Plus" VerticalAlignment="Center" />
+                                                                                    <TextBlock Text="{Binding AddFirstText}" Margin="4,0,0,0" />
+                                                                                </StackPanel>
+                                                                            </Button>
+                                                                            <TextBlock Grid.Column="3" Text="{Binding ListId}" VerticalAlignment="Center" Margin="12,0,0,0"
+                                                                                       FontFamily="Consolas" Foreground="{DynamicResource MaterialDesign.Brush.ForegroundLight}" />
+                                                                        </Grid>
+                                                                    </DataTemplate>
+                                                                </ItemsControl.ItemTemplate>
+                                                            </ItemsControl>
+                                                        </StackPanel>
+                                                    </Expander>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                    </DockPanel>
+                                </materialDesign:Card>
+                            </DataTemplate>
+                        </TabControl.ContentTemplate>
+                    </TabControl>
+                </DockPanel>
+            </TabItem>
+        </TabControl>
+    </DockPanel>
+</Window>

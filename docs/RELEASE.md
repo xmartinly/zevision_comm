@@ -1,0 +1,149 @@
+# Zevision 发布说明
+
+## 版本
+
+- 当前版本:**0.9.6** (预发布;没有 0.9.2)
+- 公司:INFICON;作者:martin.liang@inficon.com (写在 `AssemblyInfo.cs` 的 `AssemblyDescription` 和 `AssemblyMetadata("Author")` 中,文件属性的"备注"可见)
+- 版本号只在 `Properties/AssemblyInfo.cs` 中修改:`AssemblyVersion`、`AssemblyFileVersion` 和 `AssemblyInformationalVersion`。
+- 标题栏和 `logs\error.txt` 的会话标题都显示 `AssemblyInformationalVersion`。
+
+## 构建
+
+```
+"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\MSBuild.exe" Zevision.sln -restore -t:Rebuild -p:Configuration=Release -nologo -v:minimal
+```
+
+- Release 配置开启了 `TreatWarningsAsErrors`,构建必须 0 警告。
+- 发布前运行全部单元测试,必须全部通过:
+
+```
+%USERPROFILE%\.nuget\packages\xunit.runner.console\2.9.3\tools\net472\xunit.console.exe Zevision.Tests\bin\Release\Zevision.Tests.dll
+```
+
+## 发布文件 (`bin\Release\`)
+
+| 文件 | 说明 |
+|---|---|
+| `Zevision.exe` | 主程序 (内嵌图标和版本信息) |
+| `Zevision.exe.config` | 运行时配置 (程序集绑定重定向),必须随 exe 一起发布 |
+| `Zevision.Communication.dll` | 通讯库 (传输、帧、响应解析),程序必需 |
+| `Zevision.Commands.dll` | 指令库 (指令集、命令生成),程序必需 |
+| `MaterialDesignThemes.Wpf.dll` | 界面主题 |
+| `MaterialDesignColors.dll` | 界面主题颜色 |
+| `Microsoft.Xaml.Behaviors.dll` | MaterialDesignThemes 的依赖 |
+
+另附 .NET Framework 运行库安装文件 (见"打包"):
+
+| 文件 | 说明 |
+|---|---|
+| `dotnet\ndp48-x86-x64-allos-enu.exe` | .NET Framework 4.8 离线安装包 (Microsoft 官方,`https://go.microsoft.com/fwlink/?linkid=2088631`,Microsoft 数字签名)。程序以 4.7.2 为目标,4.8 是就地升级、完全兼容,且是仍支持 Windows 7 SP1 的最新版本 (4.8.1 不支持 Win7)。只在缺少运行库的电脑上需要。 |
+
+**不要**发布:
+
+- `*.pdb` (调试符号,留档备查即可)
+- `settings.json` (每台电脑自己的通讯配置,首次运行会自动生成)
+- `logs\`、`recipe\` (运行时生成的日志和用户的配置文件)
+
+## 打包
+
+输出到 `dist\` (不随源码分发):
+
+- `dist\Zevision-<版本>\`:上表 7 个文件 + `使用说明.md` (即 `docs/USER_GUIDE.md`) + `User Guide.md` (即 `docs/USER_GUIDE.en.md`) + `dotnet\ndp48-x86-x64-allos-enu.exe`
+- 安装包下载后先核对数字签名 (`Get-AuthenticodeSignature`,签名者为 Microsoft Corporation,状态 Valid) 再放入发布包。
+- `dist\Zevision-<版本>.zip`:上述文件夹的压缩包,即发布包
+- `dist\symbols\Zevision-<版本>.pdb`:调试符号,留档用于分析用户反馈的异常堆栈,不发布
+
+打包后把 zip 解压到一个新目录,启动一次,确认标题栏版本正确,再关闭。不要在 `dist\Zevision-<版本>\` 中直接启动 (会生成 `settings.json`、`logs\`)。
+
+### 链接库 (供生产程序使用)
+
+两个库的版本独立于应用 (各自 `Properties\AssemblyInfo.cs`,当前 1.0.0),公开 API 不兼容的修改时提高主版本号。用法见 `docs/LIBRARY.md`。
+
+- `dist\Zevision.Libraries-<库版本>\`:`Zevision.Communication.dll`/`.xml`、`Zevision.Commands.dll`/`.xml` (XML 是 IntelliSense 文档,放在 dll 旁边) + `LIBRARY.md` (即 `docs/LIBRARY.md`) + `sample\Program.cs` (即 `samples/Zevision.Sample/Program.cs`)
+- `dist\Zevision.Libraries-<库版本>.zip`:上述文件夹的压缩包
+- `dist\symbols\`:两个库的 `.pdb`,留档不发布
+- 打包后解压到新目录,只引用解压出的两个 dll 编译 `sample\Program.cs`,连设备 (或模拟设备) 运行一次。
+
+| 库版本 | 日期 | 发布包 SHA256 |
+|---|---|---|
+| 1.0.0 | 2026-10-16 | `0B9CE469F582A71CAAA848DFFEF9CE06BF2F3CE5736A2C3D9E56CFDF7D613607` |
+
+| 版本 | 日期 | 发布包 SHA256 |
+|---|---|---|
+| 0.9.0 | 2026-10-15 | `4EEBB28642795C90E3200933CCF7F04EF095EA0DF47887682AC22CAC7D95F123` |
+| 0.9.1 | 2026-10-16 | `C7640C1F43ABABC65EAB3D58E1571BD921A16CEC6E1F275392B03D997220B310` |
+| 0.9.3 | 2026-10-16 | `0A5BB9FC56AC81D523F43B604170B4943065B13E5190562EC1021CC316E741D5` |
+| 0.9.4 | 2026-10-16 | `7C9352B61A5F079C18D331CB323479724A2DA0A49D406CE2206C9D11852D0FCB` |
+| 0.9.5 | 2026-10-16 | `7FC95325891C23DE48338426FCE3DFB717F1326266B298958EB0B647E961BD09` |
+| 0.9.6 | 2026-10-16 | `02547CBBF00A1EA70C7D813361708D25CB61A310EABBDCB5EEE93C27B3403C18` |
+
+## 0.9.6 更新内容 (相对 0.9.5)
+
+- 结构优化 (功能和界面不变):材料/膜系/膜层/工艺的规则集中到一张对象类型表;修改窗口拆分出"信息"页和页面构建,新建、删除、列表增删共用同一流程;ID 拼接规则、JSON 文件读写、意外异常的记录各只保留一份。
+- 通讯:修改设备前的设备检查 (G03、C09) 合为一帧 `QG03;QC09`;新建对象和它的默认引用只检查一次设备 (新建膜层由 12 帧减为 7 帧)。
+- 修正:设备上没有膜系时新建膜层,不再添加膜系条目 (与确认框的说明一致)。
+- 修正:中文界面的"响应帧无效"显示中文原因 (原来显示英文名称,如 ChecksumMismatch)。
+- 列表增删后保存配置文件失败时,窗口关闭后的结果中仍记录设备上已完成的修改。
+- 链接库未变 (仍为 1.0.0)。
+- 兼容:0.9.0~0.9.5 的 `settings.json` 和配置文件可以直接使用。
+
+## 0.9.5 更新内容 (相对 0.9.4)
+
+- 修改配置 · 新建工艺:自动在工艺的膜层列表中添加第一个膜层 (`AP02xx0700` → `UP02xx0701:<膜层编号>`),确认框中说明;没有膜层时不添加。
+- 链接库未变 (仍为 1.0.0)。
+- 兼容:0.9.0~0.9.4 的 `settings.json` 和配置文件可以直接使用。
+
+## 0.9.4 更新内容 (相对 0.9.3)
+
+- 结构:指令生成和通讯拆分为两个链接库 `Zevision.Commands.dll` 和 `Zevision.Communication.dll` (库版本 1.0.0,另有单独的库发布包,见上文"链接库"),程序引用它们。两个 dll 必须和 `Zevision.exe` 放在同一个文件夹。
+- 功能、界面文字和错误日志内容不变。
+- 兼容:0.9.0/0.9.1/0.9.3 的 `settings.json` 和配置文件可以直接使用。
+
+## 0.9.3 更新内容 (相对 0.9.1)
+
+- 修改配置 · 列表操作 (立即作用于设备,不需要点保存;有勾选的项时不可用):
+  - 膜系标题上有 +预条件 / −预条件 / +后条件 / −后条件;"−"删除最后一条 (实机验证 `DF010300`)。
+  - 工艺标题栏上有"膜层"下拉框和"添加"按钮,把已有的膜层添加到工艺末尾;每个膜层行末的 × 删除该膜层 (设备只能删除最后一项:中间的膜层先把后面的依次前移再删除最后一项;实机验证 `DP02010700`)。
+  - 膜层的速率、厚度属于膜层中的每个膜系:膜系列表为空时分组中显示"添加速率/厚度设置",标题上有 +膜系 / −膜系。
+  - 原来"保存时追加膜层"的行和每个膜系末尾的"新增"行已去掉。
+- 修改配置 · 新建:新建材料/膜系/膜层/工艺后全部参数自动勾选,可以直接修改后保存;新膜系的材料 ID 设为第一个材料;新膜层自动添加一项膜系 (第一个膜系)。
+- 修改配置 · 刷新:保存修改 (如改名) 后页面按新值重新生成,工艺的膜层下拉框、膜层的膜系下拉框、膜系的材料下拉框显示新名称。
+- 修改配置 · 操作习惯:点击值即可勾选并编辑 (文字全选);Ctrl+S 保存、Ctrl+F 筛选、Esc 关闭;关闭时有未保存的修改先确认;每个类别页记住滚动位置;勾选统计缓存,输入更流畅。
+- 中文界面:快门统一为挡板;设置名称和下拉选项中残留的英文已翻译 (tooling → 工具因子、RateWatcher → 速率监视、输入/输出功能表、停止原因等);10 项文档未列出的设备设置有了中文名称。英文界面不变。
+- 兼容:0.9.0/0.9.1 的 `settings.json` 和配置文件可以直接使用。
+
+## 0.9.1 更新内容 (相对 0.9.0)
+
+- 发送:输入框可多行 (Enter 发送,Shift+Enter 换行);发送后保留内容;指令部分自动转为大写;可以手动发送 `?` 和组帮助 (如 `?M`)。
+- 发送选项 (快捷指令左侧):显示格式 HEX / ASCII / Binary,重复发送 (间隔 100~2000 ms)。
+- 保存通讯数据:保存数据显示区的内容 (按当时的显示格式),包括 `?` 的响应。
+- 修改配置:
+  - 页面改名为"信息"/"设置";中文术语统一为工艺、膜系、膜层、输出源。
+  - 材料、膜系、膜层、工艺可以新建/删除;被其他设置引用时不能删除,并列出引用它的设置。
+  - 工艺可以追加膜层;膜系可以追加预条件/后条件。
+  - "保存的配置"模式同样支持以上操作,同时修改设备和文件 (文件立即保存)。
+  - 输入/输出功能、Max Power Option 等改为下拉框;按操作手册补全取值范围和类型 (时间项、继电器/输入引用等);S**16/17 单位为 kÅ。
+- 可靠性:启动失败时提示并退出;无长度字节模式下多包响应的解码修正;断开/关闭时的通讯与文件处理更稳妥;代码结构重构 (功能不变)。
+- 兼容:0.9.0 的 `settings.json` 和配置文件 (formatVersion 2) 可以直接使用。
+
+## 运行环境
+
+- Windows 7 SP1 及以上 (推荐 Windows 10/11)
+- .NET Framework 4.7.2 或更高 (Windows 10 1803 及以上已内置;其他系统运行发布包中的 `dotnet\ndp48-x86-x64-allos-enu.exe`)
+- 程序目录需要可写,用于 `settings.json`、`logs\` 和 `recipe\`;不可写时 (如安装在 `Program Files`) 自动改用 `文档\Zevision\`。
+
+## 发布前检查 (实机)
+
+1. 连接:
+   - RS232:选择串口,按设备 G1304/G1305 设置校验和与长度字节,连接成功。
+   - TCP:输入设备 IP (端口固定 2101),按设备 G1407/G1408 设置,连接成功;拔掉网线约 15 秒内显示连接中断。
+2. 指令:发送 `H01`;发送多条指令 `QG01;QG1304;QG1305`,逐条显示解析结果。
+3. 保存配置:约 10 秒完成,生成 `recipe\IMC300_*.json`。
+4. 恢复配置:修改设备上的一项设置后恢复,确认框列出差异,恢复后校验一致。
+5. 恢复时重新创建:删除设备上的一个材料或膜层后恢复,能重新创建并写入。
+6. 修改配置:
+   - 来源选"保存的配置":打开配置文件,只读页显示设备当前值;在可写页用下拉框和输入框各修改一项,写入设备并保存文件。
+   - 来源选"实机数据":读取设备后修改一项并写入,窗口保持打开,再次修改另一项成功。
+7. 再次启动程序:只保留一个窗口,已打开的窗口被切换到前台。
+8. 关闭程序后再打开:通讯配置被恢复。
+9. 语言:把 `settings.json` 的 `language` 改为 `en` 后重启,界面、对话框和日志为英文,修改配置窗口的名称为设备帮助表的 DESCRIPTION;改回 `auto` 后按系统语言/地区显示。

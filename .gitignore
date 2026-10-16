@@ -1,0 +1,55 @@
+# 忽略所有文件
+*
+
+# 放行 .gitignore 自身
+!.gitignore
+
+# 放行目录，否则子目录里的文件无法匹配
+!*/
+
+# 只保留代码、项目、解决方案和共享构建配置
+!*.cs
+!*.csproj
+!*.sln
+!*.props
+!*.targets
+!*.xaml
+!*.resx
+!*.razor
+!*.config
+!*.json
+!*.xml
+!*.md
+!*.sh
+!*.ps1
+!*.cmd
+!*.bat
+!*.yml
+!*.yaml
+!*.editorconfig
+!*.gitignore
+
+# 排除编译产物、包、测试报告和 IDE 缓存
+bin/
+obj/
+.vs/
+.vscode/
+.idea/
+packages/
+node_modules/
+artifacts/
+dist/
+publish/
+TestResults/
+*.dll
+*.exe
+*.pdb
+*.nupkg
+*.snupkg
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.userprefs
+*.log
+*.tmp

@@ -1,0 +1,393 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project overview
+
+Zevision ("IMC300通讯测试") is a WPF desktop app that talks to an INFICON IMC300 thickness monitor over RS232 or TCP (Ethernet port 2101) using the Zevision protocol (`docs/Zervison_Protocol.md`). The UI uses Material Design. The UI shell exists: `App.OnStartup` (no `StartupUri`) creates `Views/MainWindow` with `MainViewModel` as its `DataContext`. The left panel holds the connection settings (RS232 or TCP), protocol options, connect/disconnect and the instrument-configuration buttons; the right panel holds the log display and command input. Everything has been run against a real IMC300 (firmware 1.8.11).
+
+- Version: 0.9.6, company INFICON, author martin.liang@inficon.com (`AssemblyDescription` and `AssemblyMetadata("Author")`). The release package also ships the .NET Framework 4.8 offline installer in `dotnet\` (see `docs/RELEASE.md`). The version lives only in `Properties/AssemblyInfo.cs`; `AppInfo.Version` reads `AssemblyInformationalVersion` and is shown in the title bar (`IMC300通讯测试 - Zevision <version>`) and the `error.txt` session header.
+- Single instance: `SingleInstance` (named mutex `Local\INFICON.Zevision.SingleInstance`). A second launch brings the existing window to the front and exits, because two instances would fight over the COM port and `settings.json`.
+- Solution (`Zevision.sln`, user request 2026-10-16): the command set and the communication layer are separate class libraries for production use; the app references them. See "Libraries" under Architecture and `docs/LIBRARY.md`.
+  - `Zevision.Communication/` → `Zevision.Communication.dll`: transports, framing, decoding, response parsing, `ZevisionClient`. References only the .NET Framework.
+  - `Zevision.Commands/` → `Zevision.Commands.dll`: `ZevisionCommandSet`, `CommandDefinition`. References `Zevision.Communication` (for `ProtocolText`).
+  - `Zevision.csproj` (the WPF app, at the repo root), `Zevision.Tests/`, and `samples/Zevision.Sample/` (console sample that uses only the two DLLs; read-only queries).
+  - The libraries have their own version (1.0.0, `Properties/AssemblyInfo.cs` in each project), independent of the app.
+- Icon: `Assets/Zevision.ico` (rounded #465074 square + white INFICON mark), generated from `inficon_blank.png` by `tools/make_icon.py` (Pillow). It is both the `ApplicationIcon` and a WPF `Resource` used by both windows.
+
+## Languages (Chinese / English)
+
+- `Localization/Lang` picks the language once in `App.OnStartup`, before anything else is created (the error-log session header uses it).
+  - Rule: Chinese if the Windows display language is Chinese or the region format is China (CN); English otherwise.
+  - `settings.json` `language` (`auto`/`zh`/`en`) overrides it. `MainViewModel` keeps that value when saving.
+  - Switching at runtime is a restart, not live re-translation (texts and `x:Static` XAML are fixed at load).
+    - The "EN"/"中" button (`SwitchLanguageCommand`) is in the data-display header and is disabled while a configuration operation runs.
+    - It confirms, sets the target language and raises `RestartRequested`.
+    - `App.OnRestartRequested` then:
+      1. Saves preferences, so the new process reads the new language.
+      2. Disposes the single-instance mutex; otherwise the new process would just activate this window and exit.
+      3. Starts the exe and shuts down. If the start fails, it re-acquires the mutex and keeps running.
+- Text is written as pairs at the call site: `Lang.T("中文", "English")`. There are no resx files, because the build has no VS custom tool to generate designer code.
+  - XAML uses `{x:Static t:UiText.Xxx}` from `Views/UiText.cs` (`xmlns:t="clr-namespace:Zevision.Views"`).
+  - `const` strings cannot call `Lang.T`; use static properties instead.
+  - Static tables that call `Lang.T` in their initializers freeze the language at type initialization: `ReadOnlyLayout` sections, `RecipeTabViewModel` categories. That is fine because the language is set first and never changes. `RecipeRules` (exclusion reasons, reference kinds), `RecipeGrouping` and `ObjectTypes` pick the text at call time (refactor 2026-10-16).
+- Unset `Lang` means Chinese, so existing tests assert Chinese text. English tests wrap code in `using (Lang.Override(UiLanguage.English))`, which is `AsyncLocal`-scoped and does not affect parallel tests.
+  - Statically cached texts listed above stay Chinese inside an override.
+- The libraries do not use `Lang`. `Zevision.Communication` outputs English only (user request) plus typed errors; `Zevision.Commands` keeps Chinese and English as data and takes a `TextLanguage` parameter (`GetName`, `GetLabel`, `GetRangeText`, `GetIndexNames`, `LabelFor(id, language, description)`, `Unit`/`Remark`/`CommandOption.Text` are `BilingualText`; exceptions are English). The app picks the UI language in two adapters in `Localization/`:
+  - `CommandText`: extension methods with the old names, `definition.Name()`, `Label()`, `RangeText()`, `IndexNames()`, `UnitText()`, `RemarkText()`, `LabelFor(id, description)`, `option.TextValue()`, `bilingual.Value()`, `CommandText.ObjectKind(group)`. Dropdowns bind `Services/ParameterOption` (Value, Text, Label in the UI language), built from `CommandOption` by `ParameterOption.From`.
+  - `CommunicationText`: `Describe(ZevisionError, command)` gives exactly the pre-split Chinese/English messages per `ZevisionErrorKind`; `code.Localized()` for `ZevisionErrorCode` (the library's `Describe()` is English) and for `FrameError` (also used by `FrameLogFormatter` and the "响应帧无效" message, which showed the English enum name before 0.9.6); `ValidateCommand`/`ValidateValue` localize `ProtocolText.CheckCommand`/`CheckValue`. Unit-tested in `CommunicationTextTests`.
+- Command names: `CommandDefinition.ChineseName` matches the U-command xlsx. `EnglishName` is the device `?` help-table DESCRIPTION, extracted from the real capture into `ZevisionCommandSet.EnglishNames`.
+  - A handful of entries were filled in by hand: add-by-number, list nodes, and the ones missing from the capture.
+  - `LocalizationTests` checks them against the capture and checks that no English text (names, units, remarks, options, ranges, `UiText`) contains Chinese.
+  - Units, remarks and option texts go through `ZevisionCommandSet.Localize` and its `Translations` map.
+  - English labels:
+    - `LabelFor(id, deviceDescription)` prefers the row's own device DESCRIPTION.
+    - A unit is appended only when the English name has no "(...)" yet; device descriptions usually include the unit, e.g. `Density (g/cm^3)`.
+    - The English tooltip omits the separate "设备说明" line.
+- Layout must fit the longer English text:
+  - The editor category tabs use `TabAssist.HasUniformTabWidth="False"`, and the I/O tab is named "I/O".
+  - The Connect/Disconnect buttons use `Padding="8,4"`.
+  - The English header subtitle is "IMC300 Comm Test".
+- User guides: `docs/USER_GUIDE.md` (Chinese) and `docs/USER_GUIDE.en.md` (English). Both ship (see `docs/RELEASE.md`).
+- Off-screen UI checks: do not instantiate `Zevision.App` in a harness. Its `OnStartup` runs once the dispatcher loop starts, which re-detects the language and runs the single-instance check, closing the harness window when the user's instance is running. Use a plain `Application` with the same `BundledTheme` + `MaterialDesign3.Defaults` dictionaries.
+
+## Hard constraints
+
+- Target framework is .NET Framework 4.7.2, not .NET 8. Do not use ASP.NET Core, Minimal APIs, EF Core, MediatR, or any BCL API that is not in 4.7.2. Check API availability before using it.
+- All csproj files (app, both libraries, tests, sample) are the legacy non-SDK format. Each has its own `Properties/IsExternalInit.cs` where it uses `record`/`init`. Add new `.cs` files with `<Compile Include=...>` entries. Prefer NuGet `PackageReference` (supported in legacy projects) over `packages.config`.
+- Language version: all csproj files pin `<LangVersion>9.0</LangVersion>` (raised from 8.0 in the 2026-10-16 refactor). C# 9 is the newest version the VS 2019 compiler (MSBuild 16.11) supports; do not raise it further without moving to VS 2022. `Properties/IsExternalInit.cs` is the shim that makes `record` and `init` work on .NET Framework 4.7.2. Immutable DTOs are positional records (`QueryValue`, `RestoreWrite`, `RestoreCreate`, `RestorePlan`, `RestoreProgress`); DataContract types (`InstrumentRecipe`, `RecipeEntry`, `ConnectionPreferences`) stay classes. C# 10+ syntax (file-scoped namespaces, primary constructors, `required`) is not available. CommunityToolkit.Mvvm source generators need Roslyn 4 (VS 2022), so they are not used.
+- Nullable reference types (`<Nullable>enable</Nullable>`) are the target for new code. Do not suppress nullable warnings without a comment explaining why.
+- The `csharp-developer` skill is written for .NET 8 web apps. Use only its general rules: DI, `CancellationToken` forwarding, XML docs on public APIs, no blocking on async code, no ignored analyzer warnings, and a Result type for expected failures. Ignore its ASP.NET, Minimal API, EF Core, and DTO guidance.
+
+## Commands
+
+- Release: `-p:Configuration=Release` sets `TreatWarningsAsErrors`. What to ship is listed in `docs/RELEASE.md`; the end-user guide is `docs/USER_GUIDE.md`.
+- If the user has `bin\Debug\Zevision.exe` running, the build fails on the locked file; build with `-p:OutDir=<scratch dir>\` instead.
+- Restore and build: `MSBuild.exe Zevision.sln -restore -t:Rebuild -p:Configuration=Debug` (VS 2019 Community MSBuild 16.11 at `C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\MSBuild.exe`). Output: `bin\Debug\Zevision.exe`. Verified: builds with 0 warnings and 0 errors. Use the `-` switch form; in Git Bash, `/restore` and `/p:` get rewritten as paths.
+- Run: F5 in Visual Studio, or launch `bin\Debug\Zevision.exe`.
+- Requires Windows and the .NET Framework 4.7.2 targeting pack.
+- NuGet: `MaterialDesignThemes` 5.3.2, `MaterialDesignColors` 5.3.2 (both support net462, so they load on 4.7.2), and `Microsoft.CodeAnalysis.NetAnalyzers` 10.0.402 (`PrivateAssets="all"`). The analyzers load in the VS 2019 build; keep them at warning-clean.
+- Tests: `Zevision.Tests/` (legacy csproj, xUnit 2.9.3, references `Zevision.csproj` and both libraries; `InternalsVisibleTo("Zevision.Tests")` in all three) is built by the solution build. Run all tests with `%USERPROFILE%\.nuget\packages\xunit.runner.console\2.9.3\tools\net472\xunit.console.exe Zevision.Tests\bin\Debug\Zevision.Tests.dll`. Run one test class with `-class Zevision.Tests.ZevisionFrameDecoderTests`, or one test with `-method <fully qualified name>`. There is no .NET SDK on this machine, so `dotnet test` does not work. `xunit.runner.visualstudio` is not installed, so the tests do not appear in VS Test Explorer.
+- No linter/formatter is configured.
+- Not a git repository.
+
+## Material Design
+
+- Use the `MaterialDesignThemes` and `MaterialDesignColors` NuGet packages. Pick a version that supports net472 and verify it on NuGet before adding it.
+- Define the theme once, in `App.xaml` `ResourceDictionary.MergedDictionaries`, not per window. Verify the theme dictionary paths against the installed package version.
+- Use theme resources (`DynamicResource`) for colors and brushes. Do not hard-code hex colors in views.
+- Fonts: the windows do not set `FontFamily`, so the UI uses the system default font (decided by the user; the Material Design Roboto font was removed). Only data that must align uses a monospace font: Consolas for the log, the command input and the value/ID columns of the editor.
+
+## Architecture
+
+Data flow: `MainViewModel` → `IDeviceService` (`ZevisionDeviceService`, app adapter) → `ZevisionClient` (library) → `IDeviceTransport` (`SerialPortTransport` or `TcpTransport`). Received bytes go through `ZevisionFrameDecoder`, then `ZevisionResponseParser`.
+
+Libraries (split 2026-10-16, user request: "只做指令生成, 通讯数据传输/解析", no logging, English output, communication parameters passed at construction):
+- `ZevisionClient(ConnectionOptions options[, transportFactory])`: one instance per device and options; `ConnectAsync(ct)`, `DisconnectAsync()`, `SendAsync(command[, minimumResponseTimeout], ct)`; reconnect with the same options is allowed; after `Dispose` `ConnectAsync` throws `ObjectDisposedException`. It holds what used to be in `ZevisionDeviceService` (session, read loop, echo correlation, idle timeout, filler, partial-frame flush).
+- Results are `ZevisionResult`/`ZevisionResult<T>` with `ZevisionError` (`Kind`: AlreadyConnected, ConnectFailed, NotConnected, InvalidCommand, SendFailed, Timeout, Disconnected, InvalidFrame, UnparseableResponse; English `Message`; data: `Exception`, `Endpoint`, `Timeout`, `ReceivedIncompleteData`, `FrameError`, `DataLength`). The app's `Models/Result` stays app-only.
+- No logging in the libraries: an unexpected read-loop exception ends the session and is passed in `ConnectionLost`; an exception from an event handler is passed in the `HandlerFailed` event (exceptions from `HandlerFailed` handlers are ignored). The send semaphore is deliberately not disposed (disposing it would strand queued senders).
+- `TcpTransport` throws `TimeoutException` (not `IOException`) for the 5 s connect timeout, so the app can show its own text.
+- `ZevisionDeviceService` (app) implements `IDeviceService` on top: it creates a new `ZevisionClient` per `ConnectAsync` (detaching and disposing the previous one), forwards the events with itself as sender, maps errors through `CommunicationText.Describe`, and writes non-I/O `ConnectionLost` exceptions and `HandlerFailed` to `IErrorLog` (same entries as before the split).
+- `LibraryBoundaryTests` guards the split: referenced assemblies (Communication: mscorlib/System/System.Core; Commands: + Zevision.Communication), no CJK in the Communication `#US` string heap, no file/trace types in its `#Strings` heap, English exception messages in Commands. `ZevisionClientTests` covers the library API directly; `ZevisionDeviceServiceTests` still covers the protocol behavior through the adapter.
+- `FrameDisplayFormatter`/`DisplayFormat` (display only) stay in the app under `Communication/`.
+
+View models are split by responsibility:
+- `MainViewModel`: connect/disconnect, sending manual commands, frame events, preferences, language switch. Exposes `Connection`, `SendOptions`, `Log` and `Config`.
+- `ConnectionSettingsViewModel` (`MainViewModel.Connection`; split out in the 2026-10-16 refactor): the left-panel settings (connection type/tab, ports, baud rate, IP, checksum/length switches and their G-item labels, timeout, "保存通讯数据") plus `QuickCommands`, `RefreshPorts`, `CreateOptions()` (`Result<ConnectionOptions>`; failure text is the "select a port / enter the IP" message), `DescribeConnected`, `Apply`/`WriteTo` for `ConnectionPreferences`. The `ConnectionType` enum lives in this file. XAML binds `Connection.X`; `RefreshPortsCommand` stays on `MainViewModel` because it depends on `IsConnected`.
+- `LogViewModel` (`Log`): the display collection (`LogEntryCollection`), error entries mirrored to error.txt, batch trimming.
+- `ConfigOperationsViewModel` (`Config`): save/restore/edit flows, `IsBusy`, progress, cancel and per-phase time limits. Takes `Func<bool> isConnected`.
+- Pure text builders, testable without UI: `FrameLogFormatter` (frame → `LogEntry` lines), `RestoreMessages` (confirm/success/failure dialog texts) and `RecipeEditorMessages` (all editor dialog texts).
+- `OperationRunner` (`ConfigOperationsViewModel.Operation`, `RecipeEditorViewModel.Operation`): the shared busy state of a long device operation (`IsBusy`, `Text`, `Progress`, `IsIndeterminate`, `Current` timeout). `RunAsync(phase, text, operation, onCancelled)` creates the `OperationTimeout`, always resets the state in `finally`, and routes `OperationCanceledException` to `onCancelled` (`DescribeCancel` gives the timeout message or "已取消。"). `CreateProgress(suffix)` maps `RestoreProgress` to the bar. The XAML binds `Config.Operation.Text` / `Operation.Text` etc.; the owners keep a forwarding `IsBusy` that re-raises their dependent properties.
+- `ViewModelBase` helpers: `OnPropertiesChanged(params names)` for computed properties and `RefreshCommands()` (wraps `CommandManager.InvalidateRequerySuggested`).
+
+- Serial line format is fixed at 8N1. `SerialSettings` takes only the port name and baud rate, because the IMC300 exposes only the baud rate (G1303). The UI has no data-bits, parity or stop-bits options.
+- Manual input supports multiple commands in one frame (`QG01;QG1304;QG1305`).
+  - `ManualCommandPolicy.Split` splits on `;`, full-width `；` and line breaks (the input box is multi-line: Enter sends, Shift+Enter inserts a line break, handled in `MainWindow.OnCommandInputKeyDown` because a `KeyBinding` on Enter would compete with `AcceptsReturn`), trims, and drops empty segments. The segments are re-joined with `;` and sent as one frame.
+- Send options (`ViewModels/SendOptionsViewModel`, `MainViewModel.SendOptions`; user request 2026-10-16). They sit in the command-input card, to the left of the quick commands (moved there from the left panel at the user's request), so they stay usable while connected.
+  - Display format `DisplayFormat` (`Communication/DisplayFormat`: Ascii default = the original output, Hex 32 bytes/line, Binary 16 bytes/line, whole frame byte by byte). Stored in a `volatile` field because `OnFrameSent`/`OnFrameReceived` read it on the background thread; it applies to frames formatted after the change.
+  - Sending keeps the input text (user request; it used to be cleared). Before sending, `ManualCommandPolicy.ToUpperCommands` upper-cases the command part of each command (up to the first `:`; data after it, up to `;`/`；`/line break, is untouched because it may be a name) and the box shows the converted text. The device answers lowercase commands with `-A`. Repeat send uses the text captured at the click.
+  - Repeat send: `RunAsync(exchange, canContinue)` sends, waits `RepeatInterval` (100–2000 ms, list only) after each reply or timeout, and repeats until `Stop` (Stop button replaces Send), unchecking, disconnect or connection lost. The exchange in progress is never cancelled (cancelling would leave a stale reply); only the delay is. Only the Send button repeats, not quick commands.
+  - While repeating, quick commands and configuration operations are disabled (`ConfigOperationsViewModel` gets `() => IsConnected && !SendOptions.IsRepeating`), because their commands would interleave.
+  - All three are stored in `settings.json` (`displayFormat`, `repeatSend`, `repeatIntervalMs`).
+- Closing while connected or connecting (`MainViewModel.HasConnection`): `MainWindow.OnClosing` cancels the first close and awaits `MainViewModel.CloseConnectionAsync`, then closes again. A second close request during that time is ignored (`_closing`).
+  - `CloseConnectionAsync` waits for a pending connect (otherwise the communication data file opened on success would never be closed), then `Config.CancelAndWaitAsync()` (cancels the running save/restore/edit and waits for the whole command; meanwhile no dialogs or editor window are shown, results go to the log only), then disconnects (stops repeating, finishes and closes the communication data file).
+  - The language switch awaits the same method before `RestartRequested`, because `Application.Shutdown` does not raise `Closing`.
+- Release hardening (2026-10-16 review):
+  - `App.OnStartup` wraps creating the view model and window: a failure is logged, shown and ends the process with `Shutdown(1)`. Otherwise an invisible process would keep the single-instance mutex and every later launch would exit silently.
+  - `SingleInstance.Acquire` treats `UnauthorizedAccessException` (instance running elevated) as "already running"; `ActivateExistingInstance` skips processes that exit during enumeration.
+  - `FileErrorLog` rotation failures (error.1.txt locked) no longer stop appending.
+  - `ZevisionClient` (was `ZevisionDeviceService`): `_pending` is set under the same lock as the session check, so a session ended between taking the send lock and sending fails at once instead of waiting for the timeout; `ObjectDisposedException` from a write on a transport closed by the read loop becomes `SendFailed` ("发送失败").
+  - `ZevisionFrame.Payload` is decoded once and cached (the ~116 KB `?` reply was decoded twice: echo matching and parsing).
+  - The editor filter auto-expands matching groups only when there are at most `RecipeEditorViewModel.MaxAutoExpandGroups` (20); short filters such as "0" used to expand hundreds of non-virtualized groups.
+  - `RecipeFile` IDs must be hex pairs (`^[A-Z](?:[0-9A-F]{2})*$`), matching what `ZevisionCommandSet.Build` accepts.
+  - The "保存通讯数据" switch is `MainViewModel.IsSaveCommunicationDataEnabled` / `ConnectionPreferences.SaveCommunicationData`; the JSON key stays `rawCaptureEnabled`.
+  - `ResponseLogFormatter.Format` (pure, unit-tested) shows one parsed line per response (`ID = data`, `ID ✓`, or the error code). It checks the echo against `ZevisionResponseParser.EchoOf(segment)` and flags count mismatches. A single command only logs errors, because the RX line already shows the reply.
+  - `ZevisionClient.SendAsync` drops the extra `H01` response produced by the delimiter-avoidance filler.
+- `?` (including group help such as `?M`) is allowed for manual input for debugging; the ban was lifted at the user's request on 2026-10-16. It is not offered as a quick command.
+  - When a manual frame contains `?` (`ManualCommandPolicy.ContainsHelpCommand`), it is sent with the `InstrumentConfigReader.SlowReplyTimeout` minimum and an info line warns that the full reply takes about 10 s.
+
+- `Zevision.Communication/` and `Zevision.Commands/` (libraries, no WPF dependency):
+  - `ZevisionFrameCodec` encodes frames and computes the checksum. `FrameDisplayFormatter` (app, `Communication/`) turns raw bytes into display text.
+  - `ZevisionCommandSet` (+ `CommandDefinition`) is the command set and the single source for every command's pattern, actions, Chinese name, unit, range and options. It is built from the protocol doc §4 and the U-command xlsx, and real-device deviations are commented in the table.
+    - Patterns use `**` for one 2-hex level. The first level is the object number (material in `M**03`, film in `F**02`, process in `P02**01`); later levels are sub-list numbers (`F**03**01`).
+    - API:
+      - `TryGetGroup("M0103", out g)` → `CommandGroup.M`.
+      - `GetCommands(CommandGroup)` lists a group's commands.
+      - `Find(id)` picks the most specific pattern, so `MFE` resolves to the count and `M03` to `M**` (add).
+      - `definition.Build(CommandActions.Update, "2.700", 1)` → `UM0103:2.700`. Indices are decimal (1–253) and are written as hex.
+    - **All app-generated commands go through the command set**:
+      - `ZevisionCommandSet.Query(id)`, `Update(id, value)` and `Add(id)`, or `Build(action, id, value)`, are used for quick commands, `QueryAsync`/`QueryValueAsync`, `RestoreWrite.Command` and the planner's `A…` creates.
+      - `HelpCommand` (`?`) is used by `ReadSnapshotAsync` and `ManualCommandPolicy` (to detect help commands).
+      - `Build(action, id, value)` checks the ID format (`^[A-Z](hex pairs)*$`) and, when the ID is defined, that the action is supported. Undefined IDs (Weight, Ramp Time, other T items…) pass so the device decides. Do not concatenate `"Q" + id` by hand.
+      - The only exception is the frame-level filler `ZevisionFrameCodec.FillerCommand` (`H01`).
+    - `Build` throws `ArgumentException` for an unsupported or combined action, a missing or extra value, bad characters, or a wrong index count. It does not check value ranges; that is `Services/ParameterValue`.
+    - `CommandActions.None` is for H01/H02/E.
+    - The logic group T has no documented commands. Only the basic IO logic from the device help table is defined (user request, 2026-10-16): `T0101**` (Input n: Basic Event) uses the §4.9 input functions and `T0102**` (Output n: Basic Action) the §4.8 output functions, so both are dropdowns in the 逻辑 tab. Their first `**` is the input/output number, not an object, so `LabelFor` shows it ("输入 3 · 基本事件"; `FirstIndexIsObject` is true only for `X**…` and `P02**`). The English device description already carries the number ("Input 3: Basic Event") and is used as is. Note: on the real capture O0103 = 1 while T010201 = 0, so `O**03` (Assigned) is not simply a mirror of T0102**.
+    - `F**0907` (Max Power Option) is a dropdown: 0=Continue, 1=Post deposit, 2=End the process, 3=Suspend process (user-supplied).
+    - `?` is not in the set.
+    - `ZevisionCommandSetTests` reads the xlsx (zip + XML, copied to `TestData\U_commands.xlsx`) and fails if a U row is missing, not updatable, or renamed. It also round-trips every ID of the real help table through `ParseIndices`/`FormatId`. When the xlsx changes, update the table.
+  - `ProtocolText` is the single place for what text may go into a frame: `CheckCommand` (printable ASCII, no `{ }`) and `CheckValue` (also no `;`) return `ProtocolTextError` and the offending char; `ValidateCommand`/`ValidateValue` return English text. The codec, `ZevisionCommandSet.Build`, the restore planner and `ApplyEditsAsync` use it; the editor rows use `CommunicationText.ValidateValue` (localized).
+  - `ZevisionFrameDecoder` is a byte-stream state machine. It handles partial frames, multiple frames per read, garbage bytes, and length/checksum modes, and reports problems as `FrameError` values instead of throwing.
+  - `ZevisionResponseParser` splits responses on `;` into `ZevisionResponse` objects with typed `ZevisionErrorCode` values.
+  - `IDeviceTransport` (`OpenAsync(ConnectionEndpoint)`, `ReadAsync`, `WriteAsync`, `Close`) is the transport abstraction that tests fake (`FakeSerialTransport`).
+    - The endpoint is a `ConnectionEndpoint`: `SerialSettings` or `TcpSettings` (host, port). The device port is fixed at 2101 (`TcpSettings.DefaultPort`). The UI only asks for the IP address; `ConnectionSettingsViewModel.TcpPort` is internal and changed only by tests, which need a loopback port. It is not stored, and an old `tcpPort` in `settings.json` is ignored.
+    - `DeviceTransports.Create(endpoint)` picks `SerialPortTransport` or `TcpTransport`. `ZevisionDeviceService` takes that factory (the `App` composition root passes `DeviceTransports.Create`) and hands it to each `ZevisionClient`, which creates one transport per connection. A second constructor takes a fixed transport instance for tests.
+    - Framing, decoding, timeouts, capture and echo correlation are identical for both transports.
+  - `TcpTransport`:
+    - `TcpClient` with `NoDelay` and a 5 s connect timeout (`TimeoutException`). A `SocketException` is rethrown as `IOException`, so the app reports `无法连接 <host:port>: …`.
+    - TCP keep-alive is set via `SIO_KEEPALIVE_VALS` (5 s idle, 1 s interval), so a pulled cable ends the read loop with `ConnectionLost` in about 15 s instead of never.
+    - A remote close makes `ReadAsync` return 0, which the read loop turns into `ConnectionLost`.
+    - Reads use `Socket.ReceiveAsync(SocketAsyncEventArgs)`, not `NetworkStream.ReadAsync`. `Close` sets `_closed` and closes the client, so the pending receive completes with `OperationAborted`. That completion is mapped to a normal 0-byte result, and the read loop then exits quietly because it treats `count == 0` after cancellation as shutdown.
+    - Why not `NetworkStream.ReadAsync`: closing the stream made the pending read end with a first-chance `ObjectDisposedException` on every exit. The user reported this from the VS Output window on 2026-10-16. `Shutdown` does not complete a pending read on Windows, so it was not an option.
+    - Disconnecting TCP produces no first-chance exceptions. Serial still produces the documented handled `IOException`.
+    - The UI is a header-only `TabControl` (RS232 | TCP) bound to `Connection.ConnectionTabIndex`, which maps 0/1 to `ConnectionType`. The selected tab decides which transport `ConnectAsync` creates. The whole panel is disabled while connected.
+    - Both settings panels sit in one Grid below the tabs, and the unselected one is `Hidden`, not `Collapsed`. The area therefore always has the height of the taller RS232 panel, and "协议选项" and the rest stay in place when switching (user request). Do not change it back to tab content or `Collapsed`.
+    - Over TCP the device uses G1406 (protocol type, must be 0 = Zevision), G1407 (checksum) and G1408 (length). The UI labels and the last two quick commands switch between G1304/G1305 and G1407/G1408 with the connection type. Not yet run against a real device over Ethernet; tests use a loopback `TcpListener`.
+- Configuration service interfaces (`Services/IInstrumentConfigService.cs`): `IInstrumentConfigReader` (`ReadSnapshotAsync`, `ReadGroupAsync`, `QueryAsync`; only `?` and `Q`), `IInstrumentConfigWriter` (`ExecuteRestoreAsync`, `ApplyEditsAsync`, `CreateObjectAsync`, `DeleteObjectAsync`, `AppendListItemAsync`, `RemoveLastListItemAsync`) and `IInstrumentConfigService : reader, writer`. Device-free work is not on the service: `InstrumentSnapshot.ToRecipe(savedAt)` builds a recipe (`RecipeRules.SelectRestorable`, shared with `ReadGroupAsync`) and `RestorePlanner.Plan` is called directly. `RecipeEditTarget` and `InfoPageViewModel` depend only on the reader. `Services/InstrumentConfigReader` (also home of `SlowReplyTimeout` and `QueryBatchSize`) is the base class of `InstrumentConfigService`, which uses its protected helpers (`CheckDeviceReadyAsync`, `QueryValueAsync`, `ReadListCountAsync`, `SendExpectingSuccessAsync`).
+- `CheckDeviceReadyAsync` queries G03 and C09 in one frame (`QG03;QC09`, refactor 2026-10-16). Each writer method checks once at its start: `CreateObjectAsync` creates the object and sets its default reference (`ObjectType.NewDefault`: append a list item and/or write + read back) after a single check, so a new layer is 7 frames instead of 12. Removing a middle list item still checks twice (`ApplyEditsAsync` for the shift, then `RemoveLastListItemAsync`).
+- `InstrumentConfigReader` sends every single command through `SendForResponseAsync` (first response; communication failure, no response and device rejection with the raw error code all become a failed `Result` whose message can be shown), with `SendForDataAsync` (requires data, used by `?` and `?X`) and `SendExpectingSuccessAsync` on top. Multi-command query frames (`QueryAsync` batches, the ready check) go through `SendQueriesAsync`, which matches responses by echo. Callers only add their own prefix.
+- `ZevisionClient` (library; the app reaches it through `Services/ZevisionDeviceService`):
+  - One background read loop per connection (`Session`).
+  - Slow replies use a minimum idle timeout. `SendAsync(command, minimumResponseTimeout, ct)` waits at least that long; the longer of the connection timeout and the minimum wins.
+    - `InstrumentConfigReader.SlowReplyTimeout` (2 s) is used for `?` and for batched `QueryAsync` frames.
+    - Real captures show `?` takes about 380 ms to its first byte and about 350 ms between 57000-byte packets, so a 500 ms user setting was too tight.
+    - The batch-query processing time is not yet measured.
+  - `SendAsync` is serialized by a `SemaphoreSlim`. It sets a `TaskCompletionSource` as the pending request, writes the frame, and waits. `ResponseTimeout` is an idle timeout, measured from the send or the last received byte, so large replies (for example `?` help) can take seconds to arrive at 115200 bps without timing out. Keep it idle-based.
+  - `ConnectionOptions` (endpoint, frame options, response timeout) is passed to the `ZevisionClient` constructor; there is no mutable configuration. The app's `IDeviceService.ConnectAsync(options)` keeps its signature and creates a client per connection.
+  - Echo correlation: the pending request stores `ZevisionResponseParser.EchoOf(command)`. A frame completes it only if `IsReplyTo(frame, echo)`: same echo (case-insensitive), or undecidable (invalid frame, unparseable, echo-less `-C`). Anything else is a stale reply (for example the tail of a cancelled `?`) and is shown as unsolicited instead of being taken as the answer.
+  - The read loop has a catch-all: an unexpected exception ends the session with `ConnectionLost` (carrying the exception) instead of killing the process. Event subscribers are invoked through `Raise`, which reports subscriber exceptions through `HandlerFailed` so they cannot break the loop. The app adapter logs both to error.txt.
+  - Events (`FrameSent`, `FrameReceived`, `ConnectionLost`) fire on background threads.
+  - `ConnectionLost` fires only on unexpected read failure, never on `DisconnectAsync`.
+- `.NET Framework` `SerialPort.BaseStream.ReadAsync` ignores its `CancellationToken`. A pending read ends only when the port is closed, so `EndSession` cancels first and then closes the transport. The read loop treats any exception after cancellation as a normal shutdown.
+  - Consequence: disconnecting or exiting while connected always produces a **handled** first-chance `IOException` (ERROR_OPERATION_ABORTED) in the VS Output window. This is expected; do not "fix" it by switching to `DataReceived`, which would lose USB-unplug detection, since that relies on the read throwing.
+  - `SerialPortTransport.Close` swallows IOException/UnauthorizedAccess/InvalidOperation from `Close()`/`Dispose()`, which can happen when the adapter was already unplugged.
+  - `App.OnExit` runs each cleanup step (save preferences, dispose VM, dispose service) independently through `RunOnExit`, which logs failures to error.txt.
+- `ViewModels/`:
+  - `MainViewModel` captures the UI `SynchronizationContext` in its constructor and posts all service events through it. Frame formatting (`FrameLogFormatter`) happens before posting.
+  - `AsyncRelayCommand` is the only place with `async void`. It disables itself while running and routes exceptions to an error callback.
+  - No references to `System.Windows.Controls` or `Window`.
+- Log display is built for large replies. Do not put a whole frame into one `LogEntry`, because one huge wrapped `TextBlock` defeats virtualization.
+  - `FrameDisplayFormatter.ToDisplayLines` splits the data ranges on CR/LF and wraps lines at 160 chars. Bytes outside the data ranges (length, checksum, `>`/`<` packet markers) are always escaped. HEX/Binary formats split by a fixed byte count instead.
+  - Each line after the first is a `LogEntry` with `IsContinuation = true`.
+  - Formatting runs on the background thread before posting to the UI.
+  - `LogViewModel` caps the log at 20000 entries and trims 2000 at a time with `LogEntryCollection.RemoveFirst` (one `Reset` notification instead of 2000 `Remove`s).
+  - Auto-scroll is coalesced to one `ScrollIntoView` per batch and only happens while the user is at the bottom; scrolling up pauses it, scrolling back to the end resumes it (`MainWindow.OnLogScrollChanged`).
+- `Views/`: XAML plus code-behind for view-only behavior: coalesced auto-scroll and Ctrl+C copying of selected log lines.
+- `Models/`: `Result`/`Result<T>` for expected failures, `LogEntry`/`LogKind` for the display, `ConnectionPreferences`, and `InstrumentRecipe`/`RecipeEntry` (the recipe file DataContract).
+- Instrument configuration save/restore (the "保存配置"/"恢复配置" buttons, enabled only while connected and not busy):
+  - Snapshot: `InstrumentConfigService.ReadSnapshotAsync` sends `?`, and `Zevision.Communication/HelpTableParser` parses the fixed-width table. Column positions come from the `[VALUE]`/`[DESCRIPTION]` header; values may contain spaces.
+  - What is saved: `Services/RecipeRules` is the single place deciding which IDs are saved and restored. Items the command set defines as query-only (N**08, N**1F) are excluded ("只读项"); older files containing them are skipped on restore. It uses a group whitelist (M F L P N S T I O, plus G0E/G0F/G12) and regex exclusions for counts (`*FE`), status values, and physical actions (shutter, crucible, relay outputs). Communication settings (G13/G14) and C (process control) are never restored. The rules are inferred, not device-verified.
+  - Restore: `Services/RestorePlanner.Plan` is pure (no device I/O). It refuses a different device model or C09 ≠ `Ready`, warns on a firmware difference, writes only changed values sorted by `RecipeRules.GroupRank` (`N S I O T G M F L P`), and skips IDs that are missing on the device, excluded, or unsendable.
+  - `ExecuteRestoreAsync` runs in a fixed order, as decided by the user:
+    1. System settings (`RecipeRules.IsSystemSetting`: N S I O T G).
+    2. Create rounds (`A…`, re-read, re-plan).
+    3. Material → film → layer → process settings. System writes that reappear in the re-plan are not written twice.
+    4. Read back every write with `Q<id>`.
+  - Writes use `U<id>:<value>` and stop at the first rejection, with no rollback. `RestoreReport.FailedDuringCreate` tells create-stage failures apart from write failures.
+  - Skipped items (`RestoreSkip`) carry the id, file value, description and reason, and are listed directly (up to 20) in the confirm and completion dialogs. Items still unwritable after creation (`AdditionalSkipped`) are logged as ERROR, so they also reach error.txt.
+  - Deleted objects are re-created.
+    - When the file has settings for a material, film, layer or process that no longer exists on the device, `RestorePlanner.Plan` puts it in `Creates` (`ObjectTypes.TryGetObject`).
+    - `ExecuteRestoreAsync(recipe, plan, …)` sends `A<id>` in M→F→L→P order (for example `AM03`). The doc defines this for materials; for F/L/P it is inferred.
+    - It then re-reads `?` and re-plans, because new objects carry device defaults and their sub-list sizes are decided by the device.
+    - It stops if a created object does not appear under the expected ID.
+    - Confirmed on the device: `AM01`–`AM03`, `AF01` and `AF02` all succeeded.
+  - Missing sub-list items are appended.
+    - A film created with `AF01` starts with empty pre/post-condition lists (`F0103FE = 0`). `TryFindSubListAppend` walks up to the first missing ancestor, **including the setting itself**, and appends with `A<list>00`. A setting can itself be a leaf list item: a process layer entry such as `P02010701` (Layer = 1) is appended with `AP02010700`; missing this case once skipped 8 process-layer entries, which the device's own help table defines ("Add or Delete … from the end of the list"). This only happens when existing items are numbered contiguously from 01.
+    - `ExecuteRestoreAsync` loops "create → re-read → re-plan" for up to `MaxCreateRounds` (4) rounds, because nested lists only appear after their parent exists. It stops when a created ID does not appear.
+    - Objects or items that exist on the device but not in the file are never deleted.
+  - Reference values (`RecipeRules.TryGetReference`): F??02 → material M{hex}, and L??02??01 → film F{hex}.
+    - A changed value that references an object that neither exists nor will be created is skipped. The device would answer `B`, which is the real incident: `UF0302:3` after M03 was deleted.
+    - The check runs only for values that differ from the device.
+    - P02??07?? is not used as a layer reference for restore: the device holds 31/32/33 while only L01–L09 exist. (Processes do contain layers; the delete check uses it, see New/Delete objects.)
+  - Files: `Services/RecipeFile` writes indented UTF-8 JSON (`formatVersion` 2) via `DataContractJsonSerializer`, using a temp file plus replace, and validates on load.
+  - Integrity check (`md5` field):
+    - `RecipeFile.ComputeMd5` hashes a canonical encoding of all data fields, not the raw JSON, so reformatting the file does not break it. Each field is written as `<UTF-16 length>:<value>\n`, and `null` is written as `-1:`. The field order is fixed: header, entry count, then id/value/description per entry.
+    - `Load` verifies the MD5 before any other content check and refuses format-1 files, which have no checksum, asking the user to re-save.
+    - Changing the encoding requires bumping `CurrentFormatVersion`. The reference values in `RecipeFileTests` were computed independently with Python `hashlib`.
+    - MD5 only detects accidental edits; deliberate tampering would need a keyed signature such as HMAC.
+    - `MD5.Create()` throws under a Windows FIPS policy. This is reported as a save/load error.
+- Edit configuration: the "修改" button sits on its own row behind a source dropdown (`ConfigOperationsViewModel.EditSource`: 实机数据 `Device`, the default, or 保存的配置 `File`). It is enabled while connected and not busy.
+  - `File`: `EditAsync` loads a recipe through `RecipeFile.Load`, so the MD5 must be valid. Values come from the file, writes go to the device, and on success the file is saved and the window closes (`CloseRequested` is raised after `IsBusy` is reset; raising it earlier made the window's `CanClose` check cancel the close).
+  - `Device`: `EditAsync` reads `?` inside `RunOperationAsync` (progress, cancel, 60 s limit). After the operation ends, it builds an in-memory recipe with `InstrumentSnapshot.ToRecipe` and opens the editor with `path = null`.
+    - On success nothing is saved to a file.
+    - After a successful save (Device source) the page is rebuilt from the updated recipe (`BuildView`; saved rows are unchecked by `Commit`, so nothing unsaved is lost; selected tab, expanded groups and filter are kept). This refreshes group titles ("材料 M01  Al") and every reference drop-down that shows names (user request: a renamed layer in the process layer drop-downs, a renamed film in the layer film drop-downs, a renamed material in the film material drop-down). New/Delete/list changes rebuild the page anyway.
+    - The recipe values and rows are committed and the window stays open for further edits. `CompletionMessage` accumulates the count.
+    - Confirm and failure texts drop the file wording.
+  - Both modes open `Views/RecipeEditorWindow` modally via `IDialogService.ShowRecipeEditor(object)`.
+  - Two top-level tabs:
+    - "信息"/"Information" (read-only items; renamed from 只读/Read-only at the user's request): `Services/ReadOnlyLayout` sections (device info, RS232, process status C09–C21, object counts, and per N/S/I/O object from the file: position, shutter, XIU, assigned function, states). Values are filled in two ways:
+      - `Device` source: `Info.ApplySnapshot` (`ViewModels/InfoPageViewModel`, the editor's `Info`) fills them from the `?` snapshot that was just read, with no extra traffic. Re-querying them right after `?` was a duplicate read the user spotted.
+      - `File` source: they are read live with `IInstrumentConfigService.QueryAsync` (batched `Q` frames of `QueryBatchSize` = 20) when the window opens.
+      - "刷新" always queries live. `RecipeEditorViewModel.Dispose` cancels a pending read.
+    - "设置"/"Settings" (writable items; renamed from 可写/Writable): sub-tabs per category built by `RecipeTabViewModel.Build` (系统 G, 材料 M, 膜 F, 层 L, 工艺 P, 传感器 N, 源 S, 输入输出 I+O, 逻辑 T). Inside, entries are grouped per object with `Services/RecipeGrouping` (key = group letter + first ID level, or `P02xx`), ordered like restore, with the object's Name in the title. Tabs with ≤ 3 groups start expanded.
+    - Process control (C), G0A, G11, G13 and G14 are never editable (user decision); they are not in recipes anyway.
+  - New/Delete objects (user request, 2026-10-16), with both sources (File source added at the user's request; see "File source" below) and only for M, F, L and P (`Services/ObjectTypes`; L added at the user's request):
+    - `ObjectTypes` (refactor 2026-10-16) is the single table of creatable objects: group letter, ID prefix (`P02` for processes), the sub-lists the editor can change (`ObjectList` + `ObjectListStyle`: header +/− buttons, with an empty-list row for the layer film list, or item rows with remove buttons and an add row for process layers) and the default reference set on New (`ObjectDefault`: referenced group, optional list to append to, setting suffix). It also gives `TryGetObject` (setting → owning object), `OfObjectId`, `GroupKey` (editor groups) and `NextFreeId`. `RecipeRules` reference rules target `ObjectType`s. Changing an object rule means changing this table, not switch statements.
+    - IDs are composed with `Services/DeviceIds` (`Item`, `CountOf` = +FE, `AppendSlotOf` = +00, `NameOf` = +01, `LastNumber`, `TryParseCount`, `IsWellFormed`); do not concatenate these suffixes by hand.
+    - New: `CreateObjectAsync(group)` uses the first free number (`AM02`, `AL02`, `AP0202`; create by number is verified for M/F, inferred for L/P). Delete: `DeleteObjectAsync(id)` sends `DM03`/`DF01`/`DL01`/`DP0202`. Delete by number is **not documented** (only "delete from the end of the list" is); the user chose it, and it is not yet run on the device. `ZevisionCommandSet` allows A/D only on `M**`, `F**`, `L**`, `P02**`.
+    - Delete is refused while the object is referenced (user request). Hierarchy (user): a process contains layers, a layer contains films, a film contains a material. `RecipeRules.FindReferencesTo` uses the confirmed rules (F??02 → M, L??02??01 → F) plus delete-only rules: P02??07?? → L (process layer list; 00 and FE excluded), P01 and P02??0A → P02xx. The delete-only rules are not used by restore planning or dropdowns: the device holds dangling process-layer values (31/32/33 with only L01–L09), which would make restore skip those writes, while the delete check only compares with the layer being deleted. The error lists owner, label, ID and value of each referencing setting. The check uses the editor's recipe (device data read when the window opened, updated by saves and re-reads).
+    - Flow (`ChangeObjectAsync` → `RunChangeAsync` → `FinishChangeAsync`; New/Delete and the list changes share this template and describe themselves with a `DeviceChange` record: error, done text, info text, group to re-read, expand key, verify, apply-to-file, warning): `CreateObjectAsync`/`DeleteObjectAsync` (check G03 and C09 = Ready first) → re-read only the object's own group (the current tab) with group help `ReadGroupAsync('M')` (`?M`), even if the command failed. Tabs referencing it (films after deleting a material) are deliberately not re-read (user request); the delete confirmation says so → replace those entries in the recipe → `BuildView` regenerates groups and tabs (keeps the selected tab by title, expanded groups and filter; expands a created object) → `DeviceChange.Verify` (`RecipeDocument.CompareObjectChange`) compares object sets (the created one must appear, the deleted one disappear, nothing else change) and reports any difference.
+    - New film/layer/process defaults (user request): `IInstrumentConfigWriter.CreateObjectAsync(type, id, defaultValue)` creates the object and, before the re-read, writes the first material into `F..02`, or appends a film entry (`AL..0200`) and writes the first film into `L..02nn01`, or appends the first layer to the process layer list (`AP02xx0700` → `UP02xx0701:<n>`; not yet run on the device), each read back. The value is the lowest-numbered object of `ObjectType.NewDefault.ReferencedGroup` (`RecipeEditorViewModel.DefaultReference`). Nothing is added when there is no material/film/layer; the confirm dialog says what will be set (`RecipeEditorMessages.NewObjectDefaults`). Before 0.9.6 a new layer got a film entry with the device default even without films, contradicting the dialog (test `Create_Layer_NoFilm_AddsNoFilmEntry`). The re-read therefore contains them (also what File source copies into the file). After the rebuild `CheckNewObject` checks every item of any new object (material, film, layer, process), so they can be edited and saved directly. A failure here is reported after "已新建…"; the object stays.
+    - `ReadGroupAsync` fails when the reply has no count row (`MFE`, `FFE`, `P02FE`…), so a parse failure is never taken as an empty group.
+    - List changes (user request 2026-10-16, replacing the earlier "append layer on Save" row and per-film append rows; all act immediately like New/Delete, disabled while items are checked):
+      - `ListActionViewModel` "+ / −" buttons in the group header (`RecipeGroupViewModel.ListActions`): film pre/post conditions (`F??03`, `F??05`) and the layer's film list (`L??02`). A layer's rate/thickness are per film entry (`L??02nn02/03`), and a new layer has an empty film list (`L??02FE = 0`, seen on the user's device), so the device has no rate/thickness items until one is added; empty lists are shown in the group (`RecipeGroupViewModel.EmptyLists`) with a hint and an add button ("添加速率/厚度设置" for layers). "+" = `AppendListEntryAsync(listId, name)` (`A<list>00`, device defaults); "−" = `RemoveListEntryAsync(listId, name)` → `IInstrumentConfigWriter.RemoveLastListItemAsync` (device check → `Q<list>FE` → `D<list>00` → `Q<list>FE` must be one less; returns the removed ID).
+      - Process layers (`RecipeGroupViewModel.LayerAdd`, `ProcessLayerAddViewModel`, shown in the process group header at the user's request): drop-down of existing layers + "添加" → `AppendListEntryAsync("P02xx07", name, layer)` (`AP02xx0700` → `QP02xx07FE` → `UP02xx07nn:layer` → read back). Each layer row has a remove button (`RecipeItemViewModel.RemoveCommand`) → `RemoveListEntryAsync(listId, name, n)`: the device only deletes the last item, so items n+1… are first written one place up with `ApplyEditsAsync` (verified), then the last item is deleted. Only for single-value lists.
+      - After any list change `FinishChangeAsync` re-reads the group (even on failure), applies the change to the file (File source: `FileTarget.ApplyListAppend` copies the new item from the re-read group; `ApplyListRemove` writes the shifted values and removes the last item) and rebuilds with the owner expanded. A failed file save after a successful device change is reported as "<done>,但保存文件失败" and the change still counts in the completion message (same as New/Delete; before 0.9.6 list changes dropped it). File source requires equal counts first (`CheckListCountAsync`).
+    - Appending a film step uses `AppendListItemAsync(listId, value: null)` (no value written because a step has three settings with device defaults).
+    - Structure (2026-10-16 refactors): `RecipeEditorViewModel` only orchestrates (confirm → `Operation.RunAsync` → device calls → rebuild → report). The "设置" page is built by `ViewModels/RecipePageBuilder` (groups, tabs, and the New/Delete/list buttons from `ObjectTypes`, wired through the internal `IRecipePageActions` the editor implements); the "信息" page is `InfoPageViewModel`. The source-specific behavior is `ViewModels/RecipeEditTarget` (the base class is the device behavior; the nested `FileTarget`, chosen by `path`, overrides it): reading the device group before New/Delete, numbers to avoid, `OnDeviceGroupRead` (device: replace the group; file: nothing), `ApplyObjectChange`/`ApplyListAppend`/`ApplyListRemove` (file: write the change into the file), `CheckListCountAsync` (file: count check) and `Commit`. Entry manipulation is the pure `Services/RecipeDocument` (object IDs, next free number, list counts, replace group, add/remove object, add list item, clone, `CompareObjectChange`), unit-tested in `RecipeDocumentTests`.
+    - File writes are copy-on-write: `FileTarget.Commit(change)` applies the change to a `RecipeDocument.Clone()`, saves it (new `savedAt`, MD5), and only then applies it to the page's document. A failed save therefore leaves the page equal to the file (no rollback code); the device may already have changed and the error says so.
+    - File source: the page is the file, so each operation changes the device and the file. New/Delete first read the device group (`?M`…) to know the device objects; New uses the first number free on the device and in the file, then adds only the new object's entries (device defaults) to the file; Delete sends `D` only if the device has the object and always removes the object's entries from the file. The file is saved at once (`FileTarget.Commit`, new MD5), because the device has already changed. List appends (process layers, film conditions) first require the device count (`QxxFE`) to equal the file's count (`FileTarget.CheckListCountAsync`), otherwise the indices would not match the file; every list change is saved to the file immediately. With the File source nothing is re-read into the page; the page shows the file.
+    - Disabled while any item is checked (`CanChangeObjects`), because the rebuild discards unsaved edits. The M/F/P tabs stay visible even when empty, so the last object can be re-created.
+    - The read-only page's object counts are deliberately not updated (user request); "刷新" reads them.
+- Terminology (user request, 2026-10-16), Chinese UI only: process 工艺 (not 过程, also for C "工艺控制/工艺状态"), film 膜系, layer 膜层, source 输出源 (tabs, object kinds, list names, command names, rule texts). Shutter is 挡板 (not 快门). Chinese command names contain no untranslated English except technical terms (tooling → 工具因子, RateWatcher → 速率监视, Ethernet → 以太网, Rate/Thickness/Power/Frequency → 速率/厚度/功率/频率; RS232, DHCP, IPv4, MAC, FTP, XTC3, XIU, DAC, PID, BCD, QCM stay). Option tables are written in English (English UI shows them as is); `ZevisionCommandSet.ChineseOptions` gives the Chinese, with rules for "… bit n" → "… 第 n 位", "(n bits)" → "(n 位)" and "Select Process a-b" → "选择工艺 a-b". Where one English word means different things (relay Open/Closed → 常开/常闭, link Down/Up → 链路断开/链路连通) the table row is written in Chinese and `Translations` gives the English. The ten device items the documents do not list (F**07**07 权重, F**07**08 校准厚度, F**0802 主工具因子, F**0803 多点, F**0804 聚合倍乘, F**0909 高级模式, G1409, N**0D 挡板延迟, P02**03, P02**05) are defined as free text with Chinese names. `LocalizationTests.ChineseUi_CommandNamesAndOptions_AreTranslated` guards this; `ZevisionCommandSetTests.UiTerms` maps the xlsx names. Unrelated words keep their wording (来源 = data source, 电源输出电压). The U-command xlsx still uses 过程/膜/层/源; `ZevisionCommandSetTests.UiNames` maps the renamed names before comparing.
+  - Names, units, ranges, options and Q/U access come from `Zevision.Commands/ZevisionCommandSet` (see the libraries above). Real-device deviations are commented in the table (e.g. G0E04/05 and F0809/080A allow 0). `Services/ParameterOptions` (one instance per page build, shared by all rows) builds the dropdown options: enum options, or the objects in the file for references, computed once per referenced group.
+    - `Find(id)` picks the most specific pattern (`**` = one 2-hex level).
+    - Sub-list prefixes come from `IndexNamesByPrefix`. A name containing `{0}` is a format (`F**07` → "第 {0} 个传感器" / "Sensor {0}": the film's sensor list position, not a sensor number); otherwise the number follows the name ("预条件 2"). `CommandDefinition.IndexNames` returns the names without the placeholder for messages.
+    - `LabelFor(id)` prefixes sub-list items with list name and number ("预条件 2 · 起始斜坡/上升时间").
+    - Kinds: Text, Number, Enum (dropdown), Time (`H:MM:SS`, hours ≤ 8760), and Reference (dropdown of objects in the file). References: F**02 → M, L**02**01 → F, P02**07** → L (process layer list, user request: a process contains layers), sensor/source IDs → N/S, relay/input settings → O/I, S**09** → M. A current value with no matching object (e.g. the device's dangling process-layer values 31/32/33) is kept and shown as "(不存在)". The dropdown kind does not affect restore planning, which uses only `RecipeRules.References` (P02**07** stays out of it).
+    - Entries the command set cannot update (Q only: N**08, N**1F…) are hidden from "可写" and their file values stay unchanged. Undocumented device items (Weight, Ramp Time…) are free text with the device description as label.
+  - `RecipeItemViewModel` row: checkbox | "名称 (单位)" | input | ID, with a tooltip showing the ID, range/options and device description.
+    - A row is editable only when checked. Unchecking reverts the value.
+    - Unchecked rows render a plain TextBlock (`DisplayValue`); the TextBox/ComboBox is created only when checked. This keeps "expand all" on the film tab at about 1 s instead of 6 s.
+    - A current value missing from the options is appended as "(未知)"/"(不存在)" so it is never lost.
+    - Protocol characters are always validated. Type and range (`Services/ParameterValue.Validate`) are checked only once the value is modified, because device values can be outside the documented range.
+  - The filter matches ID, label, device description or value, and auto-expands matching groups.
+  - Save flow:
+    1. Values are normalized (`ParameterValue.Normalize`: numbers take the original value's decimal places, `5.89` → `5.890`; times become `H:MM:SS`). Then the confirm dialog shows them.
+    2. `InstrumentConfigService.ApplyEditsAsync` checks restorability and characters for every item, then quick `QG03` (model) and `QC09` (Ready) queries instead of a 10 s `?` read.
+    3. Writes in `GroupRank` order and verifies with `Q`. It does not create objects. Verification (also for restore) compares with `ParameterValue.AreEquivalent`: numerically for numbers, by seconds for times, otherwise ordinal.
+    4. Only on full success are the recipe values and `savedAt` updated and the file rewritten with a new MD5. On failure the file is untouched, the window stays open and items stay checked.
+  - The window cannot be closed while writing (`IRequestClose.CanClose`); "取消写入" cancels through `OperationTimeout`. `RecipeEditorWindow.OnClosing` calls `IRequestClose.ConfirmClose()`, which also asks before discarding checked rows whose value was modified (checked-only rows do not count).
+  - Editor UX (2026-10-16): `CheckedCount`/`ModifiedCount`/invalid count are computed in one pass in `OnSelectionChanged` and cached (`SelectionStats`), because `CanSave` and every New/Delete/list button's `CanExecute` (`CanChangeObjects`) are re-queried by `CommandManager` after each key or mouse event. View-only behavior lives in `RecipeEditorWindow.xaml.cs`: Ctrl+S (`SaveCommand`) and Esc (`CancelCommand`) are `KeyBinding`s, Ctrl+F focuses `FilterBox`; clicking an unchecked value (`OnValueClicked`) or checking the box focuses that row's editor (text selected) after layout (find the row before checking: the value TextBlock is replaced by the editor template); each category tab's scroll offset is remembered by title (`GroupScroll`) and restored after a tab switch or a `Tabs` rebuild (`DispatcherPriority.Loaded`). Verified offscreen (scratch harness `UxCheck.cs`).
+  - The shared phase limit lives in `ViewModels/OperationLimits.PhaseTimeLimit` (60 s).
+- Folders (`Services/AppFolders`): `GetRecipeFolder()` and `GetLogsFolder()` return `<exe dir>\recipe` and `<exe dir>\logs`. They fall back to `Documents\Zevision\<name>` when the exe folder is not writable.
+- Error log (`IErrorLog`/`FileErrorLog`), written to `logs\error.txt` in append mode with UTF-8 encoding:
+  - Format: one line per entry, `yyyy-MM-dd HH:mm:ss.fff [source] message`. Messages are truncated to 500 chars and newlines are flattened. `Exception.ToString()` (with stack trace) follows when there is an exception.
+  - The file rotates to `error.1.txt` above 5 MB.
+  - Thread-safe, and it never throws.
+  - The first entry of each run is preceded by a `==== Zevision <version> | OS | CLR | bitness ====` session header (`AppInfo.Description`).
+  - Sources: every non-continuation `LogKind.Error` added through `LogViewModel.Add`; unexpected read-loop and event-subscriber exceptions reported by `ZevisionClient` (`ConnectionLost` with a non-I/O exception, `HandlerFailed`) and logged by `ZevisionDeviceService`; `AsyncRelayCommand` failures with their stack (`LogViewModel.ReportException` in the main window, `OnCommandError` in the editor); and the global handlers in `App`.
+  - Global handlers: `DispatcherUnhandledException` (logged, shown, marked handled), `AppDomain.UnhandledException` (logged; the process ends), and `TaskScheduler.UnobservedTaskException` (logged, then `SetObserved`). They are attached first thing in `OnStartup`.
+  - Dialogs go through `Services/IDialogService`, implemented by `Views/DialogService`, so the ViewModel stays free of WPF windows.
+  - While an operation runs, `ConfigOperationsViewModel.IsBusy` disables send, quick-send and disconnect (checked by `MainViewModel` via `Config.IsBusy`), and shows progress with a cancel button.
+  - Each save/restore runs inside `RunOperationAsync` (→ `OperationRunner.RunAsync`) with **per-phase** time limits: `PhaseTimeLimit` is 60 s per phase, as decided by the user.
+    - Save has one phase, "读取设备配置".
+    - Restore has two phases: "读取设备配置" up to the confirmation dialog, then "执行恢复", which covers create rounds with their re-reads, writes and verification. The second phase starts via `OperationTimeout.StartPhase` after the user confirms.
+    - The confirmation dialog runs inside `Pause()`, so user think time counts toward neither phase.
+    - `ViewModels/OperationTimeout` tells a timeout (`IsTimedOut`, `Phase`) apart from a user cancel (`IsCancelledByUser`). The timeout message names the phase.
+    - Each `?` read takes about 10 s. Re-creating deleted films plus their steps (2 create rounds) takes about 25 s in the execute phase.
+- `App.OnStartup` is the single composition root, using plain constructor injection with no DI container. `App.OnExit` disposes the view model and the service.
+- On idle timeout, `SendAsync` calls `ZevisionFrameDecoder.FlushIncomplete()` under `Session.DecoderLock`, which the read loop also takes around `Push`. Any half-received message is emitted as `FrameError.Incomplete` so it is displayed rather than silently lost.
+- Connection settings persist to `settings.json` in the exe folder through `Services/JsonFilePreferencesStore` (from `AppFolders.GetSettingsFilePath()`, falling back to `Documents\Zevision\`).
+  - The file is indented JSON written through `Services/JsonFile` (DataContract serializer, temp file plus `File.Replace`), which `RecipeFile` also uses. `IPreferencesStore` returns `Result`/`Result<T>`. `ConnectionPreferences` is a DataContract, and `[OnDeserializing]` sets defaults so missing fields keep their defaults.
+  - A missing file yields defaults; a corrupt file yields a failed `Result`, which `MainViewModel` logs before keeping its defaults.
+  - Connection type (`connectionType` `Serial`/`Tcp`, unknown → `Serial`) and `tcpHost` are stored too.
+  - `MainViewModel` loads the settings in its constructor, accepting only values present in its option lists. `editSource` (`Device`/`File`) stores the last edit source; unknown or numeric values fall back to `Device`, and older files without the field get `Device`. `App.OnExit` calls `SavePreferences()`.
+  - There is no migration from older settings formats: 0.9.0 was the first release; later versions (0.9.1, 0.9.3, 0.9.4, 0.9.5, 0.9.6) read its `settings.json` and recipe files unchanged.
+- Communication data files (`logs\capture_*.txt`) and `error.txt` rotation files are kept permanently, as decided by the user; there is no automatic cleanup.
+
+## Serial (RS232) rules
+
+- The `SerialPort.DataReceived` event runs on a thread-pool thread. Never touch UI objects from it. Marshal to the UI with `Dispatcher` only when UI state must change.
+- Do not block on reads. Use `SerialPort.BaseStream.ReadAsync` with a `CancellationToken`, or a single dedicated reader task that feeds a byte buffer.
+- Parse frames from a byte stream, not from individual reads. A frame starts at `{` and ends at `}`. One read can contain part of a frame or several frames, so accumulate bytes and handle both cases.
+- Use one outstanding request at a time (for example, a `SemaphoreSlim` around send-and-await-response) unless the protocol says otherwise. Give every request a timeout. The protocol's `T` error code is a 200 ms inter-character timeout, which is a separate concern from the request timeout.
+- Check `G1304` (checksum) and `G1305` (length) on the device before assuming either is enabled. The parser must handle both states.
+- Parse numeric responses with `CultureInfo.InvariantCulture`. Decimal separators from the device are `.`, and the PC locale may not match.
+- Use ASCII for protocol bytes. Do not encode command strings with the system code page.
+- Enumerate ports with `SerialPort.GetPortNames()`. Do not hard-code `COMx`.
+- Handle `IOException` and `UnauthorizedAccessException` on open, read, and write (the device may be unplugged or the port in use). Close and dispose the port on exit.
+- Treat `-` responses and error codes as typed results (an enum, not a string) so the caller can branch on them.
+
+## Async and threading
+
+- Use `async`/`await` for all I/O. Forward `CancellationToken` through every async call.
+- Never use `.Result`, `.Wait()`, or `.GetAwaiter().GetResult()` on UI or serial paths. These can deadlock the WPF dispatcher.
+- Use `ConfigureAwait(false)` in the libraries and `Services/`. Do not use it in view models or code that updates the UI.
+- `async void` is allowed only for event handlers and `ICommand` implementations, and those must catch and handle their own exceptions.
+- Update `ObservableCollection` and other bound state on the UI thread.
+
+## Error handling
+
+- Use exceptions for transport failures (port missing, unplugged, write failed). Catch them at the service boundary, not in view models.
+- Use a Result type for expected protocol outcomes (device returned `-`, `B` illegal argument, timeout). On C# 8, a small `readonly struct Result<T>` is enough.
+- Do not catch bare `Exception` without rethrowing or logging it.
+
+## Code style and quality
+
+- Nullable reference types on. XML documentation on public types and members in the libraries (they generate `.xml` doc files, so a missing `<see cref>` target fails the Release build) and `Services/`.
+- Keep a single source of truth for protocol constants (command IDs, error codes). Do not repeat magic strings across files.
+- Do not edit generated files (`*.Designer.cs`, `*.g.cs`, anything under `obj/`).
+- New protocol logic (framing, checksum, parsing) needs unit tests. xUnit runs on net472. Test with a fake serial port, not real hardware.
+
+## Protocol reference (docs/Zervison_Protocol.md)
+
+The doc is the authoritative source for the serial layer. Key points:
+
+- Transport: RS232, default 115200 bps (`G1303`), protocol type 0 = Zevision (`G1301`).
+- Framing: `{` start, then command or response data, then `}` stop. With `G1305` (length) enabled, a 2-byte big-endian length follows the start character. With `G1304` (checksum) enabled, a 1-byte checksum (sum of command data modulo 256, excluding framing bytes) precedes the stop character.
+- Commands: an action letter (`U` update, `Q` query, `A`/`D` add/delete, `S` status, `R` remote, `E` echo, `H` hello, `?` help), a group letter, then 2-hex-digit IDs (`00`–`FF`), with data after `:`. Several commands can share a frame, separated by `;`.
+- Responses: echo of the command, then `+` (ok) or `-` (error), then an error code (`A` illegal command, `B` illegal argument, `C` checksum, `D` bad format, `F` bad state, `L` length, `T` timeout) or `:` followed by data for queries.
+- Materials: the doc says IDs run from `01` to `C8` (1–200), but the device has materials up to `FA` (250); see the real-device findings. IDs are substituted for `**` in `M**` commands and need not be contiguous. The list starts empty; materials are added with `M00` (action `A`), then updated with their fields.
+- The doc is for communication testing only. The instrument must not be installed in evaporation coating tools.
+- Real-device findings on IMC300 firmware 1.8.11, with checksum and length enabled:
+  - `H01` → `{<00>(H01+:Zevision IMC300 1.8.11.202606101229<C5>}`. This confirms the length field is big-endian and the checksum is a sum modulo 256.
+  - Large replies are split into multiple packets. This is not in the protocol doc:
+    - Format: `{`[len]data[cs]`>` `<`[len]data[cs]`>` … `<`[len]data[cs]`}`.
+    - `>` means another packet follows, `<` starts a continuation packet, and `}` ends the message.
+    - Each packet is at most 57000 bytes and has its own length and checksum, both covering only that packet's data.
+  - Observed for `?`: 3 packets of 56931, 56957 and 2604 bytes (about 116 KB in total, about 10 s at 115200 bps). The stream ended with `<C8>>}`, so the last packet may also end with `>` before the final `}`; the decoder accepts both endings.
+  - Confirmed from raw bytes in two captures: every packet ends with `cs >`, and the message ends with an extra `}`. The firmware's length field for the **last continuation packet over-counts by the trailer**: it reported 2604 where the data was 2602, so it includes `cs >`. `ZevisionFrameDecoder.TryEndOvercountedLastPacket` accepts this only for continuation packets, and only when the checksum validates. The capture is replayed in `Zevision.Tests/RealCaptureTests` from `TestData/imc300_1.8.11_h01_h02_help.bin`; keep that test green when touching the decoder.
+  - For future protocol issues: turn on "保存通讯数据" with display format HEX and check the per-packet "长度字段 / 实收数据" footer before changing the decoder.
+    - Since 2026-10-16 (user request) this saves the **display content**, not raw reads: `Services/CommunicationLogWriter` (an `ICommunicationRecorder`) is attached to `LogViewModel.Recorder` from the "已连接" line until disconnect/connection lost, and appends every displayed batch (`LogEntry.ToDisplayLine`, the same format as Ctrl+C) to `logs\capture_*.txt`. Writes run in order on a background continuation chain and flush per batch; an I/O error goes to error.txt and stops recording. `?` replies are saved like everything else (the earlier omission was removed at the user's request).
+    - The byte-level `RawCaptureWriter`/`HexDump` and `ConnectionOptions.RawCapturePath` were removed with it. Read-chunk boundaries are no longer visible; frame bytes, decoder errors (`UnexpectedData`, `Incomplete`…) and the packet footer still are. `TestData/imc300_1.8.11_h01_h02_help.bin` keeps the known multi-packet case under test.
+  - How the code handles it:
+    - `ZevisionFrameDecoder` reassembles the packets into one `ZevisionFrame`, exposing `PacketCount` and per-packet `DataRanges` into `Raw`.
+    - In no-length mode, `>` counts as a packet end only when the next byte is `<`, or `}` in a multi-packet message (the device ends every packet with `cs >`, then `}`). A single-packet message whose data ends with `>` keeps it. The `}` case was missing until the 2026-10-16 review (checksum-only mode reported every `?` reply as a checksum mismatch).
+    - The total message is capped at `MaxReceiveLength` (1 MB).
+    - An earlier "16-bit length overflow" theory was wrong; the length-mismatch check proved it.
+  - Device receive bug: even with length enabled, the device treats a checksum byte of 0x7D (`}`) as the stop byte. It answers `-C` (checksum error) with **no command echo**. Example: `AL0702010600` has checksum 0x7D.
+    - `ZevisionFrameCodec.EncodeAvoidingDelimiters`, used by `ZevisionClient.SendAsync`, appends `;H01` (a harmless read-only command) when the length or checksum bytes equal `{ } < >`. Only `}` is confirmed; the others are precautionary.
+    - Callers must use the *first* response, because the extra H01 response follows it.
+    - `ZevisionResponseParser` accepts echo-less responses such as `-C`; the command is empty.
+  - Object numbers are not contiguous. One capture had `MFE = 12` with materials M01–M0A, M0C and M10, and films F01–F0A plus F20; a count never tells which IDs exist.
+  - Error codes when probing (2026-10-16, single commands):
+    - A missing object answers `-D`, not `-A`: `QM0F01`, `QM1F01`, `QM9901` → `-D`.
+    - A missing field of an existing object answers `-A`: `QM0202` → `-A`.
+    - Lowercase commands answer `-A`.
+    - `QMFF01` answers `+:13`, the material count, so index `FF` is special. Never probe FE/FF; the command set allows 01–FD.
+    - Still unverified: whether a multi-command frame continues after a `-D`/`-A` item.
+  - Group help is **verified** (2026-10-16): `?M` → `?M+:` plus the help table for materials only (4912 bytes, 70 lines, one packet, about 0.45 s, versus 116 KB and 9 s for `?`). Same header and columns, so `HelpTableParser` applies.
+    - It lists exactly the existing objects: M01–M09, M10, M18, MA5, MFA (13 = `MFE`).
+    - `?M01` (single object) and other groups are not yet tested.
+    - Estimated group sizes from the full table: F 59 KB (about 5 s, half of `?`), P 13 KB, L 11 KB, N 7 KB, S 7 KB, others under 5 KB.
+  - Material numbers go up to at least FA (250) on the device (MA5, MFA exist). The doc's "materials 01–C8 (1–200)" is wrong; the doc's F**02 range "0–250" matches.
+  - Descriptive text is UTF-8 (for example `Å/s` arrives as `C3 85`). `ZevisionFrame.Payload` decodes UTF-8, and `FrameDisplayFormatter.ToDisplayLines` decodes valid UTF-8 sequences only inside data ranges.
+  - The help text is an LF-separated table (`[CMD ID] [VALUE] [DESCRIPTION]`) listing every command with its current value.
+- `docs/zevision_comm.pdf` is the IMC300 operating manual chapter 7 (pp. 104–138), the source of the value ranges. Its text layer is garbled (custom font encoding); render pages to images (PyMuPDF) to read it. Applied 2026-10-16:
+  - Time items have per-command limits in `CommandDefinition.Min`/`Max` as **seconds** (`Time(pattern, name, maxHours, minSeconds)`), checked by `ParameterValue.Validate`: F pre/post/delay/RateWatcher and L ramp time 0–150 h, F**0404 0:00:01–3:00:00, N**07 0–999 h, S**11 0:00:01–150 h.
+  - Relay/input settings are references with 0 = none (device values are plain numbers, e.g. N020E = 2, although the manual's examples show `O01`/`I01`): N**0B**, N**0E, N**0F, S**05, S**0C** → O; N**1A**, S**0D** → I; S**09** → M. Writing them is not yet verified on the device.
+  - Added L**02**06**02 (Ramp Time), L**02**06**03 (New Rate), L**02**06FE, L**02FE. O**03 options go to 58 plus 60; I**03 bit labels follow the manual.
+  - Known contradictions: G0E02 (manual: 0 = Disable updates, 1 = Enable; the device shows 0 in normal use, so 0 = unlocked; a program-managed front panel lock existed briefly and was removed at the user's request on 2026-10-16), S**16/17 unit (manual 0–100000 Å; the device uses kÅ, so the range is 0–100 kÅ), S**1C/1D examples (−10/10) outside the stated 4000000–6000000.
+- Doc gotcha: the checksum example says `{H02}` has checksum "hex 170, i.e. `y`". Decimal 170 is `0xAA`, not `y` (`0x79`). Verify the checksum byte against the device before trusting the example.
+- The protocol doc is in Chinese. Keep it in Chinese when editing it, and keep command strings and identifiers exactly as the doc gives them.

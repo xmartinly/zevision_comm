@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{3C7CE45F-B8F0-4E26-8B67-C89279BE5C4D}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>Zevision.Tests</RootNamespace>
+    <AssemblyName>Zevision.Tests</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="FakeDeviceService.cs" />
+    <Compile Include="FakeDialogService.cs" />
+    <Compile Include="MemoryPreferencesStore.cs" />
+    <Compile Include="LocalizationTests.cs" />
+    <Compile Include="ObjectEditTests.cs" />
+    <Compile Include="ObjectTypesTests.cs" />
+    <Compile Include="RecipeDocumentTests.cs" />
+    <Compile Include="ResponseLogFormatterTests.cs" />
+    <Compile Include="SendOptionsTests.cs" />
+    <Compile Include="TcpTransportTests.cs" />
+    <Compile Include="RecipeEditorTests.cs" />
+    <Compile Include="FakeSerialTransport.cs" />
+    <Compile Include="FileErrorLogTests.cs" />
+    <Compile Include="FrameDisplayFormatterTests.cs" />
+    <Compile Include="LogViewModelTests.cs" />
+    <Compile Include="ProtocolTextTests.cs" />
+    <Compile Include="RestoreMessagesTests.cs" />
+    <Compile Include="HelpTableParserTests.cs" />
+    <Compile Include="InstrumentConfigServiceTests.cs" />
+    <Compile Include="JsonFilePreferencesStoreTests.cs" />
+    <Compile Include="OperationTimeoutTests.cs" />
+    <Compile Include="ManualCommandPolicyTests.cs" />
+    <Compile Include="RecipeFileTests.cs" />
+    <Compile Include="RecipeRulesTests.cs" />
+    <Compile Include="RealCaptureTests.cs" />
+    <Compile Include="ZevisionCommandSetTests.cs" />
+    <Compile Include="ZevisionClientTests.cs" />
+    <Compile Include="CommunicationTextTests.cs" />
+    <Compile Include="LibraryBoundaryTests.cs" />
+    <Compile Include="ParameterValueTests.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- 实机 (IMC300 固件 1.8.11) 原始接收字节:H01、H02、?(3 包,约 116 KB)、H01、H02、H01。 -->
+    <!-- 《U 类型指令汇总》:ZevisionCommandSetTests 检查其中每个 U 指令都在说明表中。 -->
+    <None Include="..\docs\INFICON_IMC300_Zevision_U类型指令汇总.xlsx">
+      <Link>TestData\U_commands.xlsx</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestData\imc300_1.8.11_h01_h02_help.bin">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <Compile Include="ZevisionDeviceServiceTests.cs" />
+    <Compile Include="ZevisionFrameCodecTests.cs" />
+    <Compile Include="ZevisionFrameDecoderTests.cs" />
+    <Compile Include="ZevisionResponseParserTests.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Zevision.csproj">
+      <Project>{68E153FE-3C42-4088-B33A-DF7F9A29CAC9}</Project>
+      <Name>Zevision</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Zevision.Communication\Zevision.Communication.csproj">
+      <Project>{1ACAC66E-C64B-430E-8B62-41B782BE2C87}</Project>
+      <Name>Zevision.Communication</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Zevision.Commands\Zevision.Commands.csproj">
+      <Project>{1B185778-1AB1-48A0-B5FC-179BFDC0C006}</Project>
+      <Name>Zevision.Commands</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.console" Version="2.9.3" PrivateAssets="all" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>
