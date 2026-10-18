@@ -12,7 +12,7 @@ namespace Zevision.ViewModels
     /// <summary>
     /// 下拉框中的一项 (界面语言)。由指令集的 <see cref="CommandOption"/> 或配置中的对象生成。
     /// </summary>
-    public sealed class ParameterOption
+    public sealed class ParameterOption : ImmutableBindingSource
     {
         /// <summary>创建选项。</summary>
         /// <param name="value">发送给设备的值。</param>

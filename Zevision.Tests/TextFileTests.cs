@@ -47,6 +47,7 @@ namespace Zevision.Tests
         [InlineData("{ }")]
         [InlineData("{ \"NotConnected\": { \"zh\": \"未连接。\" } }")]
         [InlineData("{ \"NotConnected\": null }")]
+        [InlineData("{ \"NotConnected\": { \"zh\": \"a\", \"en\": \"b\" }, \"NotConnected\": { \"zh\": \"c\", \"en\": \"d\" } }")] // 重复的键
         public void Load_InvalidContent_Fails(string content)
         {
             File.WriteAllText(_path, content, new UTF8Encoding(false));

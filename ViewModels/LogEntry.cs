@@ -24,7 +24,7 @@ namespace Zevision.ViewModels
     /// <summary>
     /// 数据显示区中的一条记录。
     /// </summary>
-    public sealed class LogEntry
+    public sealed class LogEntry : ImmutableBindingSource
     {
         /// <summary>
         /// 创建记录。

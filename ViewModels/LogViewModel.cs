@@ -12,9 +12,9 @@ namespace Zevision.ViewModels
     /// <summary>
     /// 数据显示区:保存显示记录,错误记录同时写入 error.txt,超过上限时批量删除最旧的记录。
     /// 设置了 <see cref="Recorder"/> 时,显示的记录同时追加到通讯数据文件 (多条记录作为一批)。
-    /// 只应在 UI 线程上调用。
+    /// 只应在 UI 线程上调用。绑定只用到不变的 <see cref="Entries"/>,所以是 <see cref="ImmutableBindingSource"/>。
     /// </summary>
-    public sealed class LogViewModel
+    public sealed class LogViewModel : ImmutableBindingSource
     {
         /// <summary>最多保留的行数。</summary>
         public const int MaxEntries = 20000;

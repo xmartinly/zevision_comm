@@ -44,6 +44,7 @@
   "ListCountDiffers": { "zh": "设备与文件中 {0} 的条数不同 (设备 {1} 条,文件 {2} 条),无法确定新增条目的编号。请先用\"恢复\"让设备与文件一致。", "en": "{0} has {1} item(s) on the device but {2} in the file, so the number of the new item cannot be determined. Restore the file to the device first." },
   "NotRestorableNoValue": { "zh": "无值 (分组标题或动作命令)", "en": "no value (group title or action command)" },
   "NotRestorableGroup": { "zh": "不在保存范围内的组 (工艺控制、系统、通讯、Hello 等)", "en": "group not saved (process control, system, communication, Hello etc.)" },
+  "NotRestorableMalformedId": { "zh": "ID 格式不正确 (应为组字母加若干两位十六进制编号)", "en": "malformed ID (a group letter followed by 2-digit hex numbers expected)" },
   "NotRestorableReadOnly": { "zh": "只读项 (协议只允许查询)", "en": "read-only (the protocol only allows queries)" },
   "ObjectIdEmpty": { "zh": "对象 ID 不能为空。", "en": "The object ID must not be empty." },
   "ExcludedListCount": { "zh": "列表计数", "en": "list count" },

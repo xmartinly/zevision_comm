@@ -98,6 +98,8 @@ namespace Zevision.Core
 
         public static string NotRestorableGroup => TextCatalog.Get(nameof(NotRestorableGroup));
 
+        public static string NotRestorableMalformedId => TextCatalog.Get(nameof(NotRestorableMalformedId));
+
         public static string NotRestorableReadOnly => TextCatalog.Get(nameof(NotRestorableReadOnly));
 
         public static string ObjectIdEmpty => TextCatalog.Get(nameof(ObjectIdEmpty));

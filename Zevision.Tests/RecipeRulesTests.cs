@@ -38,6 +38,7 @@ namespace Zevision.Tests
         [InlineData("I0105", "1")]
         [InlineData("P020106", "143")]    // 运行次数
         [InlineData("F0101", "")]         // 无值
+        [InlineData("M011", "1")]         // ID 格式不正确 (编号不是两位一级)
         public void IsRestorable_ExcludesStatusActionsAndCommunication(string id, string value)
         {
             Assert.False(RecipeRules.IsRestorable(id, value, out var reason));

@@ -45,6 +45,7 @@
     <Compile Include="MemoryPreferencesStore.cs" />
     <Compile Include="NoCommunicationRecorders.cs" />
     <Compile Include="TestSetup.cs" />
+    <Compile Include="BindingSourceTests.cs" />
     <Compile Include="TextCatalogTests.cs" />
     <Compile Include="TextFileTests.cs" />
     <Compile Include="LocalizationTests.cs" />

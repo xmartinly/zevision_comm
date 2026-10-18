@@ -8,7 +8,7 @@ using Zevision.Core.Localization;
 namespace Zevision.ViewModels
 {
     /// <summary>修改配置窗口"只读"页中的一节。</summary>
-    public sealed class ReadOnlySectionViewModel
+    public sealed class ReadOnlySectionViewModel : ImmutableBindingSource
     {
         /// <summary>由一节的定义创建。</summary>
         public ReadOnlySectionViewModel(ReadOnlySection section)

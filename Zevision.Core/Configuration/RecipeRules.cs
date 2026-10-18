@@ -87,6 +87,13 @@ namespace Zevision.Core.Configuration
                 return false;
             }
 
+            // 帮助表的 ID 由 HelpTableParser 读出,不检查每级两位:这种 ID 生成不了写入指令,保存的配置文件也读不回来。
+            if (!DeviceIds.IsWellFormed(id))
+            {
+                reason = Texts.NotRestorableMalformedId;
+                return false;
+            }
+
             foreach (var rule in Exclusions)
             {
                 if (rule.Pattern.IsMatch(id))

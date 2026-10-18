@@ -76,7 +76,7 @@ namespace Zevision.Core.Configuration
                     if (decimal.TryParse(text, NumberStyle, CultureInfo.InvariantCulture, out var number)
                         && decimal.TryParse(original, NumberStyle, CultureInfo.InvariantCulture, out _))
                     {
-                        var decimals = DecimalPlaces(original);
+                        var decimals = Math.Min(DecimalPlaces(original), 28); // decimal 最多 28 位小数,Math.Round 超过会抛出
                         return Math.Round(number, decimals, MidpointRounding.AwayFromZero)
                             .ToString("F" + decimals.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
                     }

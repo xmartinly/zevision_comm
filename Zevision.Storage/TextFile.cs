@@ -43,8 +43,9 @@ namespace Zevision.Storage
                     entries = serializer.ReadObject(stream) as Dictionary<string, Entry>;
                 }
             }
-            catch (Exception ex) when (JsonFile.IsExpectedFailure(ex))
+            catch (Exception ex) when (JsonFile.IsExpectedFailure(ex) || ex is ArgumentException)
             {
+                // 同一个键出现两次时 DataContractJsonSerializer 抛出 ArgumentException (字典中已有该键)。
                 return Result<IReadOnlyDictionary<string, LocalizedText>>.Fail(ex.Message);
             }
 

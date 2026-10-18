@@ -2,7 +2,7 @@ namespace Zevision.ViewModels
 {
     /// <summary>下拉框中的一项:值、显示文本和鼠标提示。</summary>
     /// <typeparam name="T">值的类型。</typeparam>
-    public sealed class Choice<T>
+    public sealed class Choice<T> : ImmutableBindingSource
     {
         /// <summary>创建选项。</summary>
         public Choice(T value, string text, string description)

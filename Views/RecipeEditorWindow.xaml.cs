@@ -45,20 +45,20 @@ namespace Zevision.Views
             base.OnClosing(e);
         }
 
+        /// <inheritdoc />
+        protected override void OnClosed(EventArgs e)
+        {
+            // 视图模型不再引用窗口:即使视图模型关闭后仍被别处引用,窗口 (整个可视树) 也能回收。
+            // 不清空 DataContext:解除绑定的过程中下拉框可能把 null 写回视图模型。
+            Detach(DataContext);
+            base.OnClosed(e);
+        }
+
         private string? CurrentTabTitle => (SettingsTabs.SelectedItem as RecipeTabViewModel)?.Title;
 
         private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
-            if (e.OldValue is IRequestClose oldViewModel)
-            {
-                oldViewModel.CloseRequested -= OnCloseRequested;
-            }
-
-            if (e.OldValue is INotifyPropertyChanged oldNotifier)
-            {
-                oldNotifier.PropertyChanged -= OnViewModelPropertyChanged;
-            }
-
+            Detach(e.OldValue);
             if (e.NewValue is IRequestClose newViewModel)
             {
                 newViewModel.CloseRequested += OnCloseRequested;
@@ -67,6 +67,19 @@ namespace Zevision.Views
             if (e.NewValue is INotifyPropertyChanged newNotifier)
             {
                 newNotifier.PropertyChanged += OnViewModelPropertyChanged;
+            }
+        }
+
+        private void Detach(object? viewModel)
+        {
+            if (viewModel is IRequestClose closable)
+            {
+                closable.CloseRequested -= OnCloseRequested;
+            }
+
+            if (viewModel is INotifyPropertyChanged notifier)
+            {
+                notifier.PropertyChanged -= OnViewModelPropertyChanged;
             }
         }
 

@@ -60,6 +60,7 @@ namespace Zevision.Tests
         [InlineData("F010402", "02:03:04", "0:00:00", "2:03:04")]
         [InlineData("M0101", " Gold ", "Al", "Gold")]
         [InlineData("M0103", "abc", "5.890", "abc")]
+        [InlineData("M0103", "2.7", "0.111111111111111111111111111111", "2.7000000000000000000000000000")] // decimal 最多 28 位小数
         public void Normalize(string id, string value, string original, string expected)
         {
             Assert.Equal(expected, ParameterValue.Normalize(ZevisionCommandSet.Find(id), value, original));

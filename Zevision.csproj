@@ -91,6 +91,7 @@
     <Compile Include="ViewModels\DisplayFormat.cs" />
     <Compile Include="ViewModels\LogEntry.cs" />
     <Compile Include="ViewModels\IDialogService.cs" />
+    <Compile Include="ViewModels\ImmutableBindingSource.cs" />
     <Compile Include="ViewModels\RecipeGrouping.cs" />
     <Compile Include="ViewModels\ParameterOptions.cs" />
     <Compile Include="ViewModels\ReadOnlyLayout.cs" />

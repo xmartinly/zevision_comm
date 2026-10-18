@@ -8,7 +8,7 @@ namespace Zevision.ViewModels
     /// 分组标题中一个子列表的"+ / −"按钮,如膜系的预熔、后处理,膜层的膜系列表。
     /// "+"在设备上把一条 (设备默认值) 追加到列表末尾,"−"删除最后一条;完成后重新读取该页。
     /// </summary>
-    public sealed class ListActionViewModel
+    public sealed class ListActionViewModel : ImmutableBindingSource
     {
         private readonly string? _addFirstText;
 
