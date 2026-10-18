@@ -84,7 +84,7 @@ namespace Zevision.Tests
             Assert.Equal("密度 (g/cm³)", definition.GetLabel(TextLanguage.Chinese));
             Assert.Equal("Density (g/cm^3)", definition.GetLabel(TextLanguage.English));
             Assert.Equal("M**03 Density (g/cm^3)", definition.ToString());
-            Assert.Equal("预条件 2 · 起始斜坡/上升时间", ZevisionCommandSet.Find("F01030201")!.LabelFor("F01030201", TextLanguage.Chinese));
+            Assert.Equal("预熔 2 · 起始斜坡/上升时间", ZevisionCommandSet.Find("F01030201")!.LabelFor("F01030201", TextLanguage.Chinese));
             Assert.Equal("Pre Condition 2 · Start Ramp/Rise time", ZevisionCommandSet.Find("F01030201")!.LabelFor("F01030201", TextLanguage.English));
             Assert.Equal("材料", ZevisionCommandSet.ObjectKind('M', TextLanguage.Chinese));
             Assert.Equal("Material", ZevisionCommandSet.ObjectKind('M', TextLanguage.English));

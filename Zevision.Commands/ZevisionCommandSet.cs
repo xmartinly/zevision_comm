@@ -462,7 +462,7 @@ namespace Zevision.Commands
         private static readonly Regex OptionBits = new Regex(@"^(.+) \((\d+) bits\)$", RegexOptions.CultureInvariant);
         private static readonly Regex SelectProcess = new Regex(@"^Select Process (\d+-\d+)$", RegexOptions.CultureInvariant);
 
-        /// <summary>各级编号的含义,键为该级 <c>**</c> 之前的模式。含 <c>{0}</c> 时编号填入其中 (如"第 1 个传感器"),否则写在名称后 (如"预条件 2")。</summary>
+        /// <summary>各级编号的含义,键为该级 <c>**</c> 之前的模式。含 <c>{0}</c> 时编号填入其中 (如"第 1 个传感器"),否则写在名称后 (如"预熔 2")。</summary>
         private static readonly Dictionary<string, BilingualText> IndexNamesByPrefix = new Dictionary<string, BilingualText>(StringComparer.Ordinal)
         {
             ["M"] = new BilingualText("材料", "Material"),
@@ -474,8 +474,8 @@ namespace Zevision.Commands
             ["I"] = new BilingualText("输入", "Input"),
             ["O"] = new BilingualText("输出", "Output"),
             ["G09"] = new BilingualText("选项卡", "Option Card"),
-            ["F**03"] = new BilingualText("预条件", "Pre Condition"),
-            ["F**05"] = new BilingualText("后条件", "Post Condition"),
+            ["F**03"] = new BilingualText("预熔", "Pre Condition"),
+            ["F**05"] = new BilingualText("后处理", "Post Condition"),
             ["F**07"] = new BilingualText("第 {0} 个传感器", "Sensor {0}"), // 膜系的传感器列表:是列表中的第几项,不是传感器编号
             ["L**02"] = new BilingualText("膜系", "Film"),
             ["L**02**06"] = new BilingualText("斜坡", "Ramp"),
@@ -606,22 +606,22 @@ namespace Zevision.Commands
             CreateOrDelete("F**", "添加/删除指定编号的膜系", "添加实机验证:AF01、AF02;按编号删除 (D) 文档未说明"),
             Text("F**01", "膜系名称", "文档未列出,实机为 Name"),
             Ref("F**02", "材料 ID", 'M', allowNone: true),
-            ListEnds("F**0300", "添加/删除预条件"),
+            ListEnds("F**0300", "添加/删除预熔"),
             Time("F**03**01", "起始斜坡/上升时间", 150),
             Dec("F**03**02", "斜坡功率", "%", 0.00m, 99.99m),
             Time("F**03**03", "保持时间", 150),
-            Info("F**03FE", "预条件数量"),
+            Info("F**03FE", "预熔数量"),
             Choice("F**0401", "延迟选项", "0=None, 1=Shutter, 2=Control, 3=Both"),
             Time("F**0402", "控制延迟时间", 150),
             Dec("F**0403", "挡板延迟精度", "%", 1, 99),
             Time("F**0404", "挡板延迟超时", 3, 1),
             Ref("F**0405", "传输传感器 ID", 'N', allowNone: true),
             Dec("F**0406", "传输工具因子", "%", 1.0m, 10000.0m),
-            ListEnds("F**0500", "添加/删除后条件"),
-            Time("F**05**01", "后条件斜坡/上升时间", 150),
-            Dec("F**05**02", "后条件斜坡功率", "%", 0.00m, 99.99m),
-            Time("F**05**03", "后条件保持时间", 150),
-            Info("F**05FE", "后条件数量"),
+            ListEnds("F**0500", "添加/删除后处理"),
+            Time("F**05**01", "后处理斜坡/上升时间", 150),
+            Dec("F**05**02", "后处理斜坡功率", "%", 0.00m, 99.99m),
+            Time("F**05**03", "后处理保持时间", 150),
+            Info("F**05FE", "后处理数量"),
             Choice("F**0601", "速率监视", DisabledEnabled),
             Time("F**0602", "速率监视时间", 150),
             Dec("F**0603", "速率监视精度", "%", 1, 100),
@@ -871,7 +871,7 @@ namespace Zevision.Commands
         /// <exception cref="ArgumentException">见 <see cref="Build(CommandActions, string, string)"/>。</exception>
         public static string Update(string id, string value) => Build(CommandActions.Update, id, value ?? throw new ArgumentNullException(nameof(value)));
 
-        /// <summary>添加指令,如 <c>AM03</c> (按编号创建材料)、<c>AF010300</c> (在膜 F01 的预条件列表末尾追加)。</summary>
+        /// <summary>添加指令,如 <c>AM03</c> (按编号创建材料)、<c>AF010300</c> (在膜 F01 的预熔列表末尾追加)。</summary>
         /// <exception cref="ArgumentException">见 <see cref="Build(CommandActions, string, string)"/>。</exception>
         public static string Add(string id) => Build(CommandActions.Add, id);
 
@@ -951,7 +951,7 @@ namespace Zevision.Commands
             new BilingualText(chinese, Translations.TryGetValue(chinese, out var english) ? english : chinese);
 
         /// <summary>
-        /// 某一级编号 (列表) 的名称,参数为该级 <c>**</c> 之前的模式,如 <c>F**03</c> → 预条件 / Pre Condition、
+        /// 某一级编号 (列表) 的名称,参数为该级 <c>**</c> 之前的模式,如 <c>F**03</c> → 预熔 / Pre Condition、
         /// <c>P02**07</c> → 膜层 / Layer;未收录时为 <c>#</c>。名称可能含编号占位符 <c>{0}</c> (如 <c>F**07</c>)。
         /// </summary>
         public static BilingualText IndexName(string prefixPattern) =>

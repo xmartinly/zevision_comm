@@ -27,10 +27,10 @@ namespace Zevision.Localization
         /// <summary>范围或选项说明,如 <c>0.100 ~ 100.000 g/cm³</c>。</summary>
         public static string RangeText(this CommandDefinition definition) => definition.GetRangeText(Language);
 
-        /// <summary>各级编号的含义,如 膜系、预条件。</summary>
+        /// <summary>各级编号的含义,如 膜系、预熔。</summary>
         public static IReadOnlyList<string> IndexNames(this CommandDefinition definition) => definition.GetIndexNames(Language);
 
-        /// <summary>某一项的显示名称,如 <c>预条件 2 · 起始斜坡/上升时间</c>。</summary>
+        /// <summary>某一项的显示名称,如 <c>预熔 2 · 起始斜坡/上升时间</c>。</summary>
         public static string LabelFor(this CommandDefinition definition, string id, string? deviceDescription = null) =>
             definition.LabelFor(id, Language, deviceDescription);
 

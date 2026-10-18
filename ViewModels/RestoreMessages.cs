@@ -49,7 +49,7 @@ namespace Zevision.ViewModels
             {
                 sb.AppendLine(Lang.T($"设备上缺少、将重新创建 {plan.Creates.Count} 个对象/条目:", $"{plan.Creates.Count} objects/entries are missing on the device and will be re-created:"));
                 AppendLimited(sb, plan.Creates.Select(c => $"{c.Kind} {c.Id} ({c.Command})").ToList(), MaxListedChanges, Lang.T("个", ""));
-                sb.AppendLine(Lang.T("创建后会重新读取设备 (每轮约 10 秒);新对象的子列表 (如前处理步骤) 会在下一轮补齐,然后再写入设置。", "After creating, the device is read again (about 10 s per round); sub-lists of new objects (such as pre-condition steps) are completed in the next round before the settings are written."));
+                sb.AppendLine(Lang.T("创建后会重新读取设备 (每轮约 10 秒);新对象的子列表 (如预熔步骤) 会在下一轮补齐,然后再写入设置。", "After creating, the device is read again (about 10 s per round); sub-lists of new objects (such as pre-condition steps) are completed in the next round before the settings are written."));
                 sb.AppendLine();
             }
 

@@ -334,8 +334,8 @@ namespace Zevision.Tests
         }
 
         /// <summary>
-        /// 复现实机第二个问题:AF01 新建的膜层前处理步骤列表为空 (F0103FE = 0),
-        /// 文件中的 2 个前处理步骤无处写入。设备帮助表给出 F010300 = "Add or Delete Pre Condition from the end of the list"。
+        /// 复现实机第二个问题:AF01 新建的膜层预熔步骤列表为空 (F0103FE = 0),
+        /// 文件中的 2 个预熔步骤无处写入。设备帮助表给出 F010300 = "Add or Delete Pre Condition from the end of the list"。
         /// </summary>
         private static FakeDeviceService NewDeviceWithFilmSteps()
         {

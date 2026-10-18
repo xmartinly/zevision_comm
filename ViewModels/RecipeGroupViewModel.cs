@@ -91,10 +91,10 @@ namespace Zevision.ViewModels
         /// <summary>是否显示"添加膜层"行。</summary>
         public bool HasLayerAdd => LayerAdd != null;
 
-        /// <summary>标题中的子列表"+ / −"按钮 (膜系的预条件、后条件,膜层的膜系列表);没有时为空。</summary>
+        /// <summary>标题中的子列表"+ / −"按钮 (膜系的预熔、后处理,膜层的膜系列表);没有时为空。</summary>
         public IReadOnlyList<ListActionViewModel> ListActions { get; internal set; } = Array.Empty<ListActionViewModel>();
 
-        /// <summary>要在分组中显示说明和添加按钮的空列表 (只有膜层的速率/厚度;膜系的预/后条件只用标题中的按钮)。</summary>
+        /// <summary>要在分组中显示说明和添加按钮的空列表 (只有膜层的速率/厚度;膜系的预熔/后处理只用标题中的按钮)。</summary>
         public IReadOnlyList<ListActionViewModel> EmptyLists => ListActions.Where(a => a.ShowsEmptyRow).ToList();
 
         /// <summary>

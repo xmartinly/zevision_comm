@@ -17,7 +17,7 @@ namespace Zevision.Services
     /// </summary>
     /// <remarks>
     /// 设备上已被删除的材料/膜层/层/工艺会用 A 指令按原编号重新创建 (见 <see cref="ObjectTypes"/>);
-    /// 子列表 (前后处理步骤等) 缺少的条目用"追加到末尾"创建。不删除设备上多出的对象或条目。
+    /// 子列表 (预熔/后处理步骤等) 缺少的条目用"追加到末尾"创建。不删除设备上多出的对象或条目。
     /// </remarks>
     public sealed class InstrumentConfigService : InstrumentConfigReader, IInstrumentConfigService
     {
@@ -378,7 +378,7 @@ namespace Zevision.Services
 
         /// <summary>
         /// 分轮创建缺失的对象:每轮发送创建指令后重新读取设备并重新计划,直到不再需要创建。
-        /// 需要多轮是因为新对象的子列表 (如新膜层的前处理步骤) 要等对象创建后才出现在设备上。
+        /// 需要多轮是因为新对象的子列表 (如新膜层的预熔步骤) 要等对象创建后才出现在设备上。
         /// 新对象带的是设备默认值,只有重新读取才知道该写哪些项。
         /// </summary>
         /// <returns>最后一轮的计划;失败时返回 null,原因已写入 <paramref name="report"/>。</returns>

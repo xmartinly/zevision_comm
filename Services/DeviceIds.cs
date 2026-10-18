@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 namespace Zevision.Services
 {
     /// <summary>
-    /// 配置项 ID 的组成:组字母 + 若干级两位十六进制编号 (如 <c>F0103</c> = 膜系 F01 的预条件列表)。
+    /// 配置项 ID 的组成:组字母 + 若干级两位十六进制编号 (如 <c>F0103</c> = 膜系 F01 的预熔列表)。
     /// 列表条目编号为 01~FD;<c>00</c> 是"在末尾追加/删除最后一项"的指令项,<c>FE</c> 是条数项。
     /// 程序中拼接、拆分 ID 都用这里的方法,不手写这些编号。
     /// </summary>

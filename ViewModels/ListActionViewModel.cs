@@ -5,7 +5,7 @@ using Zevision.Localization;
 namespace Zevision.ViewModels
 {
     /// <summary>
-    /// 分组标题中一个子列表的"+ / −"按钮,如膜系的预条件、后条件,膜层的膜系列表。
+    /// 分组标题中一个子列表的"+ / −"按钮,如膜系的预熔、后处理,膜层的膜系列表。
     /// "+"在设备上把一条 (设备默认值) 追加到列表末尾,"−"删除最后一条;完成后重新读取该页。
     /// </summary>
     public sealed class ListActionViewModel
@@ -13,8 +13,8 @@ namespace Zevision.ViewModels
         private readonly string? _addFirstText;
 
         /// <summary>创建按钮组。</summary>
-        /// <param name="listId">列表 ID,如 <c>F0103</c> (膜系 F01 的预条件)。</param>
-        /// <param name="listName">列表名称,如"预条件"。</param>
+        /// <param name="listId">列表 ID,如 <c>F0103</c> (膜系 F01 的预熔)。</param>
+        /// <param name="listName">列表名称,如"预熔"。</param>
         /// <param name="count">现有条数。</param>
         /// <param name="addCommand">追加命令。</param>
         /// <param name="removeLastCommand">删除最后一条的命令。</param>
@@ -34,7 +34,7 @@ namespace Zevision.ViewModels
         /// <summary>列表 ID,如 <c>F0103</c>。</summary>
         public string ListId { get; }
 
-        /// <summary>列表名称,如"预条件"。</summary>
+        /// <summary>列表名称,如"预熔"。</summary>
         public string ListName { get; }
 
         /// <summary>现有条数。</summary>
@@ -49,10 +49,10 @@ namespace Zevision.ViewModels
         /// <summary>列表为空时分组中添加按钮的文字,如"添加膜系"。</summary>
         public string AddFirstText => _addFirstText ?? Lang.T("添加", "Add ") + (Lang.IsChinese ? ListName : ListName.ToLowerInvariant());
 
-        /// <summary>追加按钮的文字,如"+预条件"。</summary>
+        /// <summary>追加按钮的文字,如"+预熔"。</summary>
         public string AddText => "+" + ListName;
 
-        /// <summary>删除按钮的文字,如"−预条件"。</summary>
+        /// <summary>删除按钮的文字,如"−预熔"。</summary>
         public string RemoveText => "−" + ListName;
 
         /// <summary>在设备上追加一条。</summary>

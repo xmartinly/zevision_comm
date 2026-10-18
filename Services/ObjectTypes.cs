@@ -20,7 +20,7 @@ namespace Zevision.Services
         ItemRows,
     }
 
-    /// <summary>对象的一个子列表,如膜系的预条件 (<c>F**03</c>)。</summary>
+    /// <summary>对象的一个子列表,如膜系的预熔 (<c>F**03</c>)。</summary>
     /// <param name="Suffix">列表在对象中的编号,如 <c>03</c>。</param>
     /// <param name="Style">修改窗口中的操作方式。</param>
     public sealed record ObjectList(string Suffix, ObjectListStyle Style);
@@ -103,7 +103,7 @@ namespace Zevision.Services
         /// <summary>材料:<c>M**</c>。</summary>
         public static readonly ObjectType Material = new ObjectType('M', "M", null);
 
-        /// <summary>膜系:<c>F**</c>,材料 ID (<c>F**02</c>) 默认为第一个材料;预条件、后条件可以增删。</summary>
+        /// <summary>膜系:<c>F**</c>,材料 ID (<c>F**02</c>) 默认为第一个材料;预熔、后处理可以增删。</summary>
         public static readonly ObjectType Film = new ObjectType(
             'F', "F", new ObjectDefault('M', null, "02"), new ObjectList("03", ObjectListStyle.HeaderButtons), new ObjectList("05", ObjectListStyle.HeaderButtons));
 

@@ -142,7 +142,7 @@ namespace Zevision.Commands
     /// <remarks>
     /// <see cref="Pattern"/> 中的 <c>**</c> 是一级编号,用两位十六进制表示,由调用方给出:
     /// 第一级是对象编号 (如 <c>M**03</c> 中的材料编号、<c>F**02</c> 中的膜编号、<c>P02**01</c> 中的工艺编号),
-    /// 之后的是子列表中的序号 (如 <c>F**03**01</c> 中的预条件序号)。
+    /// 之后的是子列表中的序号 (如 <c>F**03**01</c> 中的预熔序号)。
     /// </remarks>
     public sealed class CommandDefinition
     {
@@ -237,7 +237,7 @@ namespace Zevision.Commands
         /// <summary>模式中 <c>**</c> 编号的级数,即 <see cref="Build(CommandActions, int[])"/> 需要的编号个数。</summary>
         public int IndexCount { get; }
 
-        /// <summary>各级编号的含义,如 <c>F**03**01</c> → 膜系、预条件 / Film、Pre Condition。</summary>
+        /// <summary>各级编号的含义,如 <c>F**03**01</c> → 膜系、预熔 / Film、Pre Condition。</summary>
         public IReadOnlyList<string> GetIndexNames(TextLanguage language) => _indexNames.Select(n => PlainIndexName(n.Get(language))).ToList();
 
         /// <summary>去掉编号占位符的名称,如"第 {0} 个传感器" → "传感器",用于错误说明等。</summary>
@@ -293,7 +293,7 @@ namespace Zevision.Commands
 
         /// <summary>
         /// 某一项的显示名称:子列表中的项在前面加上列表名和序号,以区分同名的项,
-        /// 如 <c>F01030201</c> → <c>预条件 2 · 起始斜坡/上升时间</c>。第一级编号是对象本身时不显示
+        /// 如 <c>F01030201</c> → <c>预熔 2 · 起始斜坡/上升时间</c>。第一级编号是对象本身时不显示
         /// (<c>T010103</c> 的第一级是输入编号:<c>输入 3 · 基本事件</c>)。
         /// </summary>
         /// <param name="id">命令 ID。</param>

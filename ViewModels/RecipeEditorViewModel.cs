@@ -277,11 +277,11 @@ namespace Zevision.ViewModels
         }
 
         /// <summary>
-        /// 在设备上把一项追加到列表末尾 (如预条件 <c>AF010300</c>、膜层的膜系 <c>AL010200</c>、工艺的膜层 <c>AP02010700</c> 再写入),
+        /// 在设备上把一项追加到列表末尾 (如预熔 <c>AF010300</c>、膜层的膜系 <c>AL010200</c>、工艺的膜层 <c>AP02010700</c> 再写入),
         /// 然后重新读取该组 (如 <c>?F</c>) 并展开所属对象,新的一项出现后可以修改。
         /// </summary>
         /// <param name="listId">列表 ID,如 <c>F0103</c>、<c>L0102</c>、<c>P020107</c>。</param>
-        /// <param name="listName">列表名称,如"预条件"。</param>
+        /// <param name="listName">列表名称,如"预熔"。</param>
         /// <param name="value">要写入新条目的值 (如工艺添加的膜层编号);为 null 时使用设备默认值。</param>
         /// <param name="valueLabel">值的显示文本,用于确认框。</param>
         public async Task AppendListEntryAsync(string listId, string listName, string? value = null, string? valueLabel = null)
@@ -321,7 +321,7 @@ namespace Zevision.ViewModels
         /// 然后重新读取该组并展开所属对象。
         /// </summary>
         /// <param name="listId">列表 ID,如 <c>F0103</c>、<c>P020107</c>。</param>
-        /// <param name="listName">列表名称,如"预条件"。</param>
+        /// <param name="listName">列表名称,如"预熔"。</param>
         /// <param name="number">要删除的序号 (从 1 开始);为 null 时删除最后一项。</param>
         public async Task RemoveListEntryAsync(string listId, string listName, int? number = null)
         {

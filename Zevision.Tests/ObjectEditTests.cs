@@ -423,7 +423,7 @@ namespace Zevision.Tests
             Assert.Contains("1 - F_SiO2", film.Options.Select(o => o.Label));
         }
 
-        // ---------- 膜系的预条件 / 后条件 ----------
+        // ---------- 膜系的预熔 / 后处理 ----------
 
         [Fact]
         public async Task FilmConditions_HeaderButtons()
@@ -432,11 +432,11 @@ namespace Zevision.Tests
             var actions = editor.Groups.Single(g => g.Key == "F01").ListActions;
 
             Assert.Equal(new[] { "F0103", "F0105" }, actions.Select(a => a.ListId));
-            Assert.Equal(new[] { "+预条件", "+后条件" }, actions.Select(a => a.AddText));
-            Assert.Equal(new[] { "−预条件", "−后条件" }, actions.Select(a => a.RemoveText));
-            Assert.True(actions[0].RemoveLastCommand.CanExecute(null));  // 已有 1 条预条件
-            Assert.False(actions[1].RemoveLastCommand.CanExecute(null)); // 后条件为空
-            Assert.Empty(editor.Groups.Single(g => g.Key == "F01").EmptyLists); // 膜系末尾不显示"添加后条件"行
+            Assert.Equal(new[] { "+预熔", "+后处理" }, actions.Select(a => a.AddText));
+            Assert.Equal(new[] { "−预熔", "−后处理" }, actions.Select(a => a.RemoveText));
+            Assert.True(actions[0].RemoveLastCommand.CanExecute(null));  // 已有 1 条预熔
+            Assert.False(actions[1].RemoveLastCommand.CanExecute(null)); // 后处理为空
+            Assert.Empty(editor.Groups.Single(g => g.Key == "F01").EmptyLists); // 膜系末尾不显示"添加后处理"行
         }
 
         [Fact]
@@ -464,7 +464,7 @@ namespace Zevision.Tests
             var device = FilmWithConditions();
             var (editor, dialogs) = await OpenDeviceEditorAsync(device);
 
-            await editor.RemoveListEntryAsync("F0103", "预条件");
+            await editor.RemoveListEntryAsync("F0103", "预熔");
 
             Assert.Empty(dialogs.Errors);
             var commands = device.CommandsSnapshot().SkipWhile(c => c != "DF010300").ToList();
@@ -473,7 +473,7 @@ namespace Zevision.Tests
             var film = editor.Groups.Single(g => g.Key == "F01");
             Assert.DoesNotContain(film.Items, i => i.Id.StartsWith("F010301", StringComparison.Ordinal));
             Assert.Equal(0, film.ListActions[0].Count);
-            Assert.Contains("删除预条件 (F010301)", Assert.Single(dialogs.Infos));
+            Assert.Contains("删除预熔 (F010301)", Assert.Single(dialogs.Infos));
         }
 
         [Fact]
@@ -851,7 +851,7 @@ namespace Zevision.Tests
             var device = FilmWithConditions();
             using (var file = await FileEditor.OpenAsync(FilmWithConditions(), device))
             {
-                await file.Editor.RemoveListEntryAsync("F0103", "预条件");
+                await file.Editor.RemoveListEntryAsync("F0103", "预熔");
 
                 Assert.Empty(file.Dialogs.Errors);
                 Assert.Contains("DF010300", device.CommandsSnapshot());

@@ -50,7 +50,7 @@ namespace Zevision.Services
             return ids;
         }
 
-        /// <summary>列表的条数,如 <c>F0103</c> 的预条件数 (不含 00 增删项和 FE 数量项)。</summary>
+        /// <summary>列表的条数,如 <c>F0103</c> 的预熔数 (不含 00 增删项和 FE 数量项)。</summary>
         public int ListItemCount(string listId) =>
             Entries
                 .Where(e => e.Id.Length >= listId.Length + 2 && e.Id.StartsWith(listId, StringComparison.Ordinal))
@@ -74,7 +74,7 @@ namespace Zevision.Services
         /// <summary>删除对象的全部项。</summary>
         public void RemoveObject(string objectId) => Entries.RemoveAll(e => BelongsTo(e, objectId));
 
-        /// <summary>从 <paramref name="source"/> 复制以 <paramref name="itemId"/> 开头的项 (如新增的一条预条件),放在列表 <paramref name="listId"/> 之后。</summary>
+        /// <summary>从 <paramref name="source"/> 复制以 <paramref name="itemId"/> 开头的项 (如新增的一条预熔),放在列表 <paramref name="listId"/> 之后。</summary>
         public void AddListItem(string listId, string itemId, IEnumerable<RecipeEntry> source) =>
             Insert(Copy(source.Where(e => e.Id.StartsWith(itemId, StringComparison.Ordinal))), listId);
 

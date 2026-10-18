@@ -278,7 +278,7 @@
                                                                             </StackPanel>
                                                                         </Button>
                                                                     </StackPanel>
-                                                                    <!-- 子列表:+ 追加一条 (设备默认值),− 删除最后一条 (膜系的预条件/后条件,膜层的膜系) -->
+                                                                    <!-- 子列表:+ 追加一条 (设备默认值),− 删除最后一条 (膜系的预熔/后处理,膜层的膜系) -->
                                                                     <ItemsControl ItemsSource="{Binding ListActions}" VerticalAlignment="Center">
                                                                         <ItemsControl.ItemsPanel>
                                                                             <ItemsPanelTemplate>

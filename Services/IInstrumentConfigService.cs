@@ -69,14 +69,14 @@ namespace Zevision.Services
 
         /// <summary>
         /// 在列表末尾追加一项 (如工艺增加膜层:<c>AP020107 00</c>,读数量 <c>QP020107FE</c> 得到新条目 <c>P0201070n</c>);
-        /// <paramref name="value"/> 不为 null 时再 <c>UP0201070n:值</c> 并读回校验 (膜系的预条件/后条件一项有多个设置,追加后使用设备默认值,传 null)。
+        /// <paramref name="value"/> 不为 null 时再 <c>UP0201070n:值</c> 并读回校验 (膜系的预熔/后处理一项有多个设置,追加后使用设备默认值,传 null)。
         /// 先确认设备型号与空闲状态。
         /// </summary>
         /// <returns>成功时为新条目的 ID。</returns>
         Task<Result<string>> AppendListItemAsync(string listId, string? value, string deviceName, CancellationToken cancellationToken);
 
         /// <summary>
-        /// 删除列表的最后一项 (如膜系的最后一条预条件:<c>DF010300</c>)。设备只支持从末尾删除。
+        /// 删除列表的最后一项 (如膜系的最后一条预熔:<c>DF010300</c>)。设备只支持从末尾删除。
         /// 先确认设备型号与空闲状态,删除前后读取数量 (<c>QF0103FE</c>) 确认少了一条。
         /// </summary>
         /// <returns>成功时为被删除的条目 ID,如 <c>F010302</c>。</returns>

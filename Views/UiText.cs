@@ -145,7 +145,7 @@ namespace Zevision.Views
         /// <summary>在设备上按第一个空编号新建对象</summary>
         public static string NewObjectToolTip => Lang.T("在设备上按第一个空编号新建 (使用设备默认值),完成后重新读取本页。有勾选的项时不可用:请先保存或取消勾选", "Creates one on the device with the first free number (device defaults), then reads this page again. Not available while settings are checked: save or uncheck them first");
 
-        /// <summary>新增 (预条件/后条件)</summary>
+        /// <summary>新增 (预熔/后处理)</summary>
         public static string AddListEntry => Lang.T("添加", "Add");
 
         /// <summary>工艺标题中膜层下拉框前的标签</summary>

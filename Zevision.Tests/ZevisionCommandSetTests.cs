@@ -63,8 +63,8 @@ namespace Zevision.Tests
         [InlineData("M03", "M**", "添加/删除指定编号的材料")]
         [InlineData("M00", "M00", "在列表末尾添加/删除材料")]
         [InlineData("F01030102", "F**03**02", "斜坡功率")]
-        [InlineData("F01050102", "F**05**02", "后条件斜坡功率")]
-        [InlineData("F0103FE", "F**03FE", "预条件数量")]
+        [InlineData("F01050102", "F**05**02", "后处理斜坡功率")]
+        [InlineData("F0103FE", "F**03FE", "预熔数量")]
         [InlineData("L020201060101", "L**02**06**01", "起始厚度")]
         [InlineData("P02010701", "P02**07**", "膜层 ID")]
         [InlineData("P020107FE", "P02**07FE", "膜层数量")]
@@ -255,7 +255,7 @@ namespace Zevision.Tests
             var ramp = ZevisionCommandSet.Find("F01030201")!;
 
             Assert.Equal(2, ramp.IndexCount);
-            Assert.Equal(new[] { "膜系", "预条件" }, ramp.IndexNames());
+            Assert.Equal(new[] { "膜系", "预熔" }, ramp.IndexNames());
             Assert.Equal(new[] { 1, 2 }, ramp.ParseIndices("F01030201"));
             Assert.Throws<ArgumentException>(() => ramp.ParseIndices("M0103"));
         }
@@ -318,7 +318,7 @@ namespace Zevision.Tests
         {
             foreach (var (from, to) in new[]
             {
-                ("过程", "工艺"), ("快门", "挡板"), (" tooling", "工具因子"), ("Tooling", "工具因子"),
+                ("过程", "工艺"), ("快门", "挡板"), ("预条件", "预熔"), ("后条件", "后处理"), (" tooling", "工具因子"), ("Tooling", "工具因子"),
                 ("RateWatcher ", "速率监视"), ("RateWatcher", "速率监视"), ("Dev 图", "偏差图"), ("Ethernet ", "以太网"), ("Z-ratio", "Z 比"), ("Mix ", "混合"), ("carousel", "转盘"),
                 ("Rate Deviation ", "速率偏差 "), ("Rate ", "速率 "), ("Thickness ", "厚度 "), ("Power ", "功率 "), ("Frequency ", "频率 "),
             })
@@ -363,8 +363,8 @@ namespace Zevision.Tests
 
         [Theory]
         [InlineData("M0103", "密度 (g/cm³)")]
-        [InlineData("F01030201", "预条件 2 · 起始斜坡/上升时间")]
-        [InlineData("F01050102", "后条件 1 · 后条件斜坡功率 (%)")]
+        [InlineData("F01030201", "预熔 2 · 起始斜坡/上升时间")]
+        [InlineData("F01050102", "后处理 1 · 后处理斜坡功率 (%)")]
         [InlineData("L020201060101", "膜系 1 斜坡 1 · 起始厚度 (kÅ)")]
         [InlineData("F01070201", "第 2 个传感器 · 传感器编号")]           // 膜系的传感器列表:第几项,不是传感器编号
         [InlineData("P0201070A", "膜层 10 · 膜层 ID")]

@@ -131,7 +131,7 @@ namespace Zevision.ViewModels
 
         /// <summary>在列表末尾追加一项的确认。</summary>
         /// <param name="owner">所属对象,如"膜系 F01"。</param>
-        /// <param name="listName">列表名称,如"预条件"。</param>
+        /// <param name="listName">列表名称,如"预熔"。</param>
         /// <param name="value">要写入的值的显示文本 (如工艺添加的膜层);使用设备默认值时为 null。</param>
         /// <param name="toFile">是否同时写入配置文件。</param>
         public static string ConfirmListAppend(string owner, string listName, string? value, bool toFile)
