@@ -5,7 +5,7 @@ using System.Runtime.Serialization.Json;
 using System.Text;
 using Zevision.Core.Localization;
 
-namespace Zevision.Services
+namespace Zevision.Storage
 {
     /// <summary>
     /// DataContract 对象与缩进的 UTF-8 JSON 文件之间的读写 (配置文件、<c>settings.json</c>)。
@@ -15,7 +15,7 @@ namespace Zevision.Services
     /// 写入是安全覆盖:先写到同目录的临时文件,成功后再替换目标文件。
     /// 写到一半出错 (断电、磁盘满、程序被关闭) 时,原文件保持完好,不会留下半个文件。
     /// </remarks>
-    public static class JsonFile
+    internal static class JsonFile
     {
         /// <summary>读取文件。</summary>
         /// <returns>内容为 null 或不是 <typeparamref name="T"/> 时返回 null。</returns>

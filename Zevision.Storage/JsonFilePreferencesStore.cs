@@ -4,7 +4,7 @@ using Zevision.Core;
 using Zevision.Core.Localization;
 using Zevision.Core.Settings;
 
-namespace Zevision.Services
+namespace Zevision.Storage
 {
     /// <summary>
     /// 把通讯配置保存为软件目录下的 <c>settings.json</c> (见 <see cref="AppFolders.GetSettingsFilePath"/>)。

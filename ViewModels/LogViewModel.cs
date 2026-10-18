@@ -7,7 +7,6 @@ using System.Linq;
 using Zevision.Core;
 using Zevision.Core.Localization;
 using Zevision.Models;
-using Zevision.Services;
 
 namespace Zevision.ViewModels
 {
@@ -37,7 +36,7 @@ namespace Zevision.ViewModels
         /// <summary>显示记录。</summary>
         public LogEntryCollection Entries { get; } = new LogEntryCollection();
 
-        /// <summary>保存通讯数据:显示的记录同时交给它追加到文件;为 null 时不保存。</summary>
+        /// <summary>保存通讯数据:显示的记录按显示的样子 (<see cref="LogEntry.ToDisplayLine"/>) 同时交给它追加;为 null 时不保存。</summary>
         public ICommunicationRecorder? Recorder { get; set; }
 
         /// <summary>添加一条记录。</summary>
@@ -78,7 +77,7 @@ namespace Zevision.ViewModels
 
             if (list.Count > 0)
             {
-                Recorder?.Append(list);
+                Recorder?.Append(list.Select(e => e.ToDisplayLine()).ToList());
             }
         }
 
@@ -93,7 +92,7 @@ namespace Zevision.ViewModels
             }
 
             AddCore(entry, writeErrorLog);
-            Recorder?.Append(new[] { entry });
+            Recorder?.Append(new[] { entry.ToDisplayLine() });
         }
 
         private void AddCore(LogEntry entry, bool writeErrorLog)

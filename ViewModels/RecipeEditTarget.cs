@@ -7,7 +7,6 @@ using Zevision.Commands;
 using Zevision.Core;
 using Zevision.Core.Configuration;
 using Zevision.Core.Localization;
-using Zevision.Services;
 
 namespace Zevision.ViewModels
 {
@@ -32,8 +31,8 @@ namespace Zevision.ViewModels
         protected IInstrumentConfigReader Config { get; }
 
         /// <summary>按来源创建:<paramref name="path"/> 为 null 时是实机数据。</summary>
-        public static RecipeEditTarget Create(RecipeDocument document, string? path, IInstrumentConfigReader config) =>
-            path == null ? new RecipeEditTarget(document, config) : new FileTarget(document, path, config);
+        public static RecipeEditTarget Create(RecipeDocument document, string? path, IInstrumentConfigReader config, IRecipeStore recipes) =>
+            path == null ? new RecipeEditTarget(document, config) : new FileTarget(document, path, config, recipes);
 
         /// <summary>新建/删除前设备上该组的项 (用来确定设备上有哪些对象)。实机数据:页面就是设备数据。</summary>
         public virtual Task<Result<IReadOnlyList<RecipeEntry>>> ReadDeviceGroupAsync(char group, CancellationToken cancellationToken) =>
@@ -84,11 +83,13 @@ namespace Zevision.ViewModels
         private sealed class FileTarget : RecipeEditTarget
         {
             private readonly string _path;
+            private readonly IRecipeStore _recipes;
 
-            public FileTarget(RecipeDocument document, string path, IInstrumentConfigReader config)
+            public FileTarget(RecipeDocument document, string path, IInstrumentConfigReader config, IRecipeStore recipes)
                 : base(document, config)
             {
                 _path = path;
+                _recipes = recipes;
             }
 
             public override string? FilePath => _path;
@@ -157,7 +158,7 @@ namespace Zevision.ViewModels
                 var copy = Document.Clone();
                 change(copy);
                 copy.Recipe.SavedAt = DateTimeOffset.Now.ToString("o", CultureInfo.InvariantCulture);
-                var saved = RecipeFile.Save(copy.Recipe, _path);
+                var saved = _recipes.Save(copy.Recipe, _path);
                 if (!saved.IsSuccess)
                 {
                     return saved.Error;

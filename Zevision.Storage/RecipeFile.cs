@@ -7,7 +7,7 @@ using Zevision.Core;
 using Zevision.Core.Configuration;
 using Zevision.Core.Localization;
 
-namespace Zevision.Services
+namespace Zevision.Storage
 {
     /// <summary>
     /// recipe 文件的读写 (缩进的 UTF-8 JSON,见 <see cref="JsonFile"/>)。
@@ -21,9 +21,6 @@ namespace Zevision.Services
     {
         /// <summary>文件扩展名。</summary>
         public const string Extension = ".json";
-
-        /// <summary>文件对话框的筛选器。</summary>
-        public static string DialogFilter => Lang.T("Zevision 仪器配置 (*.json)|*.json|所有文件 (*.*)|*.*", "Zevision instrument configuration (*.json)|*.json|All files (*.*)|*.*");
 
         private static readonly Regex Md5Pattern = new Regex("^[0-9a-fA-F]{32}$", RegexOptions.CultureInvariant);
 

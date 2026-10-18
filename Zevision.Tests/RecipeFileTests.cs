@@ -3,7 +3,7 @@ using System.IO;
 using System.Text;
 using Xunit;
 using Zevision.Core.Configuration;
-using Zevision.Services;
+using Zevision.Storage;
 
 namespace Zevision.Tests
 {

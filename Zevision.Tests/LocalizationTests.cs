@@ -12,6 +12,7 @@ using Zevision.Core.Configuration;
 using Zevision.Core.Localization;
 using Zevision.Core.Settings;
 using Zevision.Services;
+using Zevision.Storage;
 using Zevision.ViewModels;
 using Zevision.Views;
 
@@ -173,7 +174,7 @@ namespace Zevision.Tests
             {
                 Assert.Contains("Out of range", ParameterValue.Validate(ZevisionCommandSet.Find("G0E03"), "101"));
                 Assert.Equal("Checksum error", ZevisionErrorCode.ChecksumError.Describe());
-                using (var main = new MainViewModel(new FakeDeviceService(), new MemoryPreferencesStore(new ConnectionPreferences()), new InstrumentConfigService(new FakeDeviceService()), new FakeDialogService(), new FakeErrorLog()))
+                using (var main = new MainViewModel(new FakeDeviceService(), new MemoryPreferencesStore(new ConnectionPreferences()), new InstrumentConfigService(new FakeDeviceService()), new RecipeFileStore(), new NoCommunicationRecorders(), new FakeDialogService(), new FakeErrorLog()))
                 {
                     Assert.StartsWith("IMC300 Communication Test - Zevision ", main.Title);
                 }
@@ -184,7 +185,7 @@ namespace Zevision.Tests
         public void LanguageSetting_IsPreserved()
         {
             var store = new MemoryPreferencesStore(new ConnectionPreferences { Language = "en" });
-            using (var main = new MainViewModel(new FakeDeviceService(), store, new InstrumentConfigService(new FakeDeviceService()), new FakeDialogService(), new FakeErrorLog()))
+            using (var main = new MainViewModel(new FakeDeviceService(), store, new InstrumentConfigService(new FakeDeviceService()), new RecipeFileStore(), new NoCommunicationRecorders(), new FakeDialogService(), new FakeErrorLog()))
             {
                 main.SavePreferences();
             }
@@ -197,7 +198,7 @@ namespace Zevision.Tests
         {
             var store = new MemoryPreferencesStore(new ConnectionPreferences());
             var dialogs = new FakeDialogService();
-            using (var main = new MainViewModel(new FakeDeviceService(), store, new InstrumentConfigService(new FakeDeviceService()), dialogs, new FakeErrorLog()))
+            using (var main = new MainViewModel(new FakeDeviceService(), store, new InstrumentConfigService(new FakeDeviceService()), new RecipeFileStore(), new NoCommunicationRecorders(), dialogs, new FakeErrorLog()))
             {
                 var restarts = 0;
                 main.RestartRequested += (s, e) => restarts++;
@@ -217,7 +218,7 @@ namespace Zevision.Tests
         {
             var store = new MemoryPreferencesStore(new ConnectionPreferences());
             var dialogs = new FakeDialogService { ConfirmResult = false };
-            using (var main = new MainViewModel(new FakeDeviceService(), store, new InstrumentConfigService(new FakeDeviceService()), dialogs, new FakeErrorLog()))
+            using (var main = new MainViewModel(new FakeDeviceService(), store, new InstrumentConfigService(new FakeDeviceService()), new RecipeFileStore(), new NoCommunicationRecorders(), dialogs, new FakeErrorLog()))
             {
                 var restarts = 0;
                 main.RestartRequested += (s, e) => restarts++;
@@ -236,7 +237,7 @@ namespace Zevision.Tests
             using (Lang.Override(UiLanguage.English))
             {
                 var store = new MemoryPreferencesStore(new ConnectionPreferences());
-                using (var main = new MainViewModel(new FakeDeviceService(), store, new InstrumentConfigService(new FakeDeviceService()), new FakeDialogService(), new FakeErrorLog()))
+                using (var main = new MainViewModel(new FakeDeviceService(), store, new InstrumentConfigService(new FakeDeviceService()), new RecipeFileStore(), new NoCommunicationRecorders(), new FakeDialogService(), new FakeErrorLog()))
                 {
                     Assert.Equal("中", main.SwitchLanguageText);
                     main.SwitchLanguageCommand.Execute(null);

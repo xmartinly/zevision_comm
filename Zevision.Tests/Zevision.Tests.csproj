@@ -43,6 +43,7 @@
     <Compile Include="FakeDeviceService.cs" />
     <Compile Include="FakeDialogService.cs" />
     <Compile Include="MemoryPreferencesStore.cs" />
+    <Compile Include="NoCommunicationRecorders.cs" />
     <Compile Include="LocalizationTests.cs" />
     <Compile Include="ObjectEditTests.cs" />
     <Compile Include="ObjectTypesTests.cs" />
@@ -90,6 +91,10 @@
     <ProjectReference Include="..\Zevision.csproj">
       <Project>{68E153FE-3C42-4088-B33A-DF7F9A29CAC9}</Project>
       <Name>Zevision</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Zevision.Storage\Zevision.Storage.csproj">
+      <Project>{872590BF-6C50-4116-9027-76C2F0ACC1D5}</Project>
+      <Name>Zevision.Storage</Name>
     </ProjectReference>
     <ProjectReference Include="..\Zevision.Core\Zevision.Core.csproj">
       <Project>{3E348A08-77E1-4D8D-916B-A10B168EB5E4}</Project>

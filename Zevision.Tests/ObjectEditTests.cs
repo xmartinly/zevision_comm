@@ -6,7 +6,7 @@ using Xunit;
 using Zevision.Commands;
 using Zevision.Communication;
 using Zevision.Core.Configuration;
-using Zevision.Services;
+using Zevision.Storage;
 using Zevision.ViewModels;
 
 namespace Zevision.Tests
@@ -901,7 +901,7 @@ namespace Zevision.Tests
                 var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "zevision_obj_" + Guid.NewGuid().ToString("N") + ".json");
                 Assert.True(RecipeFile.Save(snapshot.Value.ToRecipe(DateTimeOffset.Now), path).IsSuccess);
                 var dialogs = new FakeDialogService();
-                var editor = new RecipeEditorViewModel(RecipeFile.Load(path).Value, path, config, dialogs, new FakeErrorLog());
+                var editor = new RecipeEditorViewModel(RecipeFile.Load(path).Value, path, config, new RecipeFileStore(), dialogs, new FakeErrorLog());
                 return new FileEditor(editor, dialogs, path);
             }
 
@@ -975,7 +975,7 @@ namespace Zevision.Tests
             var snapshot = await config.ReadSnapshotAsync(CancellationToken.None);
             Assert.True(snapshot.IsSuccess, snapshot.Error);
             var dialogs = new FakeDialogService();
-            var editor = new RecipeEditorViewModel(snapshot.Value.ToRecipe(DateTimeOffset.Now), null, config, dialogs, new FakeErrorLog());
+            var editor = new RecipeEditorViewModel(snapshot.Value.ToRecipe(DateTimeOffset.Now), null, config, new RecipeFileStore(), dialogs, new FakeErrorLog());
             return (editor, dialogs);
         }
 

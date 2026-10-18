@@ -7,6 +7,7 @@ using Xunit;
 using Zevision.Core.Configuration;
 using Zevision.Core.Settings;
 using Zevision.Services;
+using Zevision.Storage;
 using Zevision.ViewModels;
 
 namespace Zevision.Tests
@@ -431,7 +432,7 @@ namespace Zevision.Tests
         private static MainViewModel NewMain(IPreferencesStore store)
         {
             var device = NewDevice();
-            return new MainViewModel(device, store, new InstrumentConfigService(device), new FakeDialogService(), new FakeErrorLog());
+            return new MainViewModel(device, store, new InstrumentConfigService(device), new RecipeFileStore(), new NoCommunicationRecorders(), new FakeDialogService(), new FakeErrorLog());
         }
 
         [Fact]
@@ -496,7 +497,7 @@ namespace Zevision.Tests
             var recipe = new InstrumentRecipe { DeviceName = "IMC300", FirmwareVersion = "1.8.11", SavedAt = "2026-10-16T09:00:00.0000000+08:00" };
             recipe.Entries.Add(Entry("M0101", "Al", "Name"));
             recipe.Entries.Add(Entry("M0103", "5.890", "Density (g/cm^3)"));
-            var editor = new RecipeEditorViewModel(recipe, null, new InstrumentConfigService(device), dialogs, new FakeErrorLog());
+            var editor = new RecipeEditorViewModel(recipe, null, new InstrumentConfigService(device), new RecipeFileStore(), dialogs, new FakeErrorLog());
             var closed = false;
             editor.CloseRequested += (s, e) => closed = true;
             var item = Check(editor, "M0103", "2.7");
@@ -515,7 +516,7 @@ namespace Zevision.Tests
         }
 
         private static ConfigOperationsViewModel NewConfigOperations(FakeDeviceService device, FakeDialogService dialogs) =>
-            new ConfigOperationsViewModel(new InstrumentConfigService(device), dialogs, new FakeErrorLog(), new LogViewModel(new FakeErrorLog()), () => true);
+            new ConfigOperationsViewModel(new InstrumentConfigService(device), new RecipeFileStore(), dialogs, new FakeErrorLog(), new LogViewModel(new FakeErrorLog()), () => true);
 
         private static FakeDeviceService NewDevice() => new FakeDeviceService()
             .With("C09", "Ready", "Current State")
@@ -559,7 +560,7 @@ namespace Zevision.Tests
 
             var dialogs = new FakeDialogService();
             var log = new FakeErrorLog();
-            var editor = new RecipeEditorViewModel(RecipeFile.Load(path).Value, path, new InstrumentConfigService(device), dialogs, log);
+            var editor = new RecipeEditorViewModel(RecipeFile.Load(path).Value, path, new InstrumentConfigService(device), new RecipeFileStore(), dialogs, log);
             return (editor, dialogs, path, log);
         }
 

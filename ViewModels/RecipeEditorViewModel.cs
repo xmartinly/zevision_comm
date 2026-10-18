@@ -47,18 +47,19 @@ namespace Zevision.ViewModels
         /// 创建编辑器。
         /// </summary>
         /// <param name="recipe">
-        /// 要修改的配置:来自文件时应已通过 <see cref="RecipeFile.Load"/> 的校验;
+        /// 要修改的配置:来自文件时应已通过 <see cref="IRecipeStore.Load"/> 的校验;
         /// 来自实机时由 <see cref="InstrumentSnapshot.ToRecipe"/> 根据刚读取的设备数据生成。
         /// </param>
         /// <param name="path">配置文件路径;为 null 时修改的是实机数据,写入设备后不保存文件。</param>
         /// <param name="config">配置服务。</param>
+        /// <param name="recipes">配置文件的存储 (修改保存的配置时写文件)。</param>
         /// <param name="dialogs">对话框。</param>
         /// <param name="errorLog">错误日志。</param>
-        public RecipeEditorViewModel(InstrumentRecipe recipe, string? path, IInstrumentConfigService config, IDialogService dialogs, IErrorLog errorLog)
+        public RecipeEditorViewModel(InstrumentRecipe recipe, string? path, IInstrumentConfigService config, IRecipeStore recipes, IDialogService dialogs, IErrorLog errorLog)
         {
             _document = new RecipeDocument(recipe ?? throw new ArgumentNullException(nameof(recipe)));
             _config = config ?? throw new ArgumentNullException(nameof(config));
-            _target = RecipeEditTarget.Create(_document, path, config);
+            _target = RecipeEditTarget.Create(_document, path, config, recipes ?? throw new ArgumentNullException(nameof(recipes)));
             _dialogs = dialogs ?? throw new ArgumentNullException(nameof(dialogs));
             _errorLog = errorLog ?? throw new ArgumentNullException(nameof(errorLog));
 

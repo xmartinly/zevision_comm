@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using Xunit;
 using Zevision.Core.Settings;
-using Zevision.Services;
+using Zevision.Storage;
 
 namespace Zevision.Tests
 {

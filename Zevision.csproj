@@ -90,14 +90,8 @@
     <Compile Include="Communication\FrameDisplayFormatter.cs" />
     <Compile Include="Communication\DisplayFormat.cs" />
     <Compile Include="Models\LogEntry.cs" />
-    <Compile Include="Services\CommunicationLogWriter.cs" />
-    <Compile Include="Services\JsonFile.cs" />
     <Compile Include="Services\IDialogService.cs" />
-    <Compile Include="Services\JsonFilePreferencesStore.cs" />
-    <Compile Include="Services\RecipeFile.cs" />
     <Compile Include="Services\RecipeGrouping.cs" />
-    <Compile Include="Services\AppFolders.cs" />
-    <Compile Include="Services\FileErrorLog.cs" />
     <Compile Include="Services\ParameterOptions.cs" />
     <Compile Include="Services\ReadOnlyLayout.cs" />
     <Compile Include="ViewModels\AsyncRelayCommand.cs" />
@@ -150,6 +144,10 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="Zevision.Storage\Zevision.Storage.csproj">
+      <Project>{872590BF-6C50-4116-9027-76C2F0ACC1D5}</Project>
+      <Name>Zevision.Storage</Name>
+    </ProjectReference>
     <ProjectReference Include="Zevision.Core\Zevision.Core.csproj">
       <Project>{3E348A08-77E1-4D8D-916B-A10B168EB5E4}</Project>
       <Name>Zevision.Core</Name>

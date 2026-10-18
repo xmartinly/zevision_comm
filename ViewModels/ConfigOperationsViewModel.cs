@@ -30,7 +30,11 @@ namespace Zevision.ViewModels
         private static string ReadPhase => Lang.T("读取设备配置", "Reading the device configuration");
         private static string ExecutePhase => Lang.T("执行恢复", "Restoring");
 
+        /// <summary>配置文件对话框的筛选器。</summary>
+        private static string RecipeDialogFilter => Lang.T("Zevision 仪器配置 (*.json)|*.json|所有文件 (*.*)|*.*", "Zevision instrument configuration (*.json)|*.json|All files (*.*)|*.*");
+
         private readonly IInstrumentConfigService _config;
+        private readonly IRecipeStore _recipes;
         private readonly IDialogService _dialogs;
         private readonly IErrorLog _errorLog;
         private readonly LogViewModel _log;
@@ -43,18 +47,21 @@ namespace Zevision.ViewModels
         /// 创建配置操作。
         /// </summary>
         /// <param name="config">配置服务。</param>
+        /// <param name="recipes">配置文件的存储。</param>
         /// <param name="dialogs">对话框。</param>
         /// <param name="errorLog">错误日志。</param>
         /// <param name="log">数据显示区。</param>
         /// <param name="isConnected">是否可以开始操作:设备已连接且没有在重复发送 (否则命令不可用)。</param>
         public ConfigOperationsViewModel(
             IInstrumentConfigService config,
+            IRecipeStore recipes,
             IDialogService dialogs,
             IErrorLog errorLog,
             LogViewModel log,
             Func<bool> isConnected)
         {
             _config = config ?? throw new ArgumentNullException(nameof(config));
+            _recipes = recipes ?? throw new ArgumentNullException(nameof(recipes));
             _dialogs = dialogs ?? throw new ArgumentNullException(nameof(dialogs));
             _errorLog = errorLog ?? throw new ArgumentNullException(nameof(errorLog));
             _log = log ?? throw new ArgumentNullException(nameof(log));
@@ -156,9 +163,9 @@ namespace Zevision.ViewModels
             var title = Lang.T("保存仪器配置", "Save instrument configuration");
             var path = _dialogs.ShowSaveFileDialog(
                 title,
-                RecipeFile.DialogFilter,
-                AppFolders.GetRecipeFolder(),
-                "IMC300_" + DateTime.Now.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture) + RecipeFile.Extension);
+                RecipeDialogFilter,
+                _recipes.Folder,
+                "IMC300_" + DateTime.Now.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture) + _recipes.FileExtension);
             if (path == null)
             {
                 return;
@@ -167,7 +174,7 @@ namespace Zevision.ViewModels
             await ReadDeviceAsync(title, (snapshot, cancellationToken) =>
             {
                 var recipe = snapshot.ToRecipe(DateTimeOffset.Now);
-                var saved = RecipeFile.Save(recipe, path);
+                var saved = _recipes.Save(recipe, path);
                 if (!saved.IsSuccess)
                 {
                     ReportFailure(title, saved.Error);
@@ -225,7 +232,7 @@ namespace Zevision.ViewModels
                 return; // 程序正在退出
             }
 
-            using (var editor = new RecipeEditorViewModel(recipe, path, _config, _dialogs, _errorLog))
+            using (var editor = new RecipeEditorViewModel(recipe, path, _config, _recipes, _dialogs, _errorLog))
             {
                 if (device != null)
                 {
@@ -298,13 +305,13 @@ namespace Zevision.ViewModels
         /// <summary>选择并读取配置文件 (校验格式与 MD5);取消或失败 (已提示) 时为 null。</summary>
         private (string Path, InstrumentRecipe Recipe)? LoadRecipe(string title)
         {
-            var path = _dialogs.ShowOpenFileDialog(title, RecipeFile.DialogFilter, AppFolders.GetRecipeFolder());
+            var path = _dialogs.ShowOpenFileDialog(title, RecipeDialogFilter, _recipes.Folder);
             if (path == null)
             {
                 return null;
             }
 
-            var loaded = RecipeFile.Load(path);
+            var loaded = _recipes.Load(path);
             if (!loaded.IsSuccess)
             {
                 ReportFailure(title, loaded.Error);

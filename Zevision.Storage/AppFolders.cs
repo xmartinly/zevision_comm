@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 
-namespace Zevision.Services
+namespace Zevision.Storage
 {
     /// <summary>
     /// 程序数据位置:通讯配置 (settings.json)、仪器配置文件 (recipe)、日志 (logs)。

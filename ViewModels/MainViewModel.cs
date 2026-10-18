@@ -26,8 +26,9 @@ namespace Zevision.ViewModels
         private readonly IPreferencesStore _preferences;
         private readonly IErrorLog _errorLog;
         private readonly IDialogService _dialogs;
+        private readonly ICommunicationRecorderFactory _recorders;
         private readonly SynchronizationContext _uiContext;
-        private CommunicationLogWriter? _recorder;
+        private ICommunicationRecorder? _recorder;
         private Task? _connecting;
         private string _languageSetting = ConnectionPreferences.DefaultLanguage;
         private string _connectedTo = string.Empty;
@@ -39,10 +40,25 @@ namespace Zevision.ViewModels
         /// <summary>
         /// 创建视图模型,扫描可用串口并恢复上次保存的通讯配置。必须在 UI 线程上创建,以便捕获其同步上下文。
         /// </summary>
-        public MainViewModel(IDeviceService device, IPreferencesStore preferences, IInstrumentConfigService config, IDialogService dialogs, IErrorLog errorLog)
+        /// <param name="device">设备通讯。</param>
+        /// <param name="preferences">界面设置的存储。</param>
+        /// <param name="config">仪器配置的读写。</param>
+        /// <param name="recipes">配置文件的存储。</param>
+        /// <param name="recorders">保存通讯数据时为每次连接创建记录。</param>
+        /// <param name="dialogs">对话框。</param>
+        /// <param name="errorLog">错误日志。</param>
+        public MainViewModel(
+            IDeviceService device,
+            IPreferencesStore preferences,
+            IInstrumentConfigService config,
+            IRecipeStore recipes,
+            ICommunicationRecorderFactory recorders,
+            IDialogService dialogs,
+            IErrorLog errorLog)
         {
             _device = device ?? throw new ArgumentNullException(nameof(device));
             _preferences = preferences ?? throw new ArgumentNullException(nameof(preferences));
+            _recorders = recorders ?? throw new ArgumentNullException(nameof(recorders));
             _errorLog = errorLog ?? throw new ArgumentNullException(nameof(errorLog));
             _dialogs = dialogs ?? throw new ArgumentNullException(nameof(dialogs));
             _uiContext = SynchronizationContext.Current ?? new SynchronizationContext();
@@ -51,7 +67,7 @@ namespace Zevision.ViewModels
             SendOptions = new SendOptionsViewModel();
 
             // 重复发送期间不开始配置操作:两者的指令会交错。
-            Config = new ConfigOperationsViewModel(config, dialogs, errorLog, Log, () => IsConnected && !SendOptions.IsRepeating);
+            Config = new ConfigOperationsViewModel(config, recipes, dialogs, errorLog, Log, () => IsConnected && !SendOptions.IsRepeating);
 
             _device.FrameSent += OnFrameSent;
             _device.FrameReceived += OnFrameReceived;
@@ -295,19 +311,17 @@ namespace Zevision.ViewModels
             }
 
             var options = created.Value;
-            CommunicationLogWriter? recorder = null;
+            ICommunicationRecorder? recorder = null;
             if (Connection.IsSaveCommunicationDataEnabled)
             {
-                var path = Path.Combine(AppFolders.GetLogsFolder(), $"capture_{DateTime.Now.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture)}.txt");
-                try
+                var opened = _recorders.Create();
+                if (!opened.IsSuccess)
                 {
-                    recorder = CommunicationLogWriter.Create(path, _errorLog);
-                }
-                catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is ArgumentException || ex is NotSupportedException)
-                {
-                    Log.Add(LogKind.Error, Lang.T($"无法创建通讯数据文件 {path}: {ex.Message}", $"Cannot create the communication data file {path}: {ex.Message}"));
+                    Log.Add(LogKind.Error, opened.Error!); // 失败的 Result 总有原因
                     return;
                 }
+
+                recorder = opened.Value;
             }
 
             var result = await _device.ConnectAsync(options, CancellationToken.None);

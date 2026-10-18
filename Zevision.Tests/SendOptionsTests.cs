@@ -7,12 +7,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 using Zevision.Communication;
+using Zevision.Core;
 using Zevision.Core.Configuration;
 using Zevision.Core.Devices;
 using Zevision.Core.Localization;
 using Zevision.Core.Settings;
 using Zevision.Models;
-using Zevision.Services;
+using Zevision.Storage;
 using Zevision.ViewModels;
 
 namespace Zevision.Tests
@@ -283,10 +284,10 @@ namespace Zevision.Tests
                 File.WriteAllText(path, "existing" + Environment.NewLine);
                 var time = new DateTime(2026, 10, 16, 9, 42, 16, 334);
                 var writer = CommunicationLogWriter.Create(path, new FakeErrorLog());
-                writer.Append(new[] { new LogEntry(time, LogKind.Tx, "{H01}") });
-                writer.Append(new[] { new LogEntry(time, LogKind.Rx, "7B 48"), new LogEntry(time, LogKind.Rx, "30 31", isContinuation: true) });
+                writer.Append(new[] { new LogEntry(time, LogKind.Tx, "{H01}").ToDisplayLine() });
+                writer.Append(new[] { new LogEntry(time, LogKind.Rx, "7B 48").ToDisplayLine(), new LogEntry(time, LogKind.Rx, "30 31", isContinuation: true).ToDisplayLine() });
                 await writer.CloseAsync();
-                writer.Append(new[] { new LogEntry(time, LogKind.Info, "ignored after close") });
+                writer.Append(new[] { "ignored after close" });
                 await writer.CloseAsync();
 
                 Assert.Equal(
@@ -305,20 +306,23 @@ namespace Zevision.Tests
             var recorder = new ListRecorder();
             var log = new LogViewModel(new FakeErrorLog()) { Recorder = recorder };
 
-            log.Add(LogKind.Info, "one");
-            log.AddRange(new[] { new LogEntry(DateTime.Now, LogKind.Rx, "a"), new LogEntry(DateTime.Now, LogKind.Rx, "b", isContinuation: true) });
+            var time = new DateTime(2026, 10, 16, 9, 42, 16, 334);
+            log.Add(new LogEntry(time, LogKind.Info, "one"));
+            log.AddRange(new[] { new LogEntry(time, LogKind.Rx, "a"), new LogEntry(time, LogKind.Rx, "b", isContinuation: true) });
             log.Clear();
             log.Recorder = null;
             log.Add(LogKind.Info, "not recorded");
 
+            // 保存的是显示的样子 (与 Ctrl+C 复制相同)。
             Assert.Equal(new[] { 1, 2 }, recorder.Batches.Select(b => b.Count));
+            Assert.Equal(new[] { "09:42:16.334 INFO one", "09:42:16.334 RX   a", new string(' ', 18) + "b" }, recorder.Batches.SelectMany(b => b));
         }
 
         [Fact]
         public void Preferences_RoundTripSendOptions()
         {
             var store = new MemoryPreferencesStore(new ConnectionPreferences { DisplayFormat = "Hex", RepeatSend = true, RepeatIntervalMs = 200 });
-            using (var main = new MainViewModel(new FakeDeviceService(), store, new InstrumentConfigService(new FakeDeviceService()), new FakeDialogService(), new FakeErrorLog()))
+            using (var main = new MainViewModel(new FakeDeviceService(), store, new InstrumentConfigService(new FakeDeviceService()), new RecipeFileStore(), new NoCommunicationRecorders(), new FakeDialogService(), new FakeErrorLog()))
             {
                 Assert.Equal(DisplayFormat.Hex, main.SendOptions.DisplayFormat);
                 Assert.True(main.SendOptions.IsRepeatEnabled);
@@ -339,7 +343,7 @@ namespace Zevision.Tests
         public void Preferences_InvalidValuesKeepDefaults(string format, int interval)
         {
             var store = new MemoryPreferencesStore(new ConnectionPreferences { DisplayFormat = format, RepeatIntervalMs = 333 });
-            using (var main = new MainViewModel(new FakeDeviceService(), store, new InstrumentConfigService(new FakeDeviceService()), new FakeDialogService(), new FakeErrorLog()))
+            using (var main = new MainViewModel(new FakeDeviceService(), store, new InstrumentConfigService(new FakeDeviceService()), new RecipeFileStore(), new NoCommunicationRecorders(), new FakeDialogService(), new FakeErrorLog()))
             {
                 Assert.Equal(DisplayFormat.Ascii, main.SendOptions.DisplayFormat);
                 Assert.Equal(interval, main.SendOptions.RepeatInterval);
@@ -356,7 +360,7 @@ namespace Zevision.Tests
             SynchronizationContext.SetSynchronizationContext(new SerialContext());
             try
             {
-                return new MainViewModel(device, new MemoryPreferencesStore(new ConnectionPreferences()), new InstrumentConfigService(device), new FakeDialogService(), new FakeErrorLog())
+                return new MainViewModel(device, new MemoryPreferencesStore(new ConnectionPreferences()), new InstrumentConfigService(device), new RecipeFileStore(), new NoCommunicationRecorders(), new FakeDialogService(), new FakeErrorLog())
                 {
                     Connection = { SelectedConnectionType = ConnectionType.Tcp, TcpHost = "127.0.0.1" },
                 };
@@ -409,9 +413,13 @@ namespace Zevision.Tests
 
         private sealed class ListRecorder : ICommunicationRecorder
         {
-            public List<IReadOnlyList<LogEntry>> Batches { get; } = new List<IReadOnlyList<LogEntry>>();
+            public List<IReadOnlyList<string>> Batches { get; } = new List<IReadOnlyList<string>>();
 
-            public void Append(IReadOnlyList<LogEntry> entries) => Batches.Add(entries);
+            public string Path => "memory";
+
+            public void Append(IReadOnlyList<string> lines) => Batches.Add(lines);
+
+            public Task CloseAsync() => Task.CompletedTask;
         }
     }
 }

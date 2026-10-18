@@ -7,20 +7,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using Zevision.Core;
 using Zevision.Core.Localization;
-using Zevision.Models;
 
-namespace Zevision.Services
+namespace Zevision.Storage
 {
-    /// <summary>接收数据显示区的记录并保存。</summary>
-    public interface ICommunicationRecorder
-    {
-        /// <summary>追加一批记录 (一次通讯显示的全部行)。不阻塞调用方,不抛出 I/O 异常。</summary>
-        void Append(IReadOnlyList<LogEntry> entries);
-    }
-
     /// <summary>
-    /// 保存通讯数据:把数据显示区的内容按显示的样子 (<see cref="LogEntry.ToDisplayLine"/>,含当时选择的显示格式)
-    /// 追加到文本文件,每批写完立即刷新。写入在后台按顺序进行,不占用 UI 线程。
+    /// 保存通讯数据:把数据显示区的内容 (显示的样子,含当时选择的显示格式) 追加到文本文件,每批写完立即刷新。
+    /// 写入在后台按顺序进行,不占用 UI 线程。
     /// </summary>
     /// <remarks>
     /// 只是记录用途:写入失败时记入 error.txt 并停止记录,不影响通讯。
@@ -39,7 +31,7 @@ namespace Zevision.Services
             _errorLog = errorLog;
         }
 
-        /// <summary>文件路径。</summary>
+        /// <inheritdoc />
         public string Path { get; }
 
         /// <summary>
@@ -70,27 +62,24 @@ namespace Zevision.Services
         }
 
         /// <inheritdoc />
-        public void Append(IReadOnlyList<LogEntry> entries)
+        public void Append(IReadOnlyList<string> lines)
         {
-            if (entries is null)
+            if (lines is null)
             {
-                throw new ArgumentNullException(nameof(entries));
+                throw new ArgumentNullException(nameof(lines));
             }
 
-            if (entries.Count == 0)
+            if (lines.Count == 0)
             {
                 return;
             }
 
-            // 记录是不可变对象,复制列表后交给后台格式化和写入。
-            var batch = entries.ToArray();
+            // 复制列表后交给后台写入。
+            var batch = lines.ToArray();
             Enqueue(() => Write(batch));
         }
 
-        /// <summary>
-        /// 写完已排队的记录后关闭文件。之后的 <see cref="Append"/> 被忽略。
-        /// </summary>
-        /// <returns>文件关闭后完成;不会失败。</returns>
+        /// <inheritdoc />
         public Task CloseAsync() => Enqueue(CloseWriter);
 
         private Task Enqueue(Action action)
@@ -103,7 +92,7 @@ namespace Zevision.Services
         }
 
         /// <summary>只在后台写入链中调用,按顺序执行,不需要加锁。</summary>
-        private void Write(IReadOnlyList<LogEntry> batch)
+        private void Write(IReadOnlyList<string> batch)
         {
             if (_writer == null)
             {
@@ -112,9 +101,9 @@ namespace Zevision.Services
 
             try
             {
-                foreach (var entry in batch)
+                foreach (var line in batch)
                 {
-                    _writer.WriteLine(entry.ToDisplayLine());
+                    _writer.WriteLine(line);
                 }
 
                 _writer.Flush();

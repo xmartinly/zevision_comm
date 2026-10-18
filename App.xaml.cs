@@ -12,7 +12,7 @@ using Zevision.Core;
 using Zevision.Core.Configuration;
 using Zevision.Core.Devices;
 using Zevision.Core.Localization;
-using Zevision.Services;
+using Zevision.Storage;
 using Zevision.ViewModels;
 using Zevision.Views;
 
@@ -61,6 +61,8 @@ namespace Zevision
                     _deviceService,
                     preferences,
                     new InstrumentConfigService(_deviceService),
+                    new RecipeFileStore(),
+                    new CommunicationLogFiles(_errorLog),
                     new DialogService(),
                     _errorLog);
 

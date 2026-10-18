@@ -5,7 +5,7 @@ using System.Text;
 using Zevision.Core;
 using Zevision.Core.Localization;
 
-namespace Zevision.Services
+namespace Zevision.Storage
 {
     /// <summary>
     /// 以追加方式把错误写入文本文件 (UTF-8)。线程安全;写入失败时静默放弃,不影响程序运行。
