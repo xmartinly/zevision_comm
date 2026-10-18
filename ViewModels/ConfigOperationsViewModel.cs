@@ -345,7 +345,7 @@ namespace Zevision.ViewModels
                 }
                 else
                 {
-                    _log.Add(LogKind.Info, Lang.T("操作已取消。设备可能仍在发送剩余数据,它们会显示为未请求的数据。", "Operation cancelled. The device may still send the rest of its data; it will be shown as unsolicited data."));
+                    _log.Add(LogKind.Info, Lang.T("操作已取消。设备可能仍在发送剩余的配置数据,这些数据不显示。", "Operation cancelled. The device may still send the rest of the configuration data; it is not shown."));
                 }
             });
 

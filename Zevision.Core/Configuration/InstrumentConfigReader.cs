@@ -131,7 +131,7 @@ namespace Zevision.Core.Configuration
         /// <returns>值 (已去除首尾空白)。</returns>
         protected async Task<Result<string>> QueryValueAsync(string id, CancellationToken cancellationToken)
         {
-            var reply = await SendForResponseAsync(ZevisionCommandSet.Query(id), TimeSpan.Zero, cancellationToken).ConfigureAwait(false);
+            var reply = await SendForResponseAsync(ZevisionCommandSet.Query(id), TimeSpan.Zero, hidden: false, cancellationToken).ConfigureAwait(false);
             return reply.IsSuccess
                 ? Result<string>.Ok(reply.Value.Data?.Trim() ?? string.Empty)
                 : Result<string>.Fail(reply.Error!); // 失败的 Result 总有原因
@@ -150,14 +150,17 @@ namespace Zevision.Core.Configuration
         /// <returns>失败原因 (通讯失败、没有响应或设备拒绝及其错误码);成功时为 null。</returns>
         protected async Task<string?> SendExpectingSuccessAsync(string command, CancellationToken cancellationToken)
         {
-            var reply = await SendForResponseAsync(command, TimeSpan.Zero, cancellationToken).ConfigureAwait(false);
+            var reply = await SendForResponseAsync(command, TimeSpan.Zero, hidden: false, cancellationToken).ConfigureAwait(false);
             return reply.IsSuccess ? null : reply.Error;
         }
 
-        /// <summary>发送一条指令,要求设备接受并返回数据 (如 <c>?</c>、<c>?M</c>)。</summary>
+        /// <summary>
+        /// 发送一条帮助指令 (如 <c>?</c>、<c>?M</c>),要求设备接受并返回数据。
+        /// 不在数据显示区显示 (<see cref="IDeviceService.SendHiddenAsync"/>):帮助指令只在指令输入框中发送时显示。
+        /// </summary>
         private async Task<Result<string>> SendForDataAsync(string command, TimeSpan minimumResponseTimeout, CancellationToken cancellationToken)
         {
-            var reply = await SendForResponseAsync(command, minimumResponseTimeout, cancellationToken).ConfigureAwait(false);
+            var reply = await SendForResponseAsync(command, minimumResponseTimeout, hidden: true, cancellationToken).ConfigureAwait(false);
             if (!reply.IsSuccess)
             {
                 return Result<string>.Fail(reply.Error!); // 失败的 Result 总有原因
@@ -172,9 +175,15 @@ namespace Zevision.Core.Configuration
         /// 发送一条指令并取第一条响应 (避开分隔符时附加的 <c>H01</c> 的响应在其后)。
         /// 通讯失败、没有响应或设备拒绝 (含原始错误码) 都作为失败返回,原因可直接显示。
         /// </summary>
-        private async Task<Result<ZevisionResponse>> SendForResponseAsync(string command, TimeSpan minimumResponseTimeout, CancellationToken cancellationToken)
+        /// <param name="command">指令。</param>
+        /// <param name="minimumResponseTimeout">最低空闲超时。</param>
+        /// <param name="hidden">是否不在数据显示区显示这次收发。</param>
+        /// <param name="cancellationToken">取消令牌。</param>
+        private async Task<Result<ZevisionResponse>> SendForResponseAsync(string command, TimeSpan minimumResponseTimeout, bool hidden, CancellationToken cancellationToken)
         {
-            var result = await _device.SendAsync(command, minimumResponseTimeout, cancellationToken).ConfigureAwait(false);
+            var result = hidden
+                ? await _device.SendHiddenAsync(command, minimumResponseTimeout, cancellationToken).ConfigureAwait(false)
+                : await _device.SendAsync(command, minimumResponseTimeout, cancellationToken).ConfigureAwait(false);
             if (!result.IsSuccess)
             {
                 return Result<ZevisionResponse>.Fail(result.Error!); // 失败的 Result 总有原因

@@ -44,6 +44,17 @@ namespace Zevision.Core.Devices
         /// <param name="minimumResponseTimeout">本次请求的最低空闲超时。</param>
         /// <param name="cancellationToken">取消令牌。</param>
         Task<Result<ZevisionReply>> SendAsync(string command, TimeSpan minimumResponseTimeout, CancellationToken cancellationToken);
+
+        /// <summary>
+        /// 与 <see cref="SendAsync"/> 相同,但不在数据显示区显示 (因此也不保存到通讯数据文件、不计数):
+        /// 不触发 <see cref="FrameSent"/>;这次的响应、超时时报告的不完整数据,以及之后收到的回显相同的帧
+        /// (如取消后设备仍在发送的剩余数据) 都不触发 <see cref="FrameReceived"/>,直到再次用 <see cref="SendAsync"/> 发送同一指令。
+        /// 用于程序内部读取设备配置的帮助指令 (<c>?</c>、<c>?M</c>):它们只在指令输入框中发送时显示。
+        /// </summary>
+        /// <param name="command">命令数据,不含起止符,如 <c>?</c>。</param>
+        /// <param name="minimumResponseTimeout">本次请求的最低空闲超时。</param>
+        /// <param name="cancellationToken">取消令牌。</param>
+        Task<Result<ZevisionReply>> SendHiddenAsync(string command, TimeSpan minimumResponseTimeout, CancellationToken cancellationToken);
     }
 
     /// <summary><see cref="IDeviceService"/> 的便捷方法。</summary>

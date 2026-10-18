@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Zevision.Communication;
@@ -12,11 +14,19 @@ namespace Zevision.Core.Devices
     /// 转发它的事件,把它的英文结果转换为界面语言的说明 (<see cref="CommunicationText"/>),
     /// 并把通讯库交出的意外异常 (读取循环出错、事件处理程序出错) 写入错误日志。
     /// </summary>
+    /// <remarks>
+    /// 不显示的收发 (<see cref="SendHiddenAsync"/>):通讯库在发送的异步流中触发 <c>FrameSent</c> (以及超时时报告的不完整数据),
+    /// 用 <see cref="AsyncLocal{T}"/> 标记这个流即可识别;响应在读取循环中收到,按回显识别。
+    /// 隐藏的回显保留到同一指令再次正常发送为止,因此取消后设备仍在发送的剩余数据也不显示。
+    /// </remarks>
     public sealed class ZevisionDeviceService : IDeviceService
     {
+        private static readonly AsyncLocal<bool> Hidden = new AsyncLocal<bool>();
+
         private readonly Func<ConnectionEndpoint, IDeviceTransport> _transportFactory;
         private readonly IErrorLog? _errorLog;
         private readonly object _sync = new object();
+        private readonly HashSet<string> _hiddenEchoes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private ZevisionClient? _client;
         private bool _connecting;
 
@@ -84,6 +94,7 @@ namespace Zevision.Core.Devices
 
                 _connecting = true;
                 previous = _client;
+                _hiddenEchoes.Clear();
                 client = new ZevisionClient(options, _transportFactory);
                 Attach(client);
                 _client = client;
@@ -114,7 +125,14 @@ namespace Zevision.Core.Devices
         public Task DisconnectAsync() => Current?.DisconnectAsync() ?? Task.CompletedTask;
 
         /// <inheritdoc />
-        public async Task<Result<ZevisionReply>> SendAsync(string command, TimeSpan minimumResponseTimeout, CancellationToken cancellationToken)
+        public Task<Result<ZevisionReply>> SendAsync(string command, TimeSpan minimumResponseTimeout, CancellationToken cancellationToken) =>
+            SendCoreAsync(command, minimumResponseTimeout, hidden: false, cancellationToken);
+
+        /// <inheritdoc />
+        public Task<Result<ZevisionReply>> SendHiddenAsync(string command, TimeSpan minimumResponseTimeout, CancellationToken cancellationToken) =>
+            SendCoreAsync(command, minimumResponseTimeout, hidden: true, cancellationToken);
+
+        private async Task<Result<ZevisionReply>> SendCoreAsync(string command, TimeSpan minimumResponseTimeout, bool hidden, CancellationToken cancellationToken)
         {
             var client = Current;
             if (client == null)
@@ -122,6 +140,8 @@ namespace Zevision.Core.Devices
                 return Result<ZevisionReply>.Fail(Texts.NotConnected);
             }
 
+            // 只作用于这次发送的异步流 (方法返回后恢复):通讯库在这个流中触发 FrameSent 和超时时的不完整数据。
+            Hidden.Value = hidden;
             var result = await client.SendAsync(command, minimumResponseTimeout, cancellationToken).ConfigureAwait(false);
             return result.IsSuccess
                 ? Result<ZevisionReply>.Ok(result.Value)
@@ -156,9 +176,55 @@ namespace Zevision.Core.Devices
             client.HandlerFailed -= OnHandlerFailed;
         }
 
-        private void OnFrameSent(object? sender, FrameSentEventArgs e) => FrameSent?.Invoke(this, e);
+        private void OnFrameSent(object? sender, FrameSentEventArgs e)
+        {
+            // 在发送的时刻 (取得发送锁之后) 记下回显:不显示的指令之后收到的同回显帧也不显示,正常发送同一指令后恢复显示。
+            var echo = ZevisionResponseParser.EchoOf(e.Command);
+            lock (_sync)
+            {
+                if (Hidden.Value)
+                {
+                    _hiddenEchoes.Add(echo);
+                }
+                else
+                {
+                    _hiddenEchoes.Remove(echo);
+                }
+            }
 
-        private void OnFrameReceived(object? sender, FrameReceivedEventArgs e) => FrameReceived?.Invoke(this, e);
+            if (!Hidden.Value)
+            {
+                FrameSent?.Invoke(this, e);
+            }
+        }
+
+        private void OnFrameReceived(object? sender, FrameReceivedEventArgs e)
+        {
+            if (!Hidden.Value && !IsHiddenReply(e.Frame))
+            {
+                FrameReceived?.Invoke(this, e);
+            }
+        }
+
+        /// <summary>帧的数据是否以隐藏的回显开头,如 <c>?+:</c>、<c>?M+:</c> (含未收完、校验失败的帧)。</summary>
+        private bool IsHiddenReply(ZevisionFrame frame)
+        {
+            string[] echoes;
+            lock (_sync)
+            {
+                if (_hiddenEchoes.Count == 0)
+                {
+                    return false;
+                }
+
+                echoes = _hiddenEchoes.ToArray();
+            }
+
+            var payload = frame.Payload;
+            return echoes.Any(echo => payload.Length > echo.Length
+                && payload.StartsWith(echo, StringComparison.OrdinalIgnoreCase)
+                && (payload[echo.Length] == '+' || payload[echo.Length] == '-'));
+        }
 
         private void OnConnectionLost(object? sender, ConnectionLostEventArgs e)
         {

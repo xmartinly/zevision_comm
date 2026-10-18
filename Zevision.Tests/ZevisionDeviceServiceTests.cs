@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -456,6 +457,62 @@ namespace Zevision.Tests
 
                 Assert.False(result.IsSuccess);
                 Assert.Contains("300 ms", result.Error);
+            }
+        }
+
+        [Fact]
+        public async Task SendHiddenAsync_RaisesNoFrameEvents()
+        {
+            var transport = new FakeSerialTransport { Responder = data => Ascii(Encoding.ASCII.GetString(data) == "{?}" ? "{?+:table}" : "{H01+:Zevision}") };
+            using (var service = new ZevisionDeviceService(transport))
+            {
+                await ConnectAsync(service);
+                var sent = new ConcurrentQueue<string>();
+                var received = new ConcurrentQueue<string>();
+                service.FrameSent += (s, e) => sent.Enqueue(e.Command);
+                service.FrameReceived += (s, e) => received.Enqueue(e.Frame.Payload);
+
+                var hidden = await WithTimeout(service.SendHiddenAsync("?", TimeSpan.Zero, CancellationToken.None));
+                var shown = await WithTimeout(service.SendAsync("H01", CancellationToken.None));
+
+                Assert.True(hidden.IsSuccess, hidden.Error);
+                Assert.Equal("table", Assert.Single(hidden.Value.Responses).Data);
+                Assert.True(shown.IsSuccess, shown.Error);
+                Assert.Equal(new[] { "H01" }, sent);
+                Assert.Equal(new[] { "H01+:Zevision" }, received);
+            }
+        }
+
+        [Fact]
+        public async Task SendHiddenAsync_LateDataOfSameCommand_StaysHiddenUntilSentNormally()
+        {
+            var transport = new FakeSerialTransport();
+            using (var service = new ZevisionDeviceService(transport))
+            {
+                await ConnectAsync(service, TimeSpan.FromMilliseconds(100));
+                var received = new ConcurrentQueue<string>();
+                var marker = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+                service.FrameReceived += (s, e) =>
+                {
+                    received.Enqueue(e.Frame.Payload);
+                    if (e.Frame.Payload == "SC03+:1.5")
+                    {
+                        marker.TrySetResult(true);
+                    }
+                };
+
+                // 不显示的 ? 没有及时响应 (如被取消);设备之后才发来的数据 (回显 ?) 不显示,其他帧照常显示。
+                // 其间正常发送其他指令 (这里没有响应) 不影响。
+                Assert.False((await WithTimeout(service.SendHiddenAsync("?", TimeSpan.Zero, CancellationToken.None))).IsSuccess);
+                Assert.False((await WithTimeout(service.SendAsync("H01", TimeSpan.Zero, CancellationToken.None))).IsSuccess);
+                transport.Inject(Ascii("{?+:late}{SC03+:1.5}"));
+                await WithTimeout(marker.Task);
+                Assert.DoesNotContain(received, p => p.StartsWith("?", StringComparison.Ordinal));
+
+                // 在指令输入框中发送 ? 后,它的响应照常显示。
+                transport.Responder = _ => Ascii("{?+:table}");
+                Assert.True((await WithTimeout(service.SendAsync("?", TimeSpan.Zero, CancellationToken.None))).IsSuccess);
+                Assert.Contains("?+:table", received);
             }
         }
 

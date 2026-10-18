@@ -40,6 +40,21 @@ namespace Zevision.Tests
         }
 
         [Fact]
+        public async Task HelpReads_AreHidden_OtherCommandsShown()
+        {
+            // 帮助指令只在指令输入框中发送时显示;程序内部读取 (保存、恢复、修改配置) 时不显示、不记录。
+            var device = NewDevice().With("MFE", "1", "Number of Materials");
+            var service = new InstrumentConfigService(device);
+
+            Assert.True((await service.ReadSnapshotAsync(CancellationToken.None)).IsSuccess);
+            Assert.True((await service.ReadGroupAsync('M', CancellationToken.None)).IsSuccess);
+            Assert.True((await service.QueryAsync(new[] { "G03" }, CancellationToken.None)).IsSuccess);
+
+            Assert.Equal(new[] { "?", "?M" }, device.HiddenFrames);
+            Assert.Equal(new[] { "?", "?M", "QG03" }, device.Frames);
+        }
+
+        [Fact]
         public async Task ToRecipe_KeepsOnlyRestorableItems()
         {
             var service = new InstrumentConfigService(NewDevice());

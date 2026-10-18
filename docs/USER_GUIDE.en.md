@@ -44,6 +44,7 @@ Hover over a setting to see its description. The connection settings are saved w
 - Type a command in the box at the bottom and press Enter or click **Send**, e.g. `H01`. The delimiters `{ }`, the length and the checksum are added automatically. The command part is converted to upper case when sending (data after `:` is unchanged, e.g. `um0101:Aluminium` is sent as `UM0101:Aluminium`); the input box shows the converted text and keeps it, so it can be edited and sent again.
 - Separate several commands with `;`, or put one per line (Shift+Enter starts a new line), to send them in one frame, e.g. `QG01;QG1304;QG1305`. The program shows "command = data" for each one.
 - The help command `?` can be sent manually. The full `?` reply is about 116 KB and takes about 10 s over RS232; no other commands can be sent meanwhile. Group help such as `?M` (materials) or `?F01` (film 1) returns only that part. To save the complete configuration, use **Save**.
+- Help commands (`?`, `?M` …) are shown only when sent from the input box. The help commands that Save, Restore and Edit use to read the device, and their replies, are not shown and not saved to the communication data file.
 - The quick command buttons send common commands directly.
 
 ### Send options (left of the input box; can be changed while connected)

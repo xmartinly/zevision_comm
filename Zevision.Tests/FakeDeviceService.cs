@@ -90,6 +90,15 @@ namespace Zevision.Tests
         /// <summary>每帧请求的最低响应超时 (没有指定时为 <see cref="TimeSpan.Zero"/>),与 <see cref="Frames"/> 一一对应。</summary>
         public List<TimeSpan> MinimumTimeouts { get; } = new List<TimeSpan>();
 
+        /// <summary>用 <see cref="SendHiddenAsync"/> (不显示) 发送的帧。</summary>
+        public List<string> HiddenFrames { get; } = new List<string>();
+
+        public Task<Result<ZevisionReply>> SendHiddenAsync(string command, TimeSpan minimumResponseTimeout, CancellationToken cancellationToken)
+        {
+            HiddenFrames.Add(command);
+            return SendAsync(command, minimumResponseTimeout, cancellationToken);
+        }
+
         public Task<Result<ZevisionReply>> SendAsync(string command, TimeSpan minimumResponseTimeout, CancellationToken cancellationToken)
         {
             MinimumTimeouts.Add(minimumResponseTimeout);
