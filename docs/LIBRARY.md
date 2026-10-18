@@ -337,6 +337,8 @@ internal sealed class SimulatedDevice : IDeviceTransport
     private readonly ConcurrentQueue<byte[]> _replies = new ConcurrentQueue<byte[]>();
     private readonly SemaphoreSlim _available = new SemaphoreSlim(0);
     private readonly CancellationTokenSource _closed = new CancellationTokenSource();
+    private byte[] _reply = new byte[0];                                         // 正在读出的回复 (只有读取循环访问)
+    private int _offset;
 
     public SimulatedDevice(Func<string, string> responder) { _responder = responder; }
 
@@ -351,25 +353,34 @@ internal sealed class SimulatedDevice : IDeviceTransport
     public Task WriteAsync(byte[] data, CancellationToken cancellationToken)
     {
         var command = Encoding.ASCII.GetString(data, 1, data.Length - 2);       // 去掉 { }
-        _replies.Enqueue(ZevisionFrameCodec.Encode(_responder(command), FrameOptions.Plain));
+        // FrameOptions.Plain 的响应帧就是 { 数据 }。不能用 ZevisionFrameCodec.Encode:它检查的是命令文本,
+        // 响应中的换行 (帮助表) 和 UTF-8 文字 (如 Å/s) 会被拒绝。
+        _replies.Enqueue(Encoding.UTF8.GetBytes("{" + _responder(command) + "}"));
         _available.Release();
         return Task.CompletedTask;
     }
 
     public async Task<int> ReadAsync(byte[] buffer, CancellationToken cancellationToken)
     {
-        try
+        if (_offset == _reply.Length)
         {
-            await _available.WaitAsync(_closed.Token).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException)
-        {
-            return 0;                                                            // 已关闭
+            try
+            {
+                await _available.WaitAsync(_closed.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                return 0;                                                        // 已关闭
+            }
+
+            _replies.TryDequeue(out _reply);
+            _offset = 0;
         }
 
-        _replies.TryDequeue(out var reply);
-        Array.Copy(reply, buffer, reply.Length);                                // 示例:回复不超过读取缓冲区 (4 KB)
-        return reply.Length;
+        var count = Math.Min(buffer.Length, _reply.Length - _offset);            // 比读取缓冲区大的回复分几次读出
+        Array.Copy(_reply, _offset, buffer, 0, count);
+        _offset += count;
+        return count;
     }
 
     public void Close()

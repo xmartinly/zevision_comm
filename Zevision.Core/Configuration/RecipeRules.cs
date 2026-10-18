@@ -168,8 +168,8 @@ namespace Zevision.Core.Configuration
 
         /// <summary>
         /// 找出引用了 <paramref name="objectId"/> 的设置项 (删除前检查)。层级关系:工艺包含膜层,膜层包含膜系,膜系包含材料,
-        /// 即膜系的材料 (F??02)、膜层中的膜系 (L??02??01)、工艺中的膜层 (P02??07??),以及活动工艺 (P01) 和链接工艺 (P02??0A)。
-        /// 值为 0 (未选择) 的不算。
+        /// 即膜系的材料 (F??02)、膜层中的膜系 (L??02??01)、工艺中的膜层 (P02??07??),以及活动工艺 (P01)、链接工艺 (P02??0A)
+        /// 和输出源的坩埚材料 (S??09??)。值为 0 (未选择) 的不算。
         /// </summary>
         public static IReadOnlyList<RecipeEntry> FindReferencesTo(IEnumerable<RecipeEntry> entries, string objectId)
         {

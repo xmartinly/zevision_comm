@@ -70,7 +70,7 @@ powershell -ExecutionPolicy Bypass -File tools\package.ps1
 
 ### 链接库 (供生产程序使用)
 
-两个库的版本独立于应用 (各自 `Properties\AssemblyInfo.cs`,当前都是 1.0.1),公开 API 不兼容的修改时提高主版本号。用法见 `docs/LIBRARY.md`。
+两个库的版本独立于应用 (各自 `Properties\AssemblyInfo.cs`,当前都是 1.1.0),公开 API 不兼容的修改时提高主版本号;`AssemblyVersion` 保持 1.0.0.0,引用旧版本的程序直接替换 dll。用法和版本变化见 `docs/LIBRARY.md`。业务层和存储层的调用文档 `docs/CORE_STORAGE.md` 供维护本程序使用,不随链接库发布。
 
 - `dist\Zevision.Libraries-<库版本>\`:`Zevision.Communication.dll`/`.xml`、`Zevision.Commands.dll`/`.xml` (XML 是 IntelliSense 文档,放在 dll 旁边) + `LIBRARY.md` (即 `docs/LIBRARY.md`) + `sample\Program.cs` (即 `samples/Zevision.Sample/Program.cs`)
 - `dist\Zevision.Libraries-<库版本>.zip`:上述文件夹的压缩包
@@ -100,6 +100,10 @@ powershell -ExecutionPolicy Bypass -File tools\package.ps1
   - 界面层 (`Zevision.exe`) 只依赖业务层的接口,存储层只在程序启动时组装。
   - 业务层和存储层的提示与错误文本集中在翻译文件 `Texts.json` (中英文),放在程序旁边。
 - 发布包结构:程序目录只有 `Zevision.exe`、`Zevision.exe.config`、`Texts.json` 和使用说明,全部 dll 在 `lib\` 子文件夹。升级时删除旧版本程序目录中的 dll (或解压到新文件夹),`settings.json`、`recipe\`、`logs\` 保留。由 `tools\package.ps1` 生成。
+- 恢复配置:写入前再次确认设备型号和空闲状态 (计划是在确认框之前做的,确认期间设备可能已开始工艺;以前会写入正在运行的设备)。创建对象后才出现的系统设置 (如输出源新追加的坩埚材料) 现在会写入并校验 (以前被跳过,报告却是成功)。
+- 修改配置:删除材料前的引用检查也包括输出源的坩埚材料。
+- `settings.json` 和配置文件可以带 UTF-8 BOM (记事本"另存为 UTF-8"会加上;以前 `settings.json` 读取失败,全部设置包括界面语言回到默认值)。
+- 链接库 1.1.0 (公开接口兼容,详见 `docs/LIBRARY.md` §12):连接过程中关闭程序或断开时不再留下打开的端口;连接失败时关闭传输;收到的响应不会因事件处理慢被判为超时;大响应只解析一次;指令查找约快 3 倍、不分配内存,指令集常驻内存约 600 KB → 220 KB。
 - 修正 RS232 读取配置失败 (2026-10-18 实测):设备的 RS232 校验和、长度字节都开着 (G1304 = G1305 = 1),但 `?` 的响应以不带长度和校验和的整帧发来,程序把开头的 `?+` 当作长度,报告"缺少停止符",其余约 80 KB 显示为"帧外数据"并写入 error.txt。解码器现在能识别这种响应 (`Zevision.Communication` 1.0.1,公开接口不变)。
 - 数据显示区:帮助指令 (`?`、`?M` 等) 只在指令输入框中发送时显示;保存、恢复、修改配置时读取设备用的帮助指令及其响应不再显示,也不保存到通讯数据文件、不计入收发帧数。取消读取后设备仍在发送的剩余数据也不显示。
 - 修正内存泄漏:修改配置窗口关闭后不能被回收,每打开一次多占约 40 MB (托管内存;进程私有内存约 50 MB),多次打开后程序越来越占内存。现在关闭后全部释放。
