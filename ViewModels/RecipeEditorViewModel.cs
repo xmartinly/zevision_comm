@@ -22,7 +22,7 @@ namespace Zevision.ViewModels
     /// 保存时把勾选的项写入设备并读回校验。
     /// </summary>
     /// <remarks>
-    /// 实机数据与保存的配置的差别 (页面是设备数据还是文件内容、是否保存文件) 都在 <see cref="RecipeEditTarget"/> 中;
+    /// 与设备、配置文件的同步 (页面是设备数据还是文件内容、是否保存文件) 都在 <see cref="RecipeEditSession"/> (业务层) 中;
     /// 提示文字在 <see cref="RecipeEditorMessages"/> 中。
     /// </remarks>
     public sealed class RecipeEditorViewModel : ViewModelBase, IRequestClose, IDisposable, IRecipePageActions
@@ -31,8 +31,7 @@ namespace Zevision.ViewModels
         internal const int MaxAutoExpandGroups = 20;
 
         private readonly RecipeDocument _document;
-        private readonly RecipeEditTarget _target;
-        private readonly IInstrumentConfigService _config;
+        private readonly RecipeEditSession _session;
         private readonly IDialogService _dialogs;
         private readonly IErrorLog _errorLog;
         private readonly List<string> _changes = new List<string>();
@@ -46,24 +45,17 @@ namespace Zevision.ViewModels
         /// <summary>
         /// 创建编辑器。
         /// </summary>
-        /// <param name="recipe">
-        /// 要修改的配置:来自文件时应已通过 <see cref="IRecipeStore.Load"/> 的校验;
-        /// 来自实机时由 <see cref="InstrumentSnapshot.ToRecipe"/> 根据刚读取的设备数据生成。
-        /// </param>
-        /// <param name="path">配置文件路径;为 null 时修改的是实机数据,写入设备后不保存文件。</param>
-        /// <param name="config">配置服务。</param>
-        /// <param name="recipes">配置文件的存储 (修改保存的配置时写文件)。</param>
+        /// <param name="session">要修改的配置及其与设备 (和配置文件) 的同步 (<see cref="RecipeEditSession.Open"/>)。</param>
         /// <param name="dialogs">对话框。</param>
         /// <param name="errorLog">错误日志。</param>
-        public RecipeEditorViewModel(InstrumentRecipe recipe, string? path, IInstrumentConfigService config, IRecipeStore recipes, IDialogService dialogs, IErrorLog errorLog)
+        public RecipeEditorViewModel(RecipeEditSession session, IDialogService dialogs, IErrorLog errorLog)
         {
-            _document = new RecipeDocument(recipe ?? throw new ArgumentNullException(nameof(recipe)));
-            _config = config ?? throw new ArgumentNullException(nameof(config));
-            _target = RecipeEditTarget.Create(_document, path, config, recipes ?? throw new ArgumentNullException(nameof(recipes)));
+            _session = session ?? throw new ArgumentNullException(nameof(session));
+            _document = session.Document;
             _dialogs = dialogs ?? throw new ArgumentNullException(nameof(dialogs));
             _errorLog = errorLog ?? throw new ArgumentNullException(nameof(errorLog));
 
-            Info = new InfoPageViewModel(recipe.Entries, config, errorLog, OnCommandError);
+            Info = new InfoPageViewModel(_document.Entries, session.Reader, errorLog, OnCommandError);
             BuildView(expandKey: null);
 
             Operation.PropertyChanged += (s, e) =>
@@ -87,7 +79,7 @@ namespace Zevision.ViewModels
         public InfoPageViewModel Info { get; }
 
         /// <summary>是否在修改实机数据 (没有配置文件,写入设备后不保存文件)。</summary>
-        public bool IsDeviceSource => _target.FilePath == null;
+        public bool IsDeviceSource => _session.FilePath == null;
 
         /// <summary>材料、膜系、膜层、工艺页顶部的说明。</summary>
         public string ObjectChangeHint => M.ObjectChangeHint(toFile: !IsDeviceSource);
@@ -202,7 +194,7 @@ namespace Zevision.ViewModels
         /// <summary>收起全部分组。</summary>
         public ICommand CollapseAllCommand { get; }
 
-        private string? FileName => _target.FilePath == null ? null : Path.GetFileName(_target.FilePath);
+        private string? FileName => _session.FilePath == null ? null : Path.GetFileName(_session.FilePath);
 
         private IEnumerable<RecipeItemViewModel> AllItems => Groups.SelectMany(g => g.Items);
 
@@ -242,7 +234,7 @@ namespace Zevision.ViewModels
             var message = M.ConfirmCreate(type.Kind, id, FileName);
             if (type.NewDefault != null)
             {
-                message += Environment.NewLine + M.NewObjectDefaults(group, DefaultReference(type)?.Label);
+                message += Environment.NewLine + M.NewObjectDefaults(group, DefaultReferenceLabel(type));
             }
 
             if (_dialogs.Confirm(title, message))
@@ -307,12 +299,12 @@ namespace Zevision.ViewModels
                     return null;
                 }
 
-                var appended = await _config.AppendListItemAsync(listId, value, _document.Recipe.DeviceName, operation.Token);
+                var appended = await _session.AppendListItemAsync(listId, value, operation.Token);
                 var done = M.ListAppended(owner, listName, appended.IsSuccess ? appended.Value : string.Empty);
                 return new DeviceChange(title, listId[0], appended.Error, done, M.ListChangedInfo(done, savedFile: !IsDeviceSource))
                 {
                     ExpandKey = ObjectTypes.GroupKey(listId),
-                    Apply = deviceGroup => _target.ApplyListAppend(listId, appended.Value, deviceGroup),
+                    Apply = deviceGroup => _session.ApplyListAppend(listId, appended.Value, deviceGroup),
                 };
             });
         }
@@ -369,18 +361,18 @@ namespace Zevision.ViewModels
                 }
 
                 // 删除中间一项:先把后面的项前移 (写入并校验),再删除最后一项。
-                var report = shifted.Count == 0 ? null : await _config.ApplyEditsAsync(_document.Recipe, shifted, Operation.CreateProgress("…"), operation.Token);
+                var report = shifted.Count == 0 ? null : await _session.ApplyEditsAsync(shifted, Operation.CreateProgress("…"), operation.Token);
                 Operation.Text = title + "…";
                 var removed = report != null && !report.IsSuccess
                     ? Result<string>.Fail(M.WriteFailed(report, OperationRunner.DescribeCancel(operation), toFile: !IsDeviceSource))
-                    : await _config.RemoveLastListItemAsync(listId, _document.Recipe.DeviceName, operation.Token);
+                    : await _session.RemoveLastListItemAsync(listId, operation.Token);
 
                 var values = shifted.ToDictionary(e => e.Id, e => e.Value, StringComparer.Ordinal);
                 var done = M.ListRemoved(owner, listName, removing);
                 return new DeviceChange(title, listId[0], removed.Error, done, M.ListRemovedInfo(done, savedFile: !IsDeviceSource))
                 {
                     ExpandKey = ObjectTypes.GroupKey(listId),
-                    Apply = _ => _target.ApplyListRemove(removed.Value, values),
+                    Apply = _ => _session.ApplyListRemove(removed.Value, values),
                 };
             });
         }
@@ -411,7 +403,7 @@ namespace Zevision.ViewModels
                 return;
             }
 
-            if (!_dialogs.Confirm(M.Title, M.ConfirmSave(selected, _target.FilePath)))
+            if (!_dialogs.Confirm(M.Title, M.ConfirmSave(selected, _session.FilePath)))
             {
                 return;
             }
@@ -420,7 +412,7 @@ namespace Zevision.ViewModels
             await Operation.RunAsync(M.WritePhase, Lang.T("检查设备…", "Checking the device…"), async operation =>
             {
                 var edits = selected.Select(i => new RecipeEntry { Id = i.Id, Value = i.Value, Description = i.Description }).ToList();
-                var report = await _config.ApplyEditsAsync(_document.Recipe, edits, Operation.CreateProgress("…"), operation.Token);
+                var report = await _session.ApplyEditsAsync(edits, Operation.CreateProgress("…"), operation.Token);
                 if (!report.IsSuccess)
                 {
                     ReportFailure(M.WriteFailed(report, OperationRunner.DescribeCancel(operation), toFile: !IsDeviceSource));
@@ -457,7 +449,7 @@ namespace Zevision.ViewModels
                     Operation.Text = Lang.T($"读取设备上的{type.Kind}…", $"Reading {type.Kind.ToLowerInvariant()}s on the device…");
                 }
 
-                var current = await _target.ReadDeviceGroupAsync(type.Group, token);
+                var current = await _session.ReadDeviceGroupAsync(type.Group, token);
                 if (!current.IsSuccess)
                 {
                     ReportFailure(current.Error!); // 失败的 Result 总有原因
@@ -465,7 +457,7 @@ namespace Zevision.ViewModels
                 }
 
                 var before = RecipeDocument.ObjectIdsIn(current.Value, type.Group);
-                var id = objectId ?? type.NextFreeId(_target.UsedObjectIds(type.Group, before));
+                var id = objectId ?? type.NextFreeId(_session.UsedObjectIds(type.Group, before));
                 if (id == null)
                 {
                     ReportFailure(M.NoFreeNumber(type.Kind));
@@ -480,14 +472,14 @@ namespace Zevision.ViewModels
                 {
                     // 新建时同时设置默认引用,重新读取的结果 (保存的配置写进文件的内容) 就是设好的。
                     Operation.Text = title + " " + id + "…";
-                    var created = await _config.CreateObjectAsync(type, id, DefaultReference(type)?.Value, _document.Recipe.DeviceName, token);
+                    var created = await _session.CreateObjectAsync(type, id, token);
                     error = created.Error;
                     defaultsError = created.DefaultsError;
                 }
                 else if (onDevice)
                 {
                     Operation.Text = title + " " + id + "…";
-                    error = (await _config.DeleteObjectAsync(id, _document.Recipe.DeviceName, token)).Error;
+                    error = (await _session.DeleteObjectAsync(id, token)).Error;
                 }
 
                 var done = M.ObjectChanged(action, type.Kind, id, onDevice);
@@ -500,7 +492,7 @@ namespace Zevision.ViewModels
                         var (missing, extra) = RecipeDocument.CompareObjectChange(action, id, before, RecipeDocument.ObjectIdsIn(after, type.Group));
                         return missing.Count + extra.Count > 0 ? M.ObjectChangeMismatch(id, missing, extra) : null;
                     },
-                    Apply = after => _target.ApplyObjectChange(action, id, after),
+                    Apply = after => _session.ApplyObjectChange(action, id, after),
                     Warning = defaultsError == null ? null : M.DefaultsFailed(done, defaultsError),
                     AfterRebuild = action == CommandActions.Add ? () => CheckNewObject(id) : null,
                 };
@@ -531,7 +523,7 @@ namespace Zevision.ViewModels
             {
                 var kind = CommandText.ObjectKind(change.Group);
                 Operation.Text = Lang.T($"重新读取{kind}…", $"Reading {kind.ToLowerInvariant()}s again…");
-                var read = await _config.ReadGroupAsync(change.Group, cancellationToken);
+                var read = await _session.RereadGroupAsync(change.Group, cancellationToken);
                 if (!read.IsSuccess)
                 {
                     BuildView(expandKey: null);
@@ -540,7 +532,6 @@ namespace Zevision.ViewModels
                 }
 
                 deviceGroup = read.Value;
-                _target.OnDeviceGroupRead(change.Group, deviceGroup);
             }
 
             var problem = change.Error ?? change.Verify?.Invoke(deviceGroup);
@@ -569,10 +560,10 @@ namespace Zevision.ViewModels
             }
         }
 
-        /// <summary>保存的配置:设备与文件中列表的条数必须相同 (见 <see cref="RecipeEditTarget.CheckListCountAsync"/>)。</summary>
+        /// <summary>保存的配置:设备与文件中列表的条数必须相同 (见 <see cref="RecipeEditSession.CheckListCountAsync"/>)。</summary>
         private async Task<bool> CheckListCountAsync(string listId, CancellationToken cancellationToken)
         {
-            var refused = await _target.CheckListCountAsync(listId, cancellationToken);
+            var refused = await _session.CheckListCountAsync(listId, cancellationToken);
             if (refused != null)
             {
                 ReportFailure(refused);
@@ -585,17 +576,14 @@ namespace Zevision.ViewModels
         private static string ListOwner(string listId) => CommandText.ObjectKind(listId[0]) + " " + ObjectTypes.GroupKey(listId);
 
         /// <summary>
-        /// 新对象的默认引用:被引用组中编号最小的对象 (值为十进制编号,如 <c>1</c>;显示如 <c>1 - Al</c>);
-        /// 没有默认引用或被引用的组中没有对象时为 null。
+        /// 新对象的默认引用 (<see cref="RecipeEditSession.DefaultReferenceId"/>) 的显示,如 <c>1 - Al</c>;没有时为 null。
         /// </summary>
-        private ParameterOption? DefaultReference(ObjectType type)
+        private string? DefaultReferenceLabel(ObjectType type)
         {
-            var first = type.NewDefault == null
-                ? null
-                : _document.ObjectIds(type.NewDefault.ReferencedGroup).OrderBy(i => i, StringComparer.Ordinal).FirstOrDefault();
+            var first = _session.DefaultReferenceId(type);
             return first == null
                 ? null
-                : new ParameterOption(DeviceIds.LastNumber(first).ToString(CultureInfo.InvariantCulture), _document.ObjectName(first) ?? string.Empty);
+                : new ParameterOption(DeviceIds.LastNumber(first).ToString(CultureInfo.InvariantCulture), _document.ObjectName(first) ?? string.Empty).Label;
         }
 
         /// <summary>新建对象 (材料、膜系、膜层、工艺) 后勾选它的全部参数,可以直接修改后保存。</summary>
@@ -625,7 +613,7 @@ namespace Zevision.ViewModels
         {
             var summary = M.SaveSummary(writtenCount);
             var values = selected.ToDictionary(i => i.Id, i => i.Value, StringComparer.Ordinal);
-            var saveError = _target.Commit(d => d.SetValues(values));
+            var saveError = _session.Commit(d => d.SetValues(values));
             if (saveError != null)
             {
                 ReportFailure(summary + Environment.NewLine + M.SaveFileFailed(saveError));
@@ -646,7 +634,7 @@ namespace Zevision.ViewModels
 
             _writtenCount += writtenCount;
             UpdateCompletionMessage();
-            _dialogs.ShowInfo(M.Title, IsDeviceSource ? summary : summary + Environment.NewLine + M.SavedTo(_target.FilePath!));
+            _dialogs.ShowInfo(M.Title, IsDeviceSource ? summary : summary + Environment.NewLine + M.SavedTo(_session.FilePath!));
             return !IsDeviceSource;
         }
 

@@ -3,20 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using Zevision.Commands;
 using Zevision.Communication;
-using Zevision.Core.Localization;
+using Zevision.Core.Configuration;
 
-namespace Zevision.ViewModels
+namespace Zevision.Core.Devices
 {
     /// <summary>
     /// 手动输入指令的整理。帮助指令 <c>?</c> (含 <c>?M</c> 等分组帮助) 允许手动发送,用于调试。
     /// </summary>
     public static class ManualCommandPolicy
     {
-        /// <summary>手动发送完整帮助指令 <c>?</c> 时显示的提示 (分组帮助如 <c>?M</c> 很快,不提示)。</summary>
-        public static string HelpCommandHint => Lang.T(
-            "完整的 ? 响应约 116 KB,接收约需 10 秒,期间不能发送其他指令,请稍候。只看一组可用 ?M、?F 等分组帮助。",
-            "The full ? reply is about 116 KB and takes about 10 s to receive; no other commands can be sent meanwhile. For one group use group help such as ?M or ?F.");
-
         /// <summary>
         /// 把每条指令的命令部分 (第一个 <c>:</c> 之前) 转为大写,数据部分 (<c>:</c> 之后,到分隔符 <c>;</c>、<c>；</c> 或换行为止) 保持原样。
         /// 设备只认大写命令 (小写回复 <c>-A</c>);数据可能是名称等文本,不能改动。分隔符和换行原样保留。
@@ -84,5 +79,12 @@ namespace Zevision.ViewModels
         /// </summary>
         public static bool ContainsFullHelpCommand(string command) =>
             Split(command).Any(segment => segment == ZevisionCommandSet.HelpCommand);
+
+        /// <summary>
+        /// 发送时的最低响应超时:帮助指令的响应大、首字节前和分包之间有停顿,与保存配置读取 <c>?</c> 时一样用
+        /// <see cref="InstrumentConfigReader.SlowReplyTimeout"/>;其他指令为 <see cref="TimeSpan.Zero"/> (用连接设置的超时)。
+        /// </summary>
+        public static TimeSpan MinimumResponseTimeout(string command) =>
+            ContainsHelpCommand(command) ? InstrumentConfigReader.SlowReplyTimeout : TimeSpan.Zero;
     }
 }

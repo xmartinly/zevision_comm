@@ -72,7 +72,7 @@ namespace Zevision.Tests
             var frames = new ZevisionFrameDecoder(LengthAndChecksum).Push(bytes, 0, bytes.Length);
             var snapshot = new InstrumentSnapshot(HelpTableParser.Parse(ZevisionResponseParser.Parse(frames[2].Payload)[0].Data!));
             var config = new InstrumentConfigService(new FakeDeviceService());
-            var editor = new Zevision.ViewModels.RecipeEditorViewModel(snapshot.ToRecipe(DateTimeOffset.Now), null, config, new RecipeFileStore(), new FakeDialogService(), new FakeErrorLog());
+            var editor = new Zevision.ViewModels.RecipeEditorViewModel(RecipeEditSession.Open(snapshot.ToRecipe(DateTimeOffset.Now), null, config, new RecipeFileStore()), new FakeDialogService(), new FakeErrorLog());
 
             var layer = editor.Groups.Single(g => g.Key == "L02");
             System.Console.WriteLine(string.Join("; ", layer.Items.Select(i => i.Id + " | " + i.Label)));

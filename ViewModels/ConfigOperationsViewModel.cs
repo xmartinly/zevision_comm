@@ -232,7 +232,7 @@ namespace Zevision.ViewModels
                 return; // 程序正在退出
             }
 
-            using (var editor = new RecipeEditorViewModel(recipe, path, _config, _recipes, _dialogs, _errorLog))
+            using (var editor = new RecipeEditorViewModel(RecipeEditSession.Open(recipe, path, _config, _recipes), _dialogs, _errorLog))
             {
                 if (device != null)
                 {

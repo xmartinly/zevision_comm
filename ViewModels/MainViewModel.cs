@@ -180,6 +180,11 @@ namespace Zevision.ViewModels
         /// <summary>切换语言按钮的提示。</summary>
         public string SwitchLanguageToolTip => Lang.T("切换到 English (需要重新启动程序)", "Switch to 中文 (restarts the program)");
 
+        /// <summary>手动发送完整帮助指令 <c>?</c> 时显示的提示 (分组帮助如 <c>?M</c> 很快,不提示)。</summary>
+        internal static string HelpCommandHint => Lang.T(
+            "完整的 ? 响应约 116 KB,接收约需 10 秒,期间不能发送其他指令,请稍候。只看一组可用 ?M、?F 等分组帮助。",
+            "The full ? reply is about 116 KB and takes about 10 s to receive; no other commands can be sent meanwhile. For one group use group help such as ?M or ?F.");
+
         /// <summary>可以发送指令:已连接,没有配置操作,也没有在重复发送。</summary>
         private bool CanSend => IsConnected && !Config.IsBusy && !SendOptions.IsRepeating;
 
@@ -397,18 +402,12 @@ namespace Zevision.ViewModels
 
             var text = string.Join(";", segments);
 
-            // 帮助指令的响应大、首字节前和分包之间有停顿,与保存配置读取 ? 时一样使用较长的最低超时。
-            var minimumTimeout = TimeSpan.Zero;
-            if (ManualCommandPolicy.ContainsHelpCommand(text))
+            if (ManualCommandPolicy.ContainsFullHelpCommand(text))
             {
-                minimumTimeout = InstrumentConfigReader.SlowReplyTimeout;
-                if (ManualCommandPolicy.ContainsFullHelpCommand(text))
-                {
-                    Log.Add(LogKind.Info, ManualCommandPolicy.HelpCommandHint);
-                }
+                Log.Add(LogKind.Info, HelpCommandHint);
             }
 
-            var result = await _device.SendAsync(text, minimumTimeout, CancellationToken.None);
+            var result = await _device.SendAsync(text, ManualCommandPolicy.MinimumResponseTimeout(text), CancellationToken.None);
             if (!result.IsSuccess)
             {
                 Log.Add(LogKind.Error, $"{text}: {result.Error}");

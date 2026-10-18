@@ -103,7 +103,6 @@
     <Compile Include="ViewModels\ConnectionSettingsViewModel.cs" />
     <Compile Include="ViewModels\ResponseLogFormatter.cs" />
     <Compile Include="ViewModels\IRequestClose.cs" />
-    <Compile Include="ViewModels\ManualCommandPolicy.cs" />
     <Compile Include="ViewModels\OperationLimits.cs" />
     <Compile Include="ViewModels\InfoPageViewModel.cs" />
     <Compile Include="ViewModels\RecipeEditorViewModel.cs" />
@@ -120,7 +119,6 @@
     <Compile Include="ViewModels\SendOptionsViewModel.cs" />
     <Compile Include="ViewModels\RestoreMessages.cs" />
     <Compile Include="ViewModels\RecipeEditorMessages.cs" />
-    <Compile Include="ViewModels\RecipeEditTarget.cs" />
     <Compile Include="ViewModels\ViewModelBase.cs" />
   </ItemGroup>
   <ItemGroup>

@@ -1,5 +1,5 @@
 using Xunit;
-using Zevision.ViewModels;
+using Zevision.Core.Devices;
 
 namespace Zevision.Tests
 {
