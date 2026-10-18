@@ -3,8 +3,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
-using Zevision.Models;
-using Zevision.Services;
+using Zevision.Core.Configuration;
 
 namespace Zevision.Tests
 {

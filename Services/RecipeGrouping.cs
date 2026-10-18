@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Zevision.Localization;
-using Zevision.Models;
+using Zevision.Core.Configuration;
+using Zevision.Core.Localization;
 
 namespace Zevision.Services
 {

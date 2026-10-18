@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using Xunit;
 using Zevision.Communication;
-using Zevision.Services;
+using Zevision.Core.Configuration;
 
 namespace Zevision.Tests
 {

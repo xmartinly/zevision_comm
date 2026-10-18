@@ -5,9 +5,9 @@ using System.IO.Ports;
 using System.Linq;
 using Zevision.Commands;
 using Zevision.Communication;
-using Zevision.Localization;
-using Zevision.Models;
-using Zevision.Services;
+using Zevision.Core;
+using Zevision.Core.Localization;
+using Zevision.Core.Settings;
 
 namespace Zevision.ViewModels
 {

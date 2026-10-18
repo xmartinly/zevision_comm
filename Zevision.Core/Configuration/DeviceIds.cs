@@ -2,7 +2,7 @@ using System;
 using System.Globalization;
 using System.Text.RegularExpressions;
 
-namespace Zevision.Services
+namespace Zevision.Core.Configuration
 {
     /// <summary>
     /// 配置项 ID 的组成:组字母 + 若干级两位十六进制编号 (如 <c>F0103</c> = 膜系 F01 的预熔列表)。

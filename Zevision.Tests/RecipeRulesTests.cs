@@ -1,5 +1,5 @@
 using Xunit;
-using Zevision.Services;
+using Zevision.Core.Configuration;
 
 namespace Zevision.Tests
 {

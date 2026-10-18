@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Runtime.Serialization;
 
-namespace Zevision.Models
+namespace Zevision.Core.Configuration
 {
     /// <summary>
     /// 仪器配置文件 (recipe) 的内容。以 JSON 保存,字段名固定,修改结构时必须提升 <see cref="FormatVersion"/>。

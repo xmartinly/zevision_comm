@@ -5,8 +5,9 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Zevision.Communication;
-using Zevision.Models;
-using Zevision.Services;
+using Zevision.Core;
+using Zevision.Core.Configuration;
+using Zevision.Core.Devices;
 
 namespace Zevision.Tests
 {

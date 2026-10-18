@@ -1,6 +1,6 @@
 using System;
 using System.Reflection;
-using Zevision.Localization;
+using Zevision.Core.Localization;
 
 namespace Zevision
 {

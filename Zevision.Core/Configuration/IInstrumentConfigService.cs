@@ -4,9 +4,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Zevision.Commands;
 using Zevision.Communication;
-using Zevision.Models;
 
-namespace Zevision.Services
+namespace Zevision.Core.Configuration
 {
     /// <summary>
     /// 读取设备配置 (只发送 <c>?</c> 和 <c>Q</c>,不修改设备)。

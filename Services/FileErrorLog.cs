@@ -2,7 +2,8 @@ using System;
 using System.Globalization;
 using System.IO;
 using System.Text;
-using Zevision.Localization;
+using Zevision.Core;
+using Zevision.Core.Localization;
 
 namespace Zevision.Services
 {

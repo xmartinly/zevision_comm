@@ -5,7 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using Zevision.Communication;
-using Zevision.Localization;
+using Zevision.Core.Localization;
 
 namespace Zevision.ViewModels
 {

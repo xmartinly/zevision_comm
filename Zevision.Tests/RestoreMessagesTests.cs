@@ -2,8 +2,7 @@ using System;
 using System.Linq;
 using Xunit;
 using Zevision.Communication;
-using Zevision.Models;
-using Zevision.Services;
+using Zevision.Core.Configuration;
 using Zevision.ViewModels;
 
 namespace Zevision.Tests

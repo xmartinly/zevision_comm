@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Zevision.Commands;
-using Zevision.Localization;
+using Zevision.Core.Localization;
 
-namespace Zevision.Services
+namespace Zevision.Core.Configuration
 {
     /// <summary>对象的子列表在修改窗口中的操作方式。</summary>
     public enum ObjectListStyle

@@ -6,10 +6,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Zevision.Commands;
 using Zevision.Communication;
-using Zevision.Localization;
-using Zevision.Models;
+using Zevision.Core.Devices;
+using Zevision.Core.Localization;
 
-namespace Zevision.Services
+namespace Zevision.Core.Configuration
 {
     /// <summary>
     /// <see cref="IInstrumentConfigService"/> 的实现:修改设备 (创建对象、写入、校验);读取由 <see cref="InstrumentConfigReader"/> 完成,

@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Text;
 using Xunit;
-using Zevision.Models;
+using Zevision.Core.Configuration;
 using Zevision.Services;
 
 namespace Zevision.Tests

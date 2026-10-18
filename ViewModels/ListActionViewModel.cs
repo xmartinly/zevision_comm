@@ -1,6 +1,6 @@
 using System;
 using System.Windows.Input;
-using Zevision.Localization;
+using Zevision.Core.Localization;
 
 namespace Zevision.ViewModels
 {

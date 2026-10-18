@@ -3,9 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using Zevision.Commands;
 using Zevision.Communication;
-using Zevision.Models;
 
-namespace Zevision.Services
+namespace Zevision.Core.Configuration
 {
     /// <summary>
     /// 修改窗口中正在编辑的配置 (<see cref="InstrumentRecipe"/>) 及对它的操作:查找对象和列表、替换重新读取的组、

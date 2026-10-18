@@ -3,10 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using Zevision.Commands;
 using Zevision.Communication;
-using Zevision.Localization;
-using Zevision.Models;
+using Zevision.Core.Localization;
 
-namespace Zevision.Services
+namespace Zevision.Core.Configuration
 {
     /// <summary>
     /// 恢复计划:对比配置文件与设备快照,算出需要创建的对象/子列表条目、需要写入的项和跳过的项。

@@ -1,6 +1,5 @@
-using Zevision.Models;
 
-namespace Zevision.Services
+namespace Zevision.Core.Settings
 {
     /// <summary>
     /// 读写持久化的通讯配置。

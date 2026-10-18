@@ -1,5 +1,5 @@
-using Zevision.Models;
-using Zevision.Services;
+using Zevision.Core;
+using Zevision.Core.Settings;
 
 namespace Zevision.Tests
 {

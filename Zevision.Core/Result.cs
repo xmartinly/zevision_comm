@@ -1,7 +1,7 @@
 using System;
-using Zevision.Localization;
+using Zevision.Core.Localization;
 
-namespace Zevision.Models
+namespace Zevision.Core
 {
     /// <summary>
     /// 不带返回值的操作结果。用于预期内的失败(端口被占用、设备返回错误、超时等)。

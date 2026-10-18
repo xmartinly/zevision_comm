@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{3E348A08-77E1-4D8D-916B-A10B168EB5E4}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>Zevision.Core</RootNamespace>
+    <AssemblyName>Zevision.Core</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <DocumentationFile>bin\Debug\Zevision.Core.xml</DocumentationFile>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <DocumentationFile>bin\Release\Zevision.Core.xml</DocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Runtime.Serialization" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Properties\IsExternalInit.cs" />
+    <Compile Include="IErrorLog.cs" />
+    <Compile Include="Result.cs" />
+    <Compile Include="Configuration\DeviceIds.cs" />
+    <Compile Include="Configuration\IInstrumentConfigService.cs" />
+    <Compile Include="Configuration\InstrumentConfigReader.cs" />
+    <Compile Include="Configuration\InstrumentConfigService.cs" />
+    <Compile Include="Configuration\InstrumentConfigTypes.cs" />
+    <Compile Include="Configuration\InstrumentRecipe.cs" />
+    <Compile Include="Configuration\ObjectTypes.cs" />
+    <Compile Include="Configuration\ParameterValue.cs" />
+    <Compile Include="Configuration\RecipeDocument.cs" />
+    <Compile Include="Configuration\RecipeRules.cs" />
+    <Compile Include="Configuration\RestorePlanner.cs" />
+    <Compile Include="Devices\IDeviceService.cs" />
+    <Compile Include="Devices\ZevisionDeviceService.cs" />
+    <Compile Include="Localization\CommandText.cs" />
+    <Compile Include="Localization\CommunicationText.cs" />
+    <Compile Include="Localization\Lang.cs" />
+    <Compile Include="Settings\ConnectionPreferences.cs" />
+    <Compile Include="Settings\IPreferencesStore.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Zevision.Communication\Zevision.Communication.csproj">
+      <Project>{1ACAC66E-C64B-430E-8B62-41B782BE2C87}</Project>
+      <Name>Zevision.Communication</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Zevision.Commands\Zevision.Commands.csproj">
+      <Project>{1B185778-1AB1-48A0-B5FC-179BFDC0C006}</Project>
+      <Name>Zevision.Commands</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.402" PrivateAssets="all" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

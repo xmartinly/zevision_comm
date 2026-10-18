@@ -1,6 +1,6 @@
 using System.Runtime.Serialization;
 
-namespace Zevision.Models
+namespace Zevision.Core.Settings
 {
     /// <summary>
     /// 需要在两次运行之间保留的通讯配置,保存为 <c>settings.json</c>。默认值与设备出厂设置一致。

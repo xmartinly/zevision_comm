@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using Zevision.Commands;
 
-namespace Zevision.Localization
+namespace Zevision.Core.Localization
 {
     /// <summary>
     /// 指令集 (Zevision.Commands) 的界面文本:按 <see cref="Lang.Current"/> 选择中英文。

@@ -8,8 +8,8 @@ using System.Xml.Linq;
 using Xunit;
 using Zevision.Commands;
 using Zevision.Communication;
-using Zevision.Localization;
-using Zevision.Models;
+using Zevision.Core.Configuration;
+using Zevision.Core.Localization;
 using Zevision.Services;
 
 namespace Zevision.Tests

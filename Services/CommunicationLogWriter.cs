@@ -5,7 +5,8 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Zevision.Localization;
+using Zevision.Core;
+using Zevision.Core.Localization;
 using Zevision.Models;
 
 namespace Zevision.Services

@@ -4,7 +4,8 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Linq;
-using Zevision.Localization;
+using Zevision.Core;
+using Zevision.Core.Localization;
 using Zevision.Models;
 using Zevision.Services;
 

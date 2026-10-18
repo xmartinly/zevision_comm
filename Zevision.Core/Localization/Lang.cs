@@ -2,7 +2,7 @@ using System;
 using System.Globalization;
 using System.Threading;
 
-namespace Zevision.Localization
+namespace Zevision.Core.Localization
 {
     /// <summary>界面语言。</summary>
     public enum UiLanguage

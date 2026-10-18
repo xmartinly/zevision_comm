@@ -4,7 +4,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
-using Zevision.Models;
+using Zevision.Core.Configuration;
+using Zevision.Core.Settings;
 using Zevision.Services;
 using Zevision.ViewModels;
 

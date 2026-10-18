@@ -5,8 +5,9 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
-using Zevision.Localization;
-using Zevision.Models;
+using Zevision.Core;
+using Zevision.Core.Configuration;
+using Zevision.Core.Localization;
 using Zevision.Services;
 
 namespace Zevision.ViewModels

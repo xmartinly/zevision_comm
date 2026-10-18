@@ -4,8 +4,8 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using Zevision.Commands;
 using Zevision.Communication;
-using Zevision.Localization;
-using Zevision.Models;
+using Zevision.Core.Configuration;
+using Zevision.Core.Localization;
 
 namespace Zevision.Services
 {

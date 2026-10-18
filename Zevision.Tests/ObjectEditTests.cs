@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using Xunit;
 using Zevision.Commands;
 using Zevision.Communication;
-using Zevision.Models;
+using Zevision.Core.Configuration;
 using Zevision.Services;
 using Zevision.ViewModels;
 

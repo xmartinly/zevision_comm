@@ -1,7 +1,7 @@
 using System;
 using System.Threading.Tasks;
-using Zevision.Localization;
-using Zevision.Services;
+using Zevision.Core.Configuration;
+using Zevision.Core.Localization;
 
 namespace Zevision.ViewModels
 {

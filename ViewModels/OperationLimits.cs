@@ -1,5 +1,5 @@
 using System;
-using Zevision.Localization;
+using Zevision.Core.Localization;
 
 namespace Zevision.ViewModels
 {

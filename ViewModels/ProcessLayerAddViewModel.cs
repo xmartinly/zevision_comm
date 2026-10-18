@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Input;
-using Zevision.Localization;
+using Zevision.Core.Localization;
 using Zevision.Services;
 
 namespace Zevision.ViewModels

@@ -1,7 +1,8 @@
 using System;
 using System.IO;
-using Zevision.Localization;
-using Zevision.Models;
+using Zevision.Core;
+using Zevision.Core.Localization;
+using Zevision.Core.Settings;
 
 namespace Zevision.Services
 {

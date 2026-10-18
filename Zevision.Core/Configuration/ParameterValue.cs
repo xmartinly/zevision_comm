@@ -3,9 +3,9 @@ using System.Globalization;
 using System.Linq;
 using Zevision.Commands;
 using Zevision.Communication;
-using Zevision.Localization;
+using Zevision.Core.Localization;
 
-namespace Zevision.Services
+namespace Zevision.Core.Configuration
 {
     /// <summary>
     /// 按 <see cref="CommandDefinition"/> 校验、规整和比较配置值。数字一律按 InvariantCulture (小数点为 <c>.</c>)。

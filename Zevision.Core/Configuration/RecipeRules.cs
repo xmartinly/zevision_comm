@@ -4,10 +4,9 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using Zevision.Commands;
 using Zevision.Communication;
-using Zevision.Localization;
-using Zevision.Models;
+using Zevision.Core.Localization;
 
-namespace Zevision.Services
+namespace Zevision.Core.Configuration
 {
     /// <summary>
     /// 哪些配置项可以保存到 recipe 并恢复到设备。所有规则集中在这里维护。

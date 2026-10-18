@@ -2,9 +2,8 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Zevision.Communication;
-using Zevision.Models;
 
-namespace Zevision.Services
+namespace Zevision.Core.Devices
 {
     /// <summary>
     /// 与 IMC300 设备通讯的服务:连接管理、发送命令并等待响应。失败说明按界面语言给出。

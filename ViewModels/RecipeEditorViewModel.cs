@@ -7,8 +7,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using Zevision.Commands;
-using Zevision.Localization;
-using Zevision.Models;
+using Zevision.Core;
+using Zevision.Core.Configuration;
+using Zevision.Core.Localization;
 using Zevision.Services;
 using M = Zevision.ViewModels.RecipeEditorMessages;
 

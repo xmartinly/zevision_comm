@@ -86,40 +86,20 @@
     </Compile>
     <Compile Include="AppInfo.cs" />
     <Compile Include="Properties\IsExternalInit.cs" />
-    <Compile Include="Localization\Lang.cs" />
-    <Compile Include="Localization\CommandText.cs" />
-    <Compile Include="Localization\CommunicationText.cs" />
     <Compile Include="SingleInstance.cs" />
     <Compile Include="Communication\FrameDisplayFormatter.cs" />
     <Compile Include="Communication\DisplayFormat.cs" />
-    <Compile Include="Models\ConnectionPreferences.cs" />
-    <Compile Include="Models\InstrumentRecipe.cs" />
     <Compile Include="Models\LogEntry.cs" />
-    <Compile Include="Models\Result.cs" />
     <Compile Include="Services\CommunicationLogWriter.cs" />
-    <Compile Include="Services\DeviceIds.cs" />
     <Compile Include="Services\JsonFile.cs" />
-    <Compile Include="Services\ObjectTypes.cs" />
-    <Compile Include="Services\IDeviceService.cs" />
     <Compile Include="Services\IDialogService.cs" />
-    <Compile Include="Services\InstrumentConfigService.cs" />
-    <Compile Include="Services\IInstrumentConfigService.cs" />
-    <Compile Include="Services\InstrumentConfigReader.cs" />
-    <Compile Include="Services\InstrumentConfigTypes.cs" />
-    <Compile Include="Services\IPreferencesStore.cs" />
     <Compile Include="Services\JsonFilePreferencesStore.cs" />
     <Compile Include="Services\RecipeFile.cs" />
-    <Compile Include="Services\RecipeDocument.cs" />
     <Compile Include="Services\RecipeGrouping.cs" />
     <Compile Include="Services\AppFolders.cs" />
     <Compile Include="Services\FileErrorLog.cs" />
-    <Compile Include="Services\IErrorLog.cs" />
     <Compile Include="Services\ParameterOptions.cs" />
-    <Compile Include="Services\ParameterValue.cs" />
     <Compile Include="Services\ReadOnlyLayout.cs" />
-    <Compile Include="Services\RecipeRules.cs" />
-    <Compile Include="Services\RestorePlanner.cs" />
-    <Compile Include="Services\ZevisionDeviceService.cs" />
     <Compile Include="ViewModels\AsyncRelayCommand.cs" />
     <Compile Include="ViewModels\Choice.cs" />
     <Compile Include="ViewModels\ConfigOperationsViewModel.cs" />
@@ -170,6 +150,10 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="Zevision.Core\Zevision.Core.csproj">
+      <Project>{3E348A08-77E1-4D8D-916B-A10B168EB5E4}</Project>
+      <Name>Zevision.Core</Name>
+    </ProjectReference>
     <ProjectReference Include="Zevision.Communication\Zevision.Communication.csproj">
       <Project>{1ACAC66E-C64B-430E-8B62-41B782BE2C87}</Project>
       <Name>Zevision.Communication</Name>

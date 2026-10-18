@@ -3,10 +3,9 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Zevision.Communication;
-using Zevision.Localization;
-using Zevision.Models;
+using Zevision.Core.Localization;
 
-namespace Zevision.Services
+namespace Zevision.Core.Devices
 {
     /// <summary>
     /// <see cref="IDeviceService"/> 的实现:每次连接按当时的通讯参数创建一个 <see cref="ZevisionClient"/> (通讯库),

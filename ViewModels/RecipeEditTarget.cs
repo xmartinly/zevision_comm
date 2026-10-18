@@ -4,8 +4,9 @@ using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using Zevision.Commands;
-using Zevision.Localization;
-using Zevision.Models;
+using Zevision.Core;
+using Zevision.Core.Configuration;
+using Zevision.Core.Localization;
 using Zevision.Services;
 
 namespace Zevision.ViewModels

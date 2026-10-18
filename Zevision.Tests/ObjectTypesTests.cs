@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
-using Zevision.Localization;
-using Zevision.Services;
+using Zevision.Core.Configuration;
+using Zevision.Core.Localization;
 
 namespace Zevision.Tests
 {

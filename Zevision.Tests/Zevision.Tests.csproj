@@ -91,6 +91,10 @@
       <Project>{68E153FE-3C42-4088-B33A-DF7F9A29CAC9}</Project>
       <Name>Zevision</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Zevision.Core\Zevision.Core.csproj">
+      <Project>{3E348A08-77E1-4D8D-916B-A10B168EB5E4}</Project>
+      <Name>Zevision.Core</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Zevision.Communication\Zevision.Communication.csproj">
       <Project>{1ACAC66E-C64B-430E-8B62-41B782BE2C87}</Project>
       <Name>Zevision.Communication</Name>

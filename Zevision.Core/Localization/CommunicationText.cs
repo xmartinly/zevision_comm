@@ -1,7 +1,7 @@
 using System;
 using Zevision.Communication;
 
-namespace Zevision.Localization
+namespace Zevision.Core.Localization
 {
     /// <summary>
     /// 通讯库 (Zevision.Communication) 结果的界面文本。通讯库只给出英文说明和错误类型,

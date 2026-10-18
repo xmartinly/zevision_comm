@@ -1,4 +1,4 @@
-using Zevision.Localization;
+using Zevision.Core.Localization;
 
 namespace Zevision.Views
 {

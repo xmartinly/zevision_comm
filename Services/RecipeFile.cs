@@ -3,8 +3,9 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
-using Zevision.Localization;
-using Zevision.Models;
+using Zevision.Core;
+using Zevision.Core.Configuration;
+using Zevision.Core.Localization;
 
 namespace Zevision.Services
 {

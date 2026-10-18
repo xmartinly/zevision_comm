@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using Zevision.Communication;
-using Zevision.Localization;
+using Zevision.Core.Localization;
 using Zevision.Models;
 
 namespace Zevision.ViewModels

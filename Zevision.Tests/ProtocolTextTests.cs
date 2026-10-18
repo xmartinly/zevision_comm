@@ -1,6 +1,6 @@
 using Xunit;
 using Zevision.Communication;
-using Zevision.Localization;
+using Zevision.Core.Localization;
 
 namespace Zevision.Tests
 {

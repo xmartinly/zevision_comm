@@ -6,10 +6,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Zevision.Commands;
 using Zevision.Communication;
-using Zevision.Localization;
-using Zevision.Models;
+using Zevision.Core.Devices;
+using Zevision.Core.Localization;
 
-namespace Zevision.Services
+namespace Zevision.Core.Configuration
 {
     /// <summary>
     /// <see cref="IInstrumentConfigReader"/> 的实现,也是修改配置 (<see cref="InstrumentConfigService"/>) 时与设备单条通讯的基础:

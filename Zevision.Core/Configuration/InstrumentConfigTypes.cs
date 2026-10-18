@@ -3,9 +3,8 @@ using System.Collections.Generic;
 using System.Globalization;
 using Zevision.Commands;
 using Zevision.Communication;
-using Zevision.Models;
 
-namespace Zevision.Services
+namespace Zevision.Core.Configuration
 {
     /// <summary>
     /// 通过 <c>?</c> 读取的设备配置快照。

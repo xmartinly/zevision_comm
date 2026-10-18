@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Zevision.Core;
 using Zevision.Services;
 
 namespace Zevision.Tests

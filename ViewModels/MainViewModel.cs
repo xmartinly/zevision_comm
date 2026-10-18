@@ -5,7 +5,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using Zevision.Communication;
-using Zevision.Localization;
+using Zevision.Core;
+using Zevision.Core.Configuration;
+using Zevision.Core.Devices;
+using Zevision.Core.Localization;
+using Zevision.Core.Settings;
 using Zevision.Models;
 using Zevision.Services;
 

@@ -6,7 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 using Zevision.Communication;
-using Zevision.Services;
+using Zevision.Core.Devices;
 
 namespace Zevision.Tests
 {

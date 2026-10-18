@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using Zevision.Commands;
 using Zevision.Communication;
-using Zevision.Localization;
+using Zevision.Core.Configuration;
+using Zevision.Core.Localization;
 using Zevision.Services;
 
 namespace Zevision.ViewModels

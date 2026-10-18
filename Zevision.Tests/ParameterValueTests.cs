@@ -1,7 +1,7 @@
 using Xunit;
 using Zevision.Commands;
 using Zevision.Communication;
-using Zevision.Services;
+using Zevision.Core.Configuration;
 
 namespace Zevision.Tests
 {
