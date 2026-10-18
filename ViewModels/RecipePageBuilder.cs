@@ -23,7 +23,7 @@ namespace Zevision.ViewModels
         Task DeleteObjectAsync(string objectId);
 
         /// <summary>在列表末尾追加一项。</summary>
-        Task AppendListEntryAsync(string listId, string listName, string? value = null, string? valueLabel = null);
+        Task AppendListEntryAsync(string listId, string listName, string? value = null);
 
         /// <summary>删除列表的一项 (<paramref name="number"/> 为 null 时删除最后一项)。</summary>
         Task RemoveListEntryAsync(string listId, string listName, int? number = null);
@@ -115,7 +115,7 @@ namespace Zevision.ViewModels
             add = new ProcessLayerAddViewModel(
                 listId,
                 choices,
-                actions.Command(() => actions.AppendListEntryAsync(listId, listName, add!.SelectedValue, add.SelectedLabel), () => add?.SelectedValue != null));
+                actions.Command(() => actions.AppendListEntryAsync(listId, listName, add!.SelectedValue), () => add?.SelectedValue != null));
             owner.LayerAdd = add;
         }
     }

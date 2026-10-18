@@ -39,9 +39,6 @@ namespace Zevision.ViewModels
             set => SetProperty(ref _selectedValue, value);
         }
 
-        /// <summary>选中膜层的显示文本,如 <c>2 - Layer2</c>。</summary>
-        public string SelectedLabel => Options.FirstOrDefault(o => o.Value == _selectedValue)?.Label ?? _selectedValue ?? string.Empty;
-
         /// <summary>在设备上添加选中的膜层。</summary>
         public ICommand AddCommand { get; }
 

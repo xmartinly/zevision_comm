@@ -31,7 +31,7 @@ namespace Zevision.Tests
             Assert.True(created.CanDelete);
             Assert.All(created.Items, i => Assert.True(i.IsChecked, i.Id)); // 全部参数勾选,可以直接修改
             Assert.Equal(TabIndex(editor, "材料"), editor.SelectedTabIndex); // 重新生成后仍在材料页
-            Assert.Contains("已新建材料 M02", Assert.Single(dialogs.Infos));
+            Assert.Contains("已新建材料 M02", editor.ResultText); // 结果显示在窗口底部,不弹窗
             Assert.Contains("已新建材料 M02", editor.CompletionMessage);
         }
 
@@ -253,14 +253,14 @@ namespace Zevision.Tests
             var add = editor.Groups.Single(g => g.Key == "P0201").LayerAdd!;
             add.SelectedValue = "2";
 
-            await editor.AppendListEntryAsync(add.ListId, "膜层", add.SelectedValue, add.SelectedLabel);
+            await editor.AppendListEntryAsync(add.ListId, "膜层", add.SelectedValue);
 
             Assert.Empty(dialogs.Errors);
-            Assert.Contains("膜层 2 - Layer2", Assert.Single(dialogs.Confirms));
+            Assert.Empty(dialogs.Confirms); // 追加不确认 (可以用"−"删除)
             var commands = device.CommandsSnapshot().SkipWhile(c => c != "AP02010700").ToList();
             Assert.Equal(new[] { "AP02010700", "QP020107FE", "UP02010702:2", "QP02010702", "?P" }, commands);
             Assert.Equal("2", device.Get("P02010702"));
-            Assert.Contains("P02010702", Assert.Single(dialogs.Infos));
+            Assert.Contains("P02010702", editor.ResultText); // 结果显示在窗口底部,不弹窗
             var process = editor.Groups.Single(g => g.Key == "P0201");
             Assert.True(process.IsExpanded);
             Assert.Contains(process.Items, i => i.Id == "P02010702" && i.Value == "2" && i.CanRemove);
@@ -273,11 +273,11 @@ namespace Zevision.Tests
             var device = ProcessWithLayers("1").Remove("P02010700"); // 设备不认这个增删指令 → -A
             var (editor, dialogs) = await OpenDeviceEditorAsync(device);
 
-            await editor.AppendListEntryAsync("P020107", "膜层", "2", "2 - Layer2");
+            await editor.AppendListEntryAsync("P020107", "膜层", "2");
 
             Assert.Contains("AP02010700", Assert.Single(dialogs.Errors));
             Assert.Contains("?P", device.CommandsSnapshot());
-            Assert.Empty(dialogs.Infos);
+            Assert.Null(editor.ResultText);
         }
 
         [Fact]
@@ -298,7 +298,7 @@ namespace Zevision.Tests
             Assert.Equal("2", device.Get("P020107FE"));
             var process = editor.Groups.Single(g => g.Key == "P0201");
             Assert.Equal(new[] { "2", "1" }, process.Items.Where(i => i.Id.StartsWith("P020107", StringComparison.Ordinal)).Select(i => i.Value));
-            Assert.Contains("P02010701", Assert.Single(dialogs.Infos));
+            Assert.Contains("P02010701", editor.ResultText); // 结果显示在窗口底部,不弹窗
         }
 
         [Fact]
@@ -454,7 +454,7 @@ namespace Zevision.Tests
             Assert.True(film.IsExpanded);
             Assert.Contains(film.Items, i => i.Id == "F01030201");
             Assert.Equal(2, film.ListActions[0].Count);
-            Assert.Contains("F010302", Assert.Single(dialogs.Infos));
+            Assert.Contains("F010302", editor.ResultText); // 结果显示在窗口底部,不弹窗
         }
 
         [Fact]
@@ -472,7 +472,7 @@ namespace Zevision.Tests
             var film = editor.Groups.Single(g => g.Key == "F01");
             Assert.DoesNotContain(film.Items, i => i.Id.StartsWith("F010301", StringComparison.Ordinal));
             Assert.Equal(0, film.ListActions[0].Count);
-            Assert.Contains("删除预熔 (F010301)", Assert.Single(dialogs.Infos));
+            Assert.Contains("删除预熔 (F010301)", editor.ResultText); // 结果显示在窗口底部,不弹窗
         }
 
         [Fact]
@@ -741,7 +741,7 @@ namespace Zevision.Tests
                 Assert.Contains(saved.Value.Entries, e => e.Id == "M0401" && e.Value == "Material");
                 Assert.DoesNotContain(saved.Value.Entries, e => e.Id.StartsWith("M02", StringComparison.Ordinal)); // 设备上多出的对象不进文件
                 Assert.Contains(file.Editor.Groups, g => g.Key == "M04");
-                Assert.Contains("配置文件已保存", Assert.Single(file.Dialogs.Infos));
+                Assert.Contains("配置文件已保存", file.Editor.ResultText);
             }
         }
 
@@ -794,7 +794,7 @@ namespace Zevision.Tests
                 Assert.Empty(file.Dialogs.Errors);
                 Assert.DoesNotContain("DM01", device.CommandsSnapshot());
                 Assert.DoesNotContain(RecipeFile.Load(file.Path).Value.Entries, e => e.Id == "M0101");
-                Assert.Contains("设备上没有该对象", Assert.Single(file.Dialogs.Infos));
+                Assert.Contains("设备上没有该对象", file.Editor.ResultText);
             }
         }
 
@@ -804,12 +804,12 @@ namespace Zevision.Tests
             var device = ProcessWithLayers("1");
             using (var file = await FileEditor.OpenAsync(ProcessWithLayers("1"), device))
             {
-                await file.Editor.AppendListEntryAsync("P020107", "膜层", "2", "2 - Layer2");
+                await file.Editor.AppendListEntryAsync("P020107", "膜层", "2");
 
                 Assert.Empty(file.Dialogs.Errors);
                 Assert.Equal("2", device.Get("P02010702"));
                 Assert.Contains(RecipeFile.Load(file.Path).Value.Entries, e => e.Id == "P02010702" && e.Value == "2");
-                Assert.Contains("配置文件已保存", Assert.Single(file.Dialogs.Infos));
+                Assert.Contains("配置文件已保存", file.Editor.ResultText);
             }
         }
 
@@ -820,7 +820,7 @@ namespace Zevision.Tests
             var device = ProcessWithLayers("1", "1");
             using (var file = await FileEditor.OpenAsync(ProcessWithLayers("1"), device))
             {
-                await file.Editor.AppendListEntryAsync("P020107", "膜层", "2", "2 - Layer2");
+                await file.Editor.AppendListEntryAsync("P020107", "膜层", "2");
 
                 Assert.Contains("设备 2 条,文件 1 条", Assert.Single(file.Dialogs.Errors));
                 Assert.DoesNotContain("AP02010700", device.CommandsSnapshot());

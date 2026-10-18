@@ -50,12 +50,6 @@ namespace Zevision.Views
         }
 
         /// <inheritdoc />
-        public void ShowInfo(string title, string message)
-        {
-            Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information, MessageBoxResult.OK);
-        }
-
-        /// <inheritdoc />
         public void ShowError(string title, string message)
         {
             Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK);

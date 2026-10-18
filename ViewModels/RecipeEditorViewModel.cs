@@ -39,6 +39,7 @@ namespace Zevision.ViewModels
         private IReadOnlyList<RecipeGroupViewModel> _groups = Array.Empty<RecipeGroupViewModel>();
         private IReadOnlyList<RecipeTabViewModel> _tabs = Array.Empty<RecipeTabViewModel>();
         private int _selectedTabIndex;
+        private string? _resultText;
         private SelectionStats _stats;
 
         /// <summary>
@@ -61,7 +62,7 @@ namespace Zevision.ViewModels
             {
                 if (e.PropertyName == nameof(OperationRunner.IsBusy))
                 {
-                    OnPropertiesChanged(nameof(IsBusy), nameof(CanSave), nameof(IsEditable), nameof(CanChangeObjects));
+                    OnPropertiesChanged(nameof(IsBusy), nameof(CanSave), nameof(IsEditable), nameof(CanChangeObjects), nameof(HasResultText));
                 }
             };
 
@@ -178,6 +179,24 @@ namespace Zevision.ViewModels
         /// <summary>保存成功后的结果说明,供主窗口记录;未保存时为 null。</summary>
         public string? CompletionMessage { get; private set; }
 
+        /// <summary>
+        /// 上一次操作成功的结果 (如"已写入设备并校验 3 项。"),显示在窗口底部,不弹窗。开始新的操作时清空;失败时用错误框提示。
+        /// </summary>
+        public string? ResultText
+        {
+            get => _resultText;
+            private set
+            {
+                if (SetProperty(ref _resultText, value))
+                {
+                    OnPropertyChanged(nameof(HasResultText));
+                }
+            }
+        }
+
+        /// <summary>是否显示 <see cref="ResultText"/> (操作进行中不显示)。</summary>
+        public bool HasResultText => !IsBusy && !string.IsNullOrEmpty(_resultText);
+
         /// <inheritdoc />
         public bool CanClose => !IsBusy;
 
@@ -276,8 +295,8 @@ namespace Zevision.ViewModels
         /// <param name="listId">列表 ID,如 <c>F0103</c>、<c>L0102</c>、<c>P020107</c>。</param>
         /// <param name="listName">列表名称,如"预熔"。</param>
         /// <param name="value">要写入新条目的值 (如工艺添加的膜层编号);为 null 时使用设备默认值。</param>
-        /// <param name="valueLabel">值的显示文本,用于确认框。</param>
-        public async Task AppendListEntryAsync(string listId, string listName, string? value = null, string? valueLabel = null)
+        /// <remarks>不确认 (用户要求,2026-10-18):追加可以用"−"删除。</remarks>
+        public async Task AppendListEntryAsync(string listId, string listName, string? value = null)
         {
             if (listId is null)
             {
@@ -286,11 +305,6 @@ namespace Zevision.ViewModels
 
             var owner = ListOwner(listId);
             var title = Lang.T("新增", "Add ") + listName;
-            if (!_dialogs.Confirm(title, M.ConfirmListAppend(owner, listName, value == null ? null : valueLabel ?? value, toFile: !IsDeviceSource)))
-            {
-                return;
-            }
-
             await RunChangeAsync(title, appendInterrupted: true, async operation =>
             {
                 if (!await CheckListCountAsync(listId, operation.Token))
@@ -300,7 +314,7 @@ namespace Zevision.ViewModels
 
                 var appended = await _session.AppendListItemAsync(listId, value, operation.Token);
                 var done = M.ListAppended(owner, listName, appended.IsSuccess ? appended.Value : string.Empty);
-                return new DeviceChange(title, listId[0], appended.Error, done, M.ListChangedInfo(done, savedFile: !IsDeviceSource))
+                return new DeviceChange(listId[0], appended.Error, done, M.ListChangedInfo(done, savedFile: !IsDeviceSource))
                 {
                     ExpandKey = ObjectTypes.GroupKey(listId),
                     Apply = deviceGroup => _session.ApplyListAppend(listId, appended.Value, deviceGroup),
@@ -368,7 +382,7 @@ namespace Zevision.ViewModels
 
                 var values = shifted.ToDictionary(e => e.Id, e => e.Value, StringComparer.Ordinal);
                 var done = M.ListRemoved(owner, listName, removing);
-                return new DeviceChange(title, listId[0], removed.Error, done, M.ListRemovedInfo(done, savedFile: !IsDeviceSource))
+                return new DeviceChange(listId[0], removed.Error, done, M.ListRemovedInfo(done, savedFile: !IsDeviceSource))
                 {
                     ExpandKey = ObjectTypes.GroupKey(listId),
                     Apply = _ => _session.ApplyListRemove(removed.Value, values),
@@ -408,6 +422,7 @@ namespace Zevision.ViewModels
             }
 
             var close = false;
+            ResultText = null;
             await Operation.RunAsync(M.WritePhase, Lang.T("检查设备…", "Checking the device…"), async operation =>
             {
                 var edits = selected.Select(i => new RecipeEntry { Id = i.Id, Value = i.Value, Description = i.Description }).ToList();
@@ -482,7 +497,7 @@ namespace Zevision.ViewModels
                 }
 
                 var done = M.ObjectChanged(action, type.Kind, id, onDevice);
-                return new DeviceChange(title, type.Group, error, done, M.Done(done, savedFile: !IsDeviceSource))
+                return new DeviceChange(type.Group, error, done, M.Done(done, savedFile: !IsDeviceSource))
                 {
                     ExpandKey = action == CommandActions.Add ? id : null,
                     DeviceGroup = onDevice ? null : current.Value,
@@ -501,8 +516,10 @@ namespace Zevision.ViewModels
         /// 执行一次设备修改 (可取消,有时限):<paramref name="execute"/> 发送指令并给出结果 (失败已提示时为 null),
         /// 之后由 <see cref="FinishChangeAsync"/> 收尾。取消或超时时提示设备上可能已经执行。
         /// </summary>
-        private Task RunChangeAsync(string title, bool appendInterrupted, Func<OperationTimeout, Task<DeviceChange?>> execute) =>
-            Operation.RunAsync(M.WritePhase, title + "…", async operation =>
+        private Task RunChangeAsync(string title, bool appendInterrupted, Func<OperationTimeout, Task<DeviceChange?>> execute)
+        {
+            ResultText = null;
+            return Operation.RunAsync(M.WritePhase, title + "…", async operation =>
             {
                 var change = await execute(operation);
                 if (change != null)
@@ -510,10 +527,11 @@ namespace Zevision.ViewModels
                     await FinishChangeAsync(change, operation.Token);
                 }
             }, operation => ReportFailure(M.Interrupted(OperationRunner.DescribeCancel(operation), appendInterrupted)));
+        }
 
         /// <summary>
         /// 设备修改之后:重新读取所属的组 (无论指令是否成功,设备状态以读取为准) → 核对结果 → 更新配置 (保存的配置写进文件) →
-        /// 重新生成页面 → 提示。有任何错误时提示错误。
+        /// 重新生成页面 → 在窗口底部显示结果。有任何错误时提示错误。
         /// </summary>
         private async Task FinishChangeAsync(DeviceChange change, CancellationToken cancellationToken)
         {
@@ -555,7 +573,7 @@ namespace Zevision.ViewModels
             }
             else
             {
-                _dialogs.ShowInfo(change.Title, change.Info);
+                ResultText = change.Info;
             }
         }
 
@@ -633,7 +651,7 @@ namespace Zevision.ViewModels
 
             _writtenCount += writtenCount;
             UpdateCompletionMessage();
-            _dialogs.ShowInfo(M.Title, IsDeviceSource ? summary : summary + Environment.NewLine + M.SavedTo(_session.FilePath!));
+            ResultText = IsDeviceSource ? summary : summary + " " + M.SavedTo(_session.FilePath!);
             return !IsDeviceSource;
         }
 
@@ -752,7 +770,7 @@ namespace Zevision.ViewModels
         /// <param name="Error">设备指令失败的原因;成功时为 null。</param>
         /// <param name="Done">完成的修改,如"已新建材料 M03";记入窗口关闭后的结果。</param>
         /// <param name="Info">成功时的提示。</param>
-        private sealed record DeviceChange(string Title, char Group, string? Error, string Done, string Info)
+        private sealed record DeviceChange(char Group, string? Error, string Done, string Info)
         {
             /// <summary>重新生成页面后展开的分组。</summary>
             public string? ExpandKey { get; init; }

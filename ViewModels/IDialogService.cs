@@ -14,9 +14,6 @@ namespace Zevision.ViewModels
         /// <summary>显示带"确定/取消"的确认框,用户确定时返回 true。</summary>
         bool Confirm(string title, string message);
 
-        /// <summary>显示提示信息。</summary>
-        void ShowInfo(string title, string message);
-
         /// <summary>显示错误信息。</summary>
         void ShowError(string title, string message);
 

@@ -148,15 +148,8 @@ namespace Zevision.ViewModels
             }
         }
 
-        private void ShowInfo(string title, string message)
-        {
-            if (!_quiet)
-            {
-                _dialogs.ShowInfo(title, message);
-            }
-        }
-
-        private async Task SaveAsync()
+        /// <summary>保存配置 (<see cref="SaveCommand"/> 的实现,测试中直接调用以便等待完成)。</summary>
+        internal async Task SaveAsync()
         {
             var title = Lang.T("保存仪器配置", "Save instrument configuration");
             var path = _dialogs.ShowSaveFileDialog(
@@ -181,7 +174,6 @@ namespace Zevision.ViewModels
 
                 var message = Lang.T($"已保存 {recipe.Entries.Count} 项配置 ({recipe.DeviceName} {recipe.FirmwareVersion}) 到 {path}", $"Saved {recipe.Entries.Count} settings ({recipe.DeviceName} {recipe.FirmwareVersion}) to {path}");
                 _log.Add(LogKind.Info, message);
-                ShowInfo(title, message);
                 return Task.CompletedTask;
             });
         }
@@ -250,7 +242,8 @@ namespace Zevision.ViewModels
             }
         }
 
-        private async Task RestoreAsync()
+        /// <summary>恢复配置 (<see cref="RestoreCommand"/> 的实现,测试中直接调用以便等待完成)。</summary>
+        internal async Task RestoreAsync()
         {
             var title = Lang.T("恢复仪器配置", "Restore instrument configuration");
             if (!(LoadRecipe(title) is var (path, recipe)))
@@ -271,7 +264,7 @@ namespace Zevision.ViewModels
                 LogPlan(plan);
                 if (plan.Writes.Count == 0 && plan.Creates.Count == 0)
                 {
-                    ShowInfo(title, Lang.T($"设备当前配置与文件一致 ({plan.UnchangedCount} 项),无需修改。", $"The device already matches the file ({plan.UnchangedCount} settings); nothing to change."));
+                    _log.Add(LogKind.Info, Lang.T($"设备当前配置与文件一致 ({plan.UnchangedCount} 项),无需修改。", $"The device already matches the file ({plan.UnchangedCount} settings); nothing to change."));
                     return;
                 }
 
@@ -389,8 +382,12 @@ namespace Zevision.ViewModels
                 return;
             }
 
+            // 成功只记录到数据显示区,不弹窗;有项无法写入时仍然弹窗 (各项已在上面记录为错误)。
             _log.Add(LogKind.Info, RestoreMessages.BuildSummary(report));
-            ShowInfo(title, RestoreMessages.BuildSuccess(report));
+            if (report.AdditionalSkipped.Count > 0 && !_quiet)
+            {
+                _dialogs.ShowError(title, RestoreMessages.BuildSuccess(report));
+            }
         }
 
         private void ReportFailure(string title, string? error)

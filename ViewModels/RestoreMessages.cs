@@ -72,7 +72,8 @@ namespace Zevision.ViewModels
         }
 
         /// <summary>
-        /// 恢复成功时的提示:概要,以及创建对象后仍无法写入的项 (ID、说明、文件中的值、原因)。
+        /// 恢复完成但有项无法写入时的提示:概要,以及创建对象后仍无法写入的项 (ID、说明、文件中的值、原因)。
+        /// 全部写入时不弹窗,只记录 <see cref="BuildSummary"/>。
         /// </summary>
         public static string BuildSuccess(RestoreReport report)
         {

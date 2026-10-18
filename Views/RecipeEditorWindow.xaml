@@ -166,6 +166,10 @@
             </StackPanel>
             <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
                 <TextBlock Text="{Binding SelectionText}" />
+                <!-- 上一次操作成功的结果 (代替提示框);失败时弹出错误框 -->
+                <TextBlock Margin="0,6,0,0" Text="{Binding ResultText}" TextWrapping="Wrap"
+                           Foreground="{DynamicResource MaterialDesign.Brush.Primary}"
+                           Visibility="{Binding HasResultText, Converter={StaticResource BooleanToVisibility}}" />
                 <StackPanel Margin="0,6,0,0" Visibility="{Binding IsBusy, Converter={StaticResource BooleanToVisibility}}">
                     <TextBlock Text="{Binding Operation.Text}" Foreground="{DynamicResource MaterialDesign.Brush.ForegroundLight}" />
                     <ProgressBar Height="4" Margin="0,4,0,0"

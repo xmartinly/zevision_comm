@@ -69,6 +69,7 @@ Available while connected:
 | **Edit** | First choose the source in the drop-down on the left. **Device data**: read the current device configuration, edit it and write to the device only. **Saved configuration**: choose a configuration file, edit it, write to the device and save the file |
 
 - Configuration files carry an MD5 checksum; files edited by hand are refused. Use **Edit** to change a configuration.
+- A successful save or restore shows no message box; the result is written to the data display. Errors (including a restore that finished with settings it could not write) still show a message box.
 
 ### Edit configuration window
 
@@ -82,8 +83,8 @@ Available while connected:
     - New film: the material ID is set to the first material and all the film's settings are checked, so you can edit them and save. Without materials the material ID keeps the device default.
     - New layer: a film entry (the first film) is added and all the layer's settings (name, film, rate, final thickness) are checked, so you can edit them and save. Nothing is added when there is no film (add one later with **Add rate/thickness**).
     - New process: the first layer is added and all the process's settings are checked. Nothing is added when there is no layer.
-    - Process layers: each process header has a **Layer** drop-down (the existing layers) and an **Add** button. Choose a layer and click **Add**; after confirmation it is appended to the end of the list on the device (written and read back), and the Processes tab is read again. Each layer row ends with **×**, which removes that layer. The device can only remove the last item, so removing a layer in the middle moves the following layers up one place (each written and verified) and then removes the last item.
-    - Film pre/post conditions: the film header has **+Pre Condition**, **−Pre Condition**, **+Post Condition** and **−Post Condition**. **+** appends one to the end of the list on the device with the device defaults; **−** removes the last one (disabled when the list is empty). The Films tab is read again afterwards (about 5 s) so you can check and edit the new one.
+    - Process layers: each process header has a **Layer** drop-down (the existing layers) and an **Add** button. Choose a layer and click **Add**; it is appended right away (no confirmation; remove a wrong one with **×**) to the end of the list on the device (written and read back), and the Processes tab is read again. Each layer row ends with **×**, which removes that layer. The device can only remove the last item, so removing a layer in the middle moves the following layers up one place (each written and verified) and then removes the last item.
+    - Film pre/post conditions: the film header has **+Pre Condition**, **−Pre Condition**, **+Post Condition** and **−Post Condition**. **+** appends one to the end of the list on the device with the device defaults (no confirmation); **−** removes the last one (disabled when the list is empty). The Films tab is read again afterwards (about 5 s) so you can check and edit the new one.
     - Layer rate and thickness: on the device a layer's rate and final thickness belong to each film in the layer (layer → film list → film ID, rate, final thickness). A new layer has an empty film list, so it shows only its name; the group shows a hint and an **Add rate/thickness** button (same as **+Film** in the header). After adding an item, check and edit its film, rate and final thickness; **−Film** removes the last one.
     - These adds/removes act on the device immediately (no Save needed) and are not available while settings are checked.
   - Working in the window:
@@ -93,6 +94,7 @@ Available while connected:
     - Each category tab keeps its own scroll position, also when the page is rebuilt after New, Delete or Save.
     - Not available while settings are checked (save or uncheck them first); the device must be Ready (idle).
     - The program checks the result and reports it if the new object did not appear, the deleted one is still there, or other objects changed.
+    - Successful saves, New, Delete and list changes show no message box; the result is shown at the bottom of the window. Errors still show a message box.
   - Each row is "name (unit) | value | ID". In English the name is the description the device reports in its help table. Hover over a row to see the range or options.
   - Check a row to edit it. Settings with fixed options (such as on/off or a material) use a drop-down; others are typed in.
   - Numbers are written with the number of decimal places of the original value (5.89 is written as 5.890). Times use hours:minutes:seconds, e.g. 0:01:30.

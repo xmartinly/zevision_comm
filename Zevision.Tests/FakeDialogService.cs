@@ -13,11 +13,12 @@ namespace Zevision.Tests
 
         public List<string> Confirms { get; } = new List<string>();
 
-        public List<string> Infos { get; } = new List<string>();
-
         public List<string> Errors { get; } = new List<string>();
 
-        public string? ShowSaveFileDialog(string title, string filter, string initialDirectory, string defaultFileName) => null;
+        /// <summary>"另存为"对话框返回的路径;null 表示用户取消。</summary>
+        public string? SaveFilePath { get; set; }
+
+        public string? ShowSaveFileDialog(string title, string filter, string initialDirectory, string defaultFileName) => SaveFilePath;
 
         /// <summary>打开文件对话框返回的路径;null 表示用户取消。</summary>
         public string? OpenFilePath { get; set; }
@@ -32,8 +33,6 @@ namespace Zevision.Tests
             Confirms.Add(message);
             return ConfirmResult;
         }
-
-        public void ShowInfo(string title, string message) => Infos.Add(message);
 
         public void ShowError(string title, string message) => Errors.Add(message);
 

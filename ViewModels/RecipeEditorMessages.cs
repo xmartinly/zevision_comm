@@ -127,25 +127,6 @@ namespace Zevision.ViewModels
                 ? Lang.T("设备上可能已经追加,请关闭窗口后重新打开以确认。", "It may already have been appended on the device; close the window and open it again to check.")
                 : Lang.T("设备上可能已经执行,请关闭窗口后重新打开以确认。", "It may already have been done on the device; close the window and open it again to check."));
 
-        /// <summary>在列表末尾追加一项的确认。</summary>
-        /// <param name="owner">所属对象,如"膜系 F01"。</param>
-        /// <param name="listName">列表名称,如"预熔"。</param>
-        /// <param name="value">要写入的值的显示文本 (如工艺添加的膜层);使用设备默认值时为 null。</param>
-        /// <param name="toFile">是否同时写入配置文件。</param>
-        public static string ConfirmListAppend(string owner, string listName, string? value, bool toFile)
-        {
-            var what = value == null
-                ? Lang.T($"一条{listName} (使用设备默认值)", $"a {listName.ToLowerInvariant()} (device defaults)")
-                : Lang.T($"{listName} {value}", $"{listName.ToLowerInvariant()} {value}");
-            return toFile
-                ? Lang.T(
-                    $"在设备上为{owner}的列表末尾添加{what},并添加到配置文件 (文件立即保存)?{Environment.NewLine}需要设备与文件中该列表的条数相同。",
-                    $"Append {what} to {owner} on the device and add it to the configuration file (saved immediately)?{Environment.NewLine}The list must have the same number of items on the device and in the file.")
-                : Lang.T(
-                    $"在设备上为{owner}的列表末尾添加{what}?{Environment.NewLine}完成后重新读取本页,可以接着修改它的设置。",
-                    $"Append {what} to {owner} on the device?{Environment.NewLine}This tab is read again afterwards so you can edit it.");
-        }
-
         /// <summary>删除列表一项的确认。<paramref name="shiftCount"/> 为删除中间一项时要前移写入的项数。</summary>
         public static string ConfirmListRemove(string owner, string listName, string itemId, string display, int shiftCount, bool toFile)
         {

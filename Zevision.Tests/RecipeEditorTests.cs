@@ -510,8 +510,54 @@ namespace Zevision.Tests
             Assert.False(item.IsChecked);
             Assert.Equal("2.700", recipe.Entries.Single(e => e.Id == "M0103").Value);
             Assert.Contains("实机", editor.CompletionMessage);
+            Assert.Equal("已写入设备并校验 1 项。", editor.ResultText); // 显示在窗口底部,不弹窗
+            Assert.True(editor.HasResultText);
             Assert.False(closed);
             Assert.Empty(Directory.GetFiles(_directory));
+        }
+
+        [Fact]
+        public async Task SaveConfiguration_Success_LoggedWithoutDialog()
+        {
+            var path = Path.Combine(_directory, "saved.json");
+            var dialogs = new FakeDialogService { SaveFilePath = path };
+            var log = new LogViewModel(new FakeErrorLog());
+            var config = new ConfigOperationsViewModel(new InstrumentConfigService(NewDevice()), new RecipeFileStore(), dialogs, new FakeErrorLog(), log, () => true);
+
+            await config.SaveAsync();
+
+            Assert.True(File.Exists(path));
+            Assert.Empty(dialogs.Errors);
+            Assert.Contains(log.Entries, e => e.Kind == LogKind.Info && e.Text.StartsWith("已保存", StringComparison.Ordinal));
+        }
+
+        [Fact]
+        public async Task Restore_DeviceAlreadyMatches_LoggedWithoutDialog()
+        {
+            var device = NewDevice();
+            var (_, _, path, _) = NewEditor(device);
+            var dialogs = new FakeDialogService { OpenFilePath = path };
+            var log = new LogViewModel(new FakeErrorLog());
+            var config = new ConfigOperationsViewModel(new InstrumentConfigService(device), new RecipeFileStore(), dialogs, new FakeErrorLog(), log, () => true);
+
+            await config.RestoreAsync();
+
+            Assert.Empty(dialogs.Confirms);
+            Assert.Empty(dialogs.Errors);
+            Assert.Contains(log.Entries, e => e.Kind == LogKind.Info && e.Text.Contains("无需修改"));
+        }
+
+        [Fact]
+        public async Task Restore_Failure_StillShowsError()
+        {
+            var device = NewDevice();
+            var (_, _, path, _) = NewEditor(device, recipeDevice: "IMC200");
+            var dialogs = new FakeDialogService { OpenFilePath = path };
+            var config = NewConfigOperations(device, dialogs);
+
+            await config.RestoreAsync();
+
+            Assert.Contains("IMC200", Assert.Single(dialogs.Errors)); // 型号不同,拒绝恢复
         }
 
         private static ConfigOperationsViewModel NewConfigOperations(FakeDeviceService device, FakeDialogService dialogs) =>
