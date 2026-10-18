@@ -32,10 +32,7 @@ namespace Zevision.Storage
             Dictionary<string, Entry>? entries;
             try
             {
-                // 记事本等编辑器保存的 UTF-8 可能带 BOM,DataContractJsonSerializer 不接受,先跳过。
-                var bytes = File.ReadAllBytes(path);
-                var start = bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF ? 3 : 0;
-                using (var stream = new MemoryStream(bytes, start, bytes.Length - start))
+                using (var stream = JsonFile.OpenUtf8(path))
                 {
                     var serializer = new DataContractJsonSerializer(
                         typeof(Dictionary<string, Entry>),

@@ -16,7 +16,7 @@ namespace Zevision.Storage
     /// MD5 能发现手工修改、传输损坏等意外改动;但算法是公开的,有意篡改者可以重新计算校验值。
     /// 如需防篡改,应改为带密钥的签名 (如 HMAC) 并妥善保管密钥。
     /// </remarks>
-    public static class RecipeFile
+    internal static class RecipeFile
     {
         /// <summary>文件扩展名。</summary>
         public const string Extension = ".json";

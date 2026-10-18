@@ -60,6 +60,19 @@ namespace Zevision.Tests
         }
 
         [Fact]
+        public void Load_Utf8WithBom()
+        {
+            // 用记事本"另存为 UTF-8"会加上 BOM;以前读取失败,设置 (包括界面语言) 全部回到默认值。
+            Directory.CreateDirectory(_directory);
+            File.WriteAllText(SettingsPath, "{\"portName\": \"COM3\"}", new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
+
+            var result = new JsonFilePreferencesStore(SettingsPath).Load();
+
+            Assert.True(result.IsSuccess, result.Error);
+            Assert.Equal("COM3", result.Value.PortName);
+        }
+
+        [Fact]
         public void Load_MissingFields_KeepDefaults()
         {
             Directory.CreateDirectory(_directory);

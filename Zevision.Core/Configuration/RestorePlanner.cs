@@ -13,7 +13,6 @@ namespace Zevision.Core.Configuration
     public static class RestorePlanner
     {
         /// <summary>设备空闲时 C09 的值。</summary>
-        public const string ReadyState = "Ready";
 
         /// <summary>
         /// 生成恢复计划。设备型号不符或设备不在空闲状态时返回失败。
@@ -43,10 +42,10 @@ namespace Zevision.Core.Configuration
                     Texts.RestoreModelMismatch(recipe.DeviceName, recipe.ModelNumber, snapshot.DeviceName, snapshot.ModelNumber));
             }
 
-            if (!string.Equals(snapshot.CurrentState, ReadyState, StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(snapshot.CurrentState, InstrumentSnapshot.ReadyState, StringComparison.OrdinalIgnoreCase))
             {
                 return Result<RestorePlan>.Fail(
-                    Texts.RestoreNotReady(snapshot.CurrentState ?? Texts.UnknownValue, ReadyState));
+                    Texts.RestoreNotReady(snapshot.CurrentState ?? Texts.UnknownValue, InstrumentSnapshot.ReadyState));
             }
 
             var warnings = new List<string>();

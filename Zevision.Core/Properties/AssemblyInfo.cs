@@ -17,6 +17,6 @@ using System.Runtime.InteropServices;
 [assembly: InternalsVisibleTo("Zevision.Tests")]
 
 // 业务层随应用发布,版本与应用 (Zevision.exe) 相同。
-[assembly: AssemblyVersion("0.10.0.0")]
-[assembly: AssemblyFileVersion("0.10.0.0")]
-[assembly: AssemblyInformationalVersion("0.10.0")]
+[assembly: AssemblyVersion("1.0.0.0")]
+[assembly: AssemblyFileVersion("1.0.0.0")]
+[assembly: AssemblyInformationalVersion("1.0.0")]

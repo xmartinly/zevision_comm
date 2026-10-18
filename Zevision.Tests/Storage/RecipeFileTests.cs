@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Text;
 using Xunit;
 using Zevision.Core.Configuration;
@@ -19,6 +20,18 @@ namespace Zevision.Tests
         public void Dispose()
         {
             Directory.Delete(_directory, recursive: true);
+        }
+
+        [Fact]
+        public void Load_Utf8WithBom()
+        {
+            var path = Path.Combine(_directory, "bom.json");
+            Assert.True(RecipeFile.Save(NewRecipe(), path).IsSuccess);
+            File.WriteAllBytes(path, new byte[] { 0xEF, 0xBB, 0xBF }.Concat(File.ReadAllBytes(path)).ToArray());
+
+            var loaded = RecipeFile.Load(path);
+
+            Assert.True(loaded.IsSuccess, loaded.Error); // MD5 按字段计算,与文件编码无关
         }
 
         [Fact]

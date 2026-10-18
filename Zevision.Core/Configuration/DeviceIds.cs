@@ -16,7 +16,7 @@ namespace Zevision.Core.Configuration
 
 
         /// <summary>两位十六进制编号,如 10 → <c>0A</c>。</summary>
-        public static string Number(int number) => number.ToString("X2", CultureInfo.InvariantCulture);
+        private static string Number(int number) => number.ToString("X2", CultureInfo.InvariantCulture);
 
         /// <summary>ID 末尾的两位十六进制编号,如 <c>M0A</c> → 10。</summary>
         public static int LastNumber(string id) =>

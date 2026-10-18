@@ -41,7 +41,7 @@ namespace Zevision.Core.Configuration
 
         /// <summary>
         /// 除本字段外所有数据的 MD5 (32 位小写十六进制),保存时计算,恢复前校验。
-        /// 计算方法见 <c>Services.RecipeFile.ComputeMd5</c>。
+        /// 计算方法见存储层的 <c>RecipeFile.ComputeMd5</c>。
         /// </summary>
         [DataMember(Name = "md5", Order = 6)]
         public string Md5 { get; set; } = string.Empty;

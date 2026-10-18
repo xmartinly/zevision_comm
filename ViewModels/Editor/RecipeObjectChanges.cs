@@ -226,7 +226,7 @@ namespace Zevision.ViewModels.Editor
                 var current = await _session.ReadDeviceGroupAsync(type.Group, token);
                 if (!current.IsSuccess)
                 {
-                    _page.ReportFailure(current.Error!); // 失败的 Result 总有原因
+                    _page.ReportFailure(current.Error);
                     return null;
                 }
 

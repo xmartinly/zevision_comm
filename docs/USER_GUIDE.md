@@ -4,7 +4,7 @@ Zevision 通过 RS232 串口或 TCP (以太网) 与 INFICON IMC300 通讯,用于
 
 > 本软件用于通讯测试与配置管理。恢复或修改配置期间请勿操作仪器。
 
-版本 0.10.0 · INFICON · 作者 martin.liang@inficon.com
+版本 1.0.0 · INFICON · 作者 martin.liang@inficon.com
 
 ## 安装
 

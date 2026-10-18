@@ -70,7 +70,7 @@ namespace Zevision.Core.Configuration
             var before = await ReadListCountAsync(listId, cancellationToken).ConfigureAwait(false);
             if (!before.IsSuccess)
             {
-                return Result<string>.Fail(before.Error!); // 失败的 Result 总有原因
+                return Result<string>.Fail(before.Error);
             }
 
             if (before.Value == 0)
@@ -124,7 +124,14 @@ namespace Zevision.Core.Configuration
             var written = new List<RestoreWrite>();
             try
             {
-                // 1. 系统设置 (传感器、源、输入输出、逻辑、系统偏好):不依赖可创建的对象,最先写入。
+                // 计划是在确认框之前读取的设备数据上做的;确认期间设备可能已开始工艺。写入前再确认型号和空闲状态 (与其他写入方法相同)。
+                report.Error = await CheckDeviceReadyAsync(recipe.DeviceName, cancellationToken).ConfigureAwait(false);
+                if (report.Error != null)
+                {
+                    return report;
+                }
+
+                // 1. 系统设置 (传感器、输出源、输入输出、逻辑、系统偏好):不依赖可创建的对象,最先写入。
                 var systemWrites = plan.Writes.Where(w => RecipeRules.IsSystemSetting(w.Id)).ToList();
                 report.PlannedWriteCount = systemWrites.Count;
                 if (!await WriteAllAsync(systemWrites, Texts.StageWritingSystem, written, report, progress, cancellationToken).ConfigureAwait(false))
@@ -146,9 +153,11 @@ namespace Zevision.Core.Configuration
                     current = replanned;
                 }
 
-                // 3. 对象设置,按 材料 → 膜层 → 层 → 工艺 的顺序 (计划已按 RecipeRules.GroupRank 排序)。
-                //    系统设置已在第 1 步写过,重新计划中即使再次出现也不重复写入,由最后的校验发现问题。
-                var objectWrites = current.Writes.Where(w => !RecipeRules.IsSystemSetting(w.Id)).ToList();
+                // 3. 对象设置,按 材料 → 膜系 → 膜层 → 工艺 的顺序 (计划已按 RecipeRules.GroupRank 排序),
+                //    以及创建后才出现的系统设置 (如输出源新追加的坩埚材料 S**09**)。
+                //    第 1 步写过的项即使在重新计划中再次出现也不重复写入,由最后的校验发现问题。
+                var writtenIds = new HashSet<string>(written.Select(w => w.Id), StringComparer.Ordinal);
+                var objectWrites = current.Writes.Where(w => !writtenIds.Contains(w.Id)).ToList();
                 report.PlannedWriteCount += objectWrites.Count;
                 if (!await WriteAllAsync(objectWrites, Texts.StageWriting, written, report, progress, cancellationToken).ConfigureAwait(false))
                 {

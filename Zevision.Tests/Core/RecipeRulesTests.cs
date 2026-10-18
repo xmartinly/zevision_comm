@@ -1,3 +1,4 @@
+using System.Linq;
 using Xunit;
 using Zevision.Core.Configuration;
 
@@ -103,6 +104,21 @@ namespace Zevision.Tests
         public void IsSystemSetting(string id, bool expected)
         {
             Assert.Equal(expected, RecipeRules.IsSystemSetting(id));
+        }
+
+        [Fact]
+        public void FindReferencesTo_CrucibleMaterial_BlocksDeletingTheMaterial()
+        {
+            // 输出源的坩埚材料 S??09?? 引用材料编号;增删指令 (00) 和数量 (FE) 不算。
+            var entries = new[]
+            {
+                new RecipeEntry { Id = "S010901", Value = "3" },
+                new RecipeEntry { Id = "S010900", Value = "3" },
+                new RecipeEntry { Id = "S0109FE", Value = "3" },
+            };
+
+            Assert.Equal(new[] { "S010901" }, RecipeRules.FindReferencesTo(entries, "M03").Select(e => e.Id));
+            Assert.Empty(RecipeRules.FindReferencesTo(entries, "M02"));
         }
     }
 }

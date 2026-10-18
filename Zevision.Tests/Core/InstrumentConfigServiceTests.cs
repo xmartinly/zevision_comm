@@ -546,6 +546,47 @@ namespace Zevision.Tests
             Assert.Equal("1", device.Get("P020107FE"));
         }
 
+        [Fact]
+        public async Task ExecuteRestore_DeviceStartedWhileConfirming_WritesNothing()
+        {
+            // 计划在确认框之前做,确认期间设备开始了工艺:写入前再次检查,不写入运行中的设备。
+            var device = NewDevice();
+            var (service, recipe, plan) = await PlanWithChangesAsync(device, ("M0103", "2.700"));
+            device.Set("C09", "Running");
+
+            var report = await service.ExecuteRestoreAsync(recipe, plan, null, CancellationToken.None);
+
+            Assert.False(report.IsSuccess);
+            Assert.Contains("Ready", report.Error);
+            Assert.DoesNotContain(device.CommandsSnapshot(), c => c.StartsWith("U", StringComparison.Ordinal));
+            Assert.Equal("5.890", device.Get("M0103"));
+        }
+
+        [Fact]
+        public async Task ExecuteRestore_SystemListItemsCreated_AreWritten()
+        {
+            // 输出源的坩埚材料 (S**09**) 是系统组中的列表:创建后才出现的条目在第 3 步写入 (以前被跳过,报告却是成功)。
+            var device = NewDevice()
+                .With("S01", string.Empty, "Source")
+                .With("S0109", string.Empty, "Crucible List")
+                .With("S010900", string.Empty, "Add or Delete Crucible from the end of the list")
+                .With("S010901", "0", "Crucible Material")
+                .With("S0109FE", "1", "Number Of Crucibles");
+            device.AppendTemplate = item => new[] { (item, "0", "Crucible Material") };
+            var service = new InstrumentConfigService(device);
+            var snapshot = (await service.ReadSnapshotAsync(CancellationToken.None)).Value;
+            var recipe = snapshot.ToRecipe(DateTimeOffset.Now);
+            recipe.Entries.Add(new RecipeEntry { Id = "S010902", Value = "1", Description = "Crucible Material" });
+            var plan = RestorePlanner.Plan(recipe, snapshot).Value;
+            Assert.Equal(new[] { "AS010900" }, plan.Creates.Select(c => c.Command));
+
+            var report = await service.ExecuteRestoreAsync(recipe, plan, null, CancellationToken.None);
+
+            Assert.True(report.IsSuccess, report.Error);
+            Assert.Equal("1", device.Get("S010902"));
+            Assert.Contains("QS010902", device.CommandsSnapshot()); // 也读回校验
+        }
+
         private static async Task<(InstrumentConfigService Service, InstrumentRecipe Recipe, RestorePlan Plan)> PlanWithChangesAsync(
             FakeDeviceService device, params (string Id, string Value)[] changes)
         {

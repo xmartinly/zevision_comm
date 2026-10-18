@@ -151,6 +151,8 @@ namespace Zevision.Core.Configuration
         /// 实机上有指向不存在膜层的值 (31/32/33,而只有 L01~L09),所以不能用于恢复计划 (会跳过这些写入),
         /// 但删除检查只看是否等于要删除的膜层,不受影响。</item>
         /// <item>工艺被"设置活动工艺" (<c>P01</c>) 和"链接工艺 ID" (<c>P02??0A</c>) 引用,值是工艺编号 (实机 P01 = 1 对应 P0201)。</item>
+        /// <item>输出源的坩埚材料 <c>S??09??</c> 的值是材料编号 (指令集中定义为引用)。恢复计划暂不使用:它属于系统设置,
+        /// 在创建材料之前写入,是否据此跳过需要实机确认。</item>
         /// </list>
         /// </summary>
         private static readonly IReadOnlyList<ReferenceRule> DeleteCheckReferences = new[]
@@ -158,7 +160,11 @@ namespace Zevision.Core.Configuration
             new ReferenceRule("^P02[0-9A-F]{2}07(?!00$|FE$)[0-9A-F]{2}$", ObjectTypes.Layer),
             new ReferenceRule("^P01$", ObjectTypes.Process),
             new ReferenceRule("^P02[0-9A-F]{2}0A$", ObjectTypes.Process),
+            new ReferenceRule("^S[0-9A-F]{2}09(?!00$|FE$)[0-9A-F]{2}$", ObjectTypes.Material),
         };
+
+        /// <summary>删除检查用的全部规则。</summary>
+        private static readonly IReadOnlyList<ReferenceRule> AllReferences = References.Concat(DeleteCheckReferences).ToList();
 
         /// <summary>
         /// 找出引用了 <paramref name="objectId"/> 的设置项 (删除前检查)。层级关系:工艺包含膜层,膜层包含膜系,膜系包含材料,
@@ -177,7 +183,7 @@ namespace Zevision.Core.Configuration
                 throw new ArgumentException(Texts.ObjectIdEmpty, nameof(objectId));
             }
 
-            return entries.Where(e => References.Concat(DeleteCheckReferences).Any(rule => rule.Refers(e.Id, e.Value, objectId))).ToList();
+            return entries.Where(e => AllReferences.Any(rule => rule.Refers(e.Id, e.Value, objectId))).ToList();
         }
 
         /// <summary>

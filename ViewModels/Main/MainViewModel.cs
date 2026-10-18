@@ -312,7 +312,7 @@ namespace Zevision.ViewModels.Main
             var created = Connection.CreateOptions();
             if (!created.IsSuccess)
             {
-                Log.Add(LogKind.Error, created.Error!); // 失败的 Result 总有原因
+                Log.Add(LogKind.Error, created.Error);
                 return;
             }
 
@@ -323,7 +323,7 @@ namespace Zevision.ViewModels.Main
                 var opened = _recorders.Create();
                 if (!opened.IsSuccess)
                 {
-                    Log.Add(LogKind.Error, opened.Error!); // 失败的 Result 总有原因
+                    Log.Add(LogKind.Error, opened.Error);
                     return;
                 }
 

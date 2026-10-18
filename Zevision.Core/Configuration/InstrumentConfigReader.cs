@@ -15,7 +15,7 @@ namespace Zevision.Core.Configuration
     /// <see cref="IInstrumentConfigReader"/> 的实现,也是修改配置 (<see cref="InstrumentConfigService"/>) 时与设备单条通讯的基础:
     /// 每条指令只取第一条响应,通讯失败、没有响应、设备拒绝都作为失败的 <see cref="Result"/> 返回,原因可直接显示。
     /// </summary>
-    public class InstrumentConfigReader : IInstrumentConfigReader
+    public abstract class InstrumentConfigReader : IInstrumentConfigReader
     {
         /// <summary>批量查询时每帧的指令数。响应很短,20 条约 600 字节。</summary>
         public const int QueryBatchSize = 20;
@@ -30,7 +30,7 @@ namespace Zevision.Core.Configuration
         private readonly IDeviceService _device;
 
         /// <summary>创建读取器。</summary>
-        public InstrumentConfigReader(IDeviceService device)
+        protected InstrumentConfigReader(IDeviceService device)
         {
             _device = device ?? throw new ArgumentNullException(nameof(device));
         }
@@ -103,8 +103,8 @@ namespace Zevision.Core.Configuration
         /// <returns>不能修改时的原因;可以修改时为 null。</returns>
         protected async Task<string?> CheckDeviceReadyAsync(string deviceName, CancellationToken cancellationToken)
         {
-            var replies = await SendQueriesAsync(new[] { "G03", "C09" }, TimeSpan.Zero, cancellationToken).ConfigureAwait(false);
-            var name = replies.IsSuccess ? ValueOf(replies.Value[0]) : Result<string>.Fail(replies.Error!); // 失败的 Result 总有原因
+            var replies = await SendQueriesAsync(new[] { InstrumentSnapshot.DeviceNameId, InstrumentSnapshot.StateId }, TimeSpan.Zero, cancellationToken).ConfigureAwait(false);
+            var name = replies.IsSuccess ? ValueOf(replies.Value[0]) : Result<string>.Fail(replies.Error);
             if (!name.IsSuccess)
             {
                 return Texts.CannotReadDeviceName + name.Error;
@@ -116,10 +116,10 @@ namespace Zevision.Core.Configuration
             }
 
             var state = ValueOf(replies.Value[1]);
-            if (!state.IsSuccess || !string.Equals(state.Value, RestorePlanner.ReadyState, StringComparison.OrdinalIgnoreCase))
+            if (!state.IsSuccess || !string.Equals(state.Value, InstrumentSnapshot.ReadyState, StringComparison.OrdinalIgnoreCase))
             {
                 var current = state.IsSuccess ? state.Value : state.Error;
-                return Texts.DeviceNotReadyForChange(current, RestorePlanner.ReadyState);
+                return Texts.DeviceNotReadyForChange(current, InstrumentSnapshot.ReadyState);
             }
 
             return null;
@@ -134,7 +134,7 @@ namespace Zevision.Core.Configuration
             var reply = await SendForResponseAsync(ZevisionCommandSet.Query(id), TimeSpan.Zero, hidden: false, cancellationToken).ConfigureAwait(false);
             return reply.IsSuccess
                 ? Result<string>.Ok(reply.Value.Data?.Trim() ?? string.Empty)
-                : Result<string>.Fail(reply.Error!); // 失败的 Result 总有原因
+                : Result<string>.Fail(reply.Error);
         }
 
         /// <summary>读取列表的条数 (<c>Q&lt;list&gt;FE</c>)。</summary>
@@ -163,7 +163,7 @@ namespace Zevision.Core.Configuration
             var reply = await SendForResponseAsync(command, minimumResponseTimeout, hidden: true, cancellationToken).ConfigureAwait(false);
             if (!reply.IsSuccess)
             {
-                return Result<string>.Fail(reply.Error!); // 失败的 Result 总有原因
+                return Result<string>.Fail(reply.Error);
             }
 
             return reply.Value.Data == null
@@ -186,11 +186,11 @@ namespace Zevision.Core.Configuration
                 : await _device.SendAsync(command, minimumResponseTimeout, cancellationToken).ConfigureAwait(false);
             if (!result.IsSuccess)
             {
-                return Result<ZevisionResponse>.Fail(result.Error!); // 失败的 Result 总有原因
+                return Result<ZevisionResponse>.Fail(result.Error);
             }
 
             var response = result.Value.Responses.FirstOrDefault();
-            return response == null ? Result<ZevisionResponse>.Fail(NoResponse)
+            return response == null ? Result<ZevisionResponse>.Fail(Texts.NoResponse)
                 : response.IsSuccess ? Result<ZevisionResponse>.Ok(response)
                 : Result<ZevisionResponse>.Fail(DescribeRejection(response));
         }
@@ -205,7 +205,7 @@ namespace Zevision.Core.Configuration
             var result = await _device.SendAsync(string.Join(";", commands), minimumResponseTimeout, cancellationToken).ConfigureAwait(false);
             if (!result.IsSuccess)
             {
-                return Result<IReadOnlyList<ZevisionResponse?>>.Fail(result.Error!); // 失败的 Result 总有原因
+                return Result<IReadOnlyList<ZevisionResponse?>>.Fail(result.Error);
             }
 
             var responses = new Dictionary<string, ZevisionResponse>(StringComparer.OrdinalIgnoreCase);
@@ -220,11 +220,10 @@ namespace Zevision.Core.Configuration
 
         /// <summary>查询的响应转为值 (已去除首尾空白);没有响应或设备拒绝时为失败,原因与单条发送相同。</summary>
         private static Result<string> ValueOf(ZevisionResponse? response) =>
-            response == null ? Result<string>.Fail(NoResponse)
+            response == null ? Result<string>.Fail(Texts.NoResponse)
             : response.IsSuccess ? Result<string>.Ok(response.Data?.Trim() ?? string.Empty)
             : Result<string>.Fail(DescribeRejection(response));
 
-        private static string NoResponse => Texts.NoResponse;
 
         /// <summary>设备拒绝的说明,含原始错误码,如"设备拒绝: B 非法参数值"。</summary>
         private static string DescribeRejection(ZevisionResponse response)

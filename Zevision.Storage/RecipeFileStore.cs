@@ -9,7 +9,9 @@ namespace Zevision.Storage
     public sealed class RecipeFileStore : IRecipeStore
     {
         /// <inheritdoc />
-        public string Folder => AppFolders.GetRecipeFolder();
+        public string Folder => _folder ??= AppFolders.GetRecipeFolder(); // 判断程序目录是否可写要创建临时文件,只做一次
+
+        private string? _folder;
 
         /// <inheritdoc />
         public string FileExtension => RecipeFile.Extension;

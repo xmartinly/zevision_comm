@@ -24,10 +24,22 @@ namespace Zevision.Storage
         public static T? Read<T>(string path)
             where T : class
         {
-            using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+            using (var stream = OpenUtf8(path))
             {
                 return new DataContractJsonSerializer(typeof(T)).ReadObject(stream) as T;
             }
+        }
+
+        /// <summary>
+        /// 读出文件内容,跳过 UTF-8 BOM:记事本等编辑器"另存为 UTF-8"时会加上,而 DataContractJsonSerializer 不接受。
+        /// </summary>
+        /// <exception cref="IOException">读取失败。</exception>
+        /// <exception cref="UnauthorizedAccessException">没有读权限。</exception>
+        public static MemoryStream OpenUtf8(string path)
+        {
+            var bytes = File.ReadAllBytes(path);
+            var start = bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF ? 3 : 0;
+            return new MemoryStream(bytes, start, bytes.Length - start, writable: false);
         }
 
         /// <summary>写入文件 (覆盖),必要时创建目录。失败时删除临时文件并把异常抛给调用方。</summary>

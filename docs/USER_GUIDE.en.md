@@ -4,7 +4,7 @@ Zevision communicates with the INFICON IMC300 over RS232 or TCP (Ethernet). It s
 
 > This software is for communication testing and configuration management. Do not operate the instrument while a configuration is being restored or edited.
 
-Version 0.10.0 · INFICON · Author martin.liang@inficon.com
+Version 1.0.0 · INFICON · Author martin.liang@inficon.com
 
 ## Installation
 

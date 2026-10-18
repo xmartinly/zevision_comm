@@ -16,7 +16,7 @@ namespace Zevision.Storage
     /// <remarks>
     /// 只是记录用途:写入失败时记入 error.txt 并停止记录,不影响通讯。
     /// </remarks>
-    public sealed class CommunicationLogWriter : ICommunicationRecorder
+    internal sealed class CommunicationLogWriter : ICommunicationRecorder
     {
         private readonly object _sync = new object();
         private readonly IErrorLog _errorLog;
