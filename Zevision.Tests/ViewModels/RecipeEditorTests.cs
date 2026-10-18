@@ -563,6 +563,29 @@ namespace Zevision.Tests
             Assert.Contains("IMC200", Assert.Single(dialogs.Errors)); // 型号不同,拒绝恢复
         }
 
+        [Fact]
+        public void Rows_GroupHeadersAndTheVisibleRowsOfExpandedGroups()
+        {
+            // "设置"页显示的是一个平铺的行列表 (虚拟化):分组标题,展开时其后是可见的配置项。
+            var (editor, _, _, _) = NewEditor(NewDevice());
+            var tab = editor.Tabs.Single(t => t.Groups.Any(g => g.Key == "M01"));
+            var group = tab.Groups.Single(g => g.Key == "M01");
+            Assert.True(group.IsExpanded); // 分组很少的页默认展开
+            Assert.Equal(new object[] { group }.Concat(group.Items), tab.Rows);
+
+            group.IsExpanded = false;
+            Assert.Equal(new object[] { group }, tab.Rows);
+
+            editor.FilterText = "M0103"; // 匹配的分组自动展开,只显示匹配的项
+            Assert.Equal(new object[] { group, group.Items.Single(i => i.Id == "M0103") }, tab.Rows);
+
+            editor.FilterText = "no such setting";
+            Assert.Empty(tab.Rows);
+
+            editor.FilterText = string.Empty;
+            Assert.Equal(new object[] { group }.Concat(group.Items), tab.Rows);
+        }
+
         private static ConfigOperationsViewModel NewConfigOperations(FakeDeviceService device, FakeDialogService dialogs) =>
             new ConfigOperationsViewModel(new InstrumentConfigService(device), new RecipeFileStore(), dialogs, new FakeErrorLog(), new LogViewModel(new FakeErrorLog()), () => true);
 

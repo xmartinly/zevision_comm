@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using Zevision.Core.Localization;
 using Zevision.ViewModels.Common;
@@ -27,6 +28,9 @@ namespace Zevision.ViewModels.Editor
 
         private const int ExpandedGroupLimit = 3;
 
+        private readonly BulkObservableCollection<object> _rows = new BulkObservableCollection<object>();
+        private bool _rowsBuilt;
+
         /// <summary>创建类别页。</summary>
         public RecipeTabViewModel(string title, IReadOnlyList<RecipeGroupViewModel> groups, string letters = "")
         {
@@ -46,6 +50,17 @@ namespace Zevision.ViewModels.Editor
             foreach (var item in groups.SelectMany(g => g.Items))
             {
                 item.Changed += (s, e) => OnPropertyChanged(nameof(Header));
+            }
+
+            foreach (var group in groups)
+            {
+                group.RowsChanged += (s, e) =>
+                {
+                    if (_rowsBuilt)
+                    {
+                        RebuildRows();
+                    }
+                };
             }
         }
 
@@ -74,6 +89,29 @@ namespace Zevision.ViewModels.Editor
             {
                 var checkedCount = Groups.Sum(g => g.Items.Count(i => i.IsChecked));
                 return checkedCount > 0 ? $"{Title} ({checkedCount})" : Title;
+            }
+        }
+
+        /// <summary>
+        /// 页面显示的行:每个可见分组的标题 (<see cref="RecipeGroupViewModel"/>),分组展开时其后是可见的配置项
+        /// (<see cref="RecipeItemViewModel"/>) 和为空的子列表 (<see cref="ListActionViewModel"/>)。
+        /// </summary>
+        /// <remarks>
+        /// 页面用一个虚拟化列表显示,只为可见的行生成控件:展开全部或滚动时不再为几百行一次生成控件。
+        /// 分组的行若放在分组内 (Expander 的内容),展开的分组是一个很高的项,虚拟化只能整组生成,按像素滚动到底要约 2 秒。
+        /// 第一次读取时生成 (页面的按钮在类别页创建之后才设置),之后分组展开/收起、筛选时整体替换 (一次通知)。
+        /// </remarks>
+        public ObservableCollection<object> Rows
+        {
+            get
+            {
+                if (!_rowsBuilt)
+                {
+                    _rowsBuilt = true;
+                    RebuildRows();
+                }
+
+                return _rows;
             }
         }
 
@@ -108,6 +146,22 @@ namespace Zevision.ViewModels.Editor
             }
 
             return tabs;
+        }
+
+        private void RebuildRows()
+        {
+            var rows = new List<object>();
+            foreach (var group in Groups.Where(g => g.IsVisible))
+            {
+                rows.Add(group);
+                if (group.IsExpanded)
+                {
+                    rows.AddRange(group.Items.Where(i => i.IsVisible));
+                    rows.AddRange(group.EmptyLists);
+                }
+            }
+
+            _rows.ReplaceAll(rows);
         }
     }
 }

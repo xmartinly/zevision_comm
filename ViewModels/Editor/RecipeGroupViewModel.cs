@@ -15,6 +15,9 @@ namespace Zevision.ViewModels.Editor
         private bool _isExpanded;
         private bool _isVisible = true;
 
+        /// <summary>分组在页面中显示的行变了 (展开/收起、筛选),所在类别页据此重新生成 <see cref="RecipeTabViewModel.Rows"/>。</summary>
+        internal event EventHandler? RowsChanged;
+
         /// <summary>
         /// 由分组创建。<paramref name="options"/> 给出下拉框的选项 (引用类为配置中已有的对象,如膜系的材料)。
         /// </summary>
@@ -62,7 +65,13 @@ namespace Zevision.ViewModels.Editor
         public bool IsExpanded
         {
             get => _isExpanded;
-            set => SetProperty(ref _isExpanded, value);
+            set
+            {
+                if (SetProperty(ref _isExpanded, value))
+                {
+                    RowsChanged?.Invoke(this, EventArgs.Empty);
+                }
+            }
         }
 
         /// <summary>是否有符合筛选条件的项。</summary>
@@ -118,6 +127,7 @@ namespace Zevision.ViewModels.Editor
                 IsExpanded = true;
             }
 
+            RowsChanged?.Invoke(this, EventArgs.Empty);
             return any;
         }
 

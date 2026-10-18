@@ -511,6 +511,8 @@ namespace Zevision.Tests
             var empty = Assert.Single(editor.Groups.Single(g => g.Key == "L01").EmptyLists); // 分组中显示说明和添加按钮
             Assert.Equal("添加速率/厚度设置", empty.AddFirstText);
             Assert.Contains("速率", empty.EmptyHint);
+            var layerTab = editor.Tabs.Single(t => t.Groups.Any(g => g.Key == "L01"));
+            Assert.Equal(empty, layerTab.Rows.Last()); // 页面的行:标题、配置项之后是为空的子列表
 
             await editor.AppendListEntryAsync(films.ListId, films.ListName);
 

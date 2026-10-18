@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
-using System.ComponentModel;
 using System.Linq;
 using Zevision.Core;
 using Zevision.Core.Localization;
@@ -140,46 +139,8 @@ namespace Zevision.ViewModels.Display
         }
     }
 
-    /// <summary>
-    /// 支持一次删除开头多项的集合:逐项删除会触发上千次界面刷新,这里只发一次 Reset 通知。
-    /// </summary>
-    public sealed class LogEntryCollection : ObservableCollection<LogEntry>
+    /// <summary>数据显示区的记录 (一次添加多行、删除开头多行时只发一次通知,见 <see cref="BulkObservableCollection{T}"/>)。</summary>
+    public sealed class LogEntryCollection : BulkObservableCollection<LogEntry>
     {
-        /// <summary>在末尾添加多项,只发一次 Reset 通知。</summary>
-        public void AddRange(IReadOnlyList<LogEntry> entries)
-        {
-            if (entries is null)
-            {
-                throw new ArgumentNullException(nameof(entries));
-            }
-
-            CheckReentrancy();
-            if (entries.Count == 0)
-            {
-                return;
-            }
-
-            ((List<LogEntry>)Items).AddRange(entries);
-            OnPropertyChanged(new PropertyChangedEventArgs(nameof(Count)));
-            OnPropertyChanged(new PropertyChangedEventArgs("Item[]"));
-            OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
-        }
-
-        /// <summary>删除最前面的 <paramref name="count"/> 项。</summary>
-        public void RemoveFirst(int count)
-        {
-            CheckReentrancy();
-            count = Math.Min(count, Count);
-            if (count <= 0)
-            {
-                return;
-            }
-
-            // Collection<T> 的默认底层存储是 List<T>。
-            ((List<LogEntry>)Items).RemoveRange(0, count);
-            OnPropertyChanged(new PropertyChangedEventArgs(nameof(Count)));
-            OnPropertyChanged(new PropertyChangedEventArgs("Item[]"));
-            OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
-        }
     }
 }

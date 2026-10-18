@@ -26,6 +26,36 @@
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibility" />
 
+        <!--
+            虚拟化的列表:只为可见的项 (及前后一屏) 生成控件,滚出视图的项释放。按像素滚动 (项的高度差别很大,如展开的分组)。
+            滚动条在模板中 (ScrollViewer 包在 ItemsControl 外面时不能虚拟化),名为 GroupScroll,代码隐藏按名称找它记录滚动位置。
+        -->
+        <Style x:Key="VirtualizingList" TargetType="ItemsControl">
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="VirtualizingPanel.IsVirtualizing" Value="True" />
+            <Setter Property="VirtualizingPanel.VirtualizationMode" Value="Standard" />
+            <Setter Property="VirtualizingPanel.ScrollUnit" Value="Pixel" />
+            <Setter Property="ScrollViewer.CanContentScroll" Value="True" />
+            <Setter Property="ItemsPanel">
+                <Setter.Value>
+                    <ItemsPanelTemplate>
+                        <VirtualizingStackPanel />
+                    </ItemsPanelTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ItemsControl">
+                        <ScrollViewer x:Name="GroupScroll" Focusable="False" CanContentScroll="True"
+                                      VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                                      Padding="{TemplateBinding Padding}">
+                            <ItemsPresenter />
+                        </ScrollViewer>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- 输入栏:文本框 (勾选后) -->
         <DataTemplate x:Key="TextEditorTemplate" DataType="{x:Type vm:RecipeItemViewModel}">
             <TextBox x:Name="ValueBox" FontFamily="Consolas" VerticalAlignment="Center"
@@ -196,8 +226,8 @@
                                    Foreground="{DynamicResource MaterialDesign.Brush.ForegroundLight}" />
                     </DockPanel>
                     <materialDesign:Card UniformCornerRadius="8">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="16,8">
-                            <ItemsControl ItemsSource="{Binding Sections}">
+                        <!-- 虚拟化:只生成可见的节 (ScrollViewer 在 ItemsControl 的模板中,按像素滚动) -->
+                        <ItemsControl ItemsSource="{Binding Sections}" Style="{StaticResource VirtualizingList}" Padding="16,8">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate DataType="{x:Type vm:ReadOnlySectionViewModel}">
                                         <StackPanel Margin="0,0,0,12">
@@ -206,8 +236,7 @@
                                         </StackPanel>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </ScrollViewer>
+                        </ItemsControl>
                     </materialDesign:Card>
                 </DockPanel>
             </TabItem>
@@ -253,12 +282,15 @@
                                         <TextBlock Text="{Binding DataContext.ObjectChangeHint, RelativeSource={RelativeSource AncestorType=Window}}" Margin="12,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap"
                                                    Foreground="{DynamicResource MaterialDesign.Brush.ForegroundLight}" />
                                     </DockPanel>
-                                    <ScrollViewer x:Name="GroupScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="8">
-                                        <ItemsControl ItemsSource="{Binding Groups}">
-                                            <ItemsControl.ItemTemplate>
+                                    <!--
+                                        一页的全部行 (RecipeTabViewModel.Rows):分组标题、展开的分组中的配置项和为空的子列表,按类型选模板。
+                                        虚拟化:只为可见的行生成控件;滚动条在 VirtualizingList 模板中,名为 GroupScroll。
+                                    -->
+                                        <ItemsControl ItemsSource="{Binding Rows}" Style="{StaticResource VirtualizingList}" Padding="8">
+                                            <ItemsControl.Resources>
+                                                <!-- 分组标题:展开/收起。分组中的行是列表中跟在后面的项 (不放在 Expander 中,每一行都能虚拟化) -->
                                                 <DataTemplate DataType="{x:Type vm:RecipeGroupViewModel}">
-                                                    <Expander IsExpanded="{Binding IsExpanded}" Margin="0,0,0,4"
-                                                              Visibility="{Binding IsVisible, Converter={StaticResource BooleanToVisibility}}">
+                                                    <Expander IsExpanded="{Binding IsExpanded}" Margin="0,4,0,0" Padding="0">
                                                         <Expander.Header>
                                                             <DockPanel>
                                                                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
@@ -316,13 +348,15 @@
                                                                 <TextBlock Text="{Binding Header}" FontWeight="SemiBold" VerticalAlignment="Center" />
                                                             </DockPanel>
                                                         </Expander.Header>
-                                                        <StackPanel Margin="24,0,8,8">
-                                                            <ItemsControl ItemsSource="{Binding Items}" ItemTemplate="{StaticResource ItemTemplate}" />
-                                                            <!-- 为空的子列表:说明 + 添加按钮 (如新建的膜层还没有膜系,添加后才有膜系、速率、最终厚度) -->
-                                                            <ItemsControl ItemsSource="{Binding EmptyLists}">
-                                                                <ItemsControl.ItemTemplate>
-                                                                    <DataTemplate DataType="{x:Type vm:ListActionViewModel}">
-                                                                        <Grid Margin="0,1" Background="Transparent" ToolTip="{Binding AddToolTip}" ToolTipService.ShowOnDisabled="True">
+                                                    </Expander>
+                                                </DataTemplate>
+                                                <!-- 分组中的一项 -->
+                                                <DataTemplate DataType="{x:Type vm:RecipeItemViewModel}">
+                                                    <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource ItemTemplate}" Margin="24,0,8,0" />
+                                                </DataTemplate>
+                                                <!-- 为空的子列表:说明 + 添加按钮 (如新建的膜层还没有膜系,添加后才有膜系、速率、最终厚度) -->
+                                                <DataTemplate DataType="{x:Type vm:ListActionViewModel}">
+                                                                        <Grid Margin="24,1,8,1" Background="Transparent" ToolTip="{Binding AddToolTip}" ToolTipService.ShowOnDisabled="True">
                                                                             <Grid.ColumnDefinitions>
                                                                                 <ColumnDefinition Width="36" />
                                                                                 <ColumnDefinition Width="*" MinWidth="220" />
@@ -345,15 +379,9 @@
                                                                             <TextBlock Grid.Column="3" Text="{Binding ListId}" VerticalAlignment="Center" Margin="12,0,0,0"
                                                                                        FontFamily="Consolas" Foreground="{DynamicResource MaterialDesign.Brush.ForegroundLight}" />
                                                                         </Grid>
-                                                                    </DataTemplate>
-                                                                </ItemsControl.ItemTemplate>
-                                                            </ItemsControl>
-                                                        </StackPanel>
-                                                    </Expander>
                                                 </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
+                                            </ItemsControl.Resources>
                                         </ItemsControl>
-                                    </ScrollViewer>
                                     </DockPanel>
                                 </materialDesign:Card>
                             </DataTemplate>

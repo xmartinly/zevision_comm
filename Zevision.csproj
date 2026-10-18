@@ -96,6 +96,7 @@
     <Compile Include="ViewModels\Editor\ParameterOptions.cs" />
     <Compile Include="ViewModels\Editor\ReadOnlyLayout.cs" />
     <Compile Include="ViewModels\Common\AsyncRelayCommand.cs" />
+    <Compile Include="ViewModels\Common\BulkObservableCollection.cs" />
     <Compile Include="ViewModels\Main\Choice.cs" />
     <Compile Include="ViewModels\Operations\ConfigOperationsViewModel.cs" />
     <Compile Include="ViewModels\Display\FrameLogFormatter.cs" />
