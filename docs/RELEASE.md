@@ -60,7 +60,7 @@
 
 ### 链接库 (供生产程序使用)
 
-两个库的版本独立于应用 (各自 `Properties\AssemblyInfo.cs`,当前 `Zevision.Communication` 1.0.1、`Zevision.Commands` 1.0.0),公开 API 不兼容的修改时提高主版本号。用法见 `docs/LIBRARY.md`。
+两个库的版本独立于应用 (各自 `Properties\AssemblyInfo.cs`,当前都是 1.0.1),公开 API 不兼容的修改时提高主版本号。用法见 `docs/LIBRARY.md`。
 
 - `dist\Zevision.Libraries-<库版本>\`:`Zevision.Communication.dll`/`.xml`、`Zevision.Commands.dll`/`.xml` (XML 是 IntelliSense 文档,放在 dll 旁边) + `LIBRARY.md` (即 `docs/LIBRARY.md`) + `sample\Program.cs` (即 `samples/Zevision.Sample/Program.cs`)
 - `dist\Zevision.Libraries-<库版本>.zip`:上述文件夹的压缩包
@@ -70,6 +70,7 @@
 | 库版本 | 日期 | 发布包 SHA256 |
 |---|---|---|
 | 1.0.0 | 2026-10-16 | `0B9CE469F582A71CAAA848DFFEF9CE06BF2F3CE5736A2C3D9E56CFDF7D613607` |
+| 1.0.1 | 2026-10-18 | `E1FCA5106911F557E3A202220E0BDEBD3B8BE141B526FF3B1817BD7E7DBC7B2B` |
 
 | 版本 | 日期 | 发布包 SHA256 |
 |---|---|---|

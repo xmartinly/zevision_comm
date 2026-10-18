@@ -1,7 +1,10 @@
 # Zevision 链接库使用说明
 
-INFICON IMC300 Zevision 协议的两个 .NET 链接库,供生产程序使用。作者:martin.liang@inficon.com。库版本:`Zevision.Communication` 1.0.1、`Zevision.Commands` 1.0.0 (独立于 Zevision 应用版本)。
-1.0.1:启用长度字节时,设备偶尔发来不带长度和校验和的 `{数据}` (实测 RS232 上的 `?` 响应),解码器改为按无长度读出,不再报告缺少停止符;公开接口不变。
+INFICON IMC300 Zevision 协议的两个 .NET 链接库,供生产程序使用。作者:martin.liang@inficon.com。库版本 1.0.1 (两个库相同,独立于 Zevision 应用版本)。
+
+1.0.1 (2026-10-18) 相对 1.0.0 的修改,公开接口不变 (`AssemblyVersion` 仍为 1.0.0.0),已引用 1.0.0 的程序直接替换两个 dll 即可:
+- `Zevision.Communication`:启用长度字节时,设备偶尔发来不带长度和校验和的 `{数据}` (实测 RS232 上的 `?` 响应),解码器改为按无长度读出,不再报告缺少停止符。
+- `Zevision.Commands`:膜系列表的中文名称改用新术语:预条件 (`F**03`) 改为"预熔",后条件 (`F**05`) 改为"后处理",涉及 `GetName`、`GetLabel`、`GetIndexNames`、`LabelFor` 的中文结果;英文不变。
 
 | 文件 | 内容 | 依赖 |
 |---|---|---|
