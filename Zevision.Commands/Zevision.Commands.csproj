@@ -43,6 +43,8 @@
     <Compile Include="Properties\IsExternalInit.cs" />
     <Compile Include="BilingualText.cs" />
     <Compile Include="CommandDefinition.cs" />
+    <Compile Include="CommandTable.cs" />
+    <Compile Include="CommandTexts.cs" />
     <Compile Include="ZevisionCommandSet.cs" />
   </ItemGroup>
   <ItemGroup>

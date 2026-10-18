@@ -173,6 +173,8 @@ namespace Zevision.Tests
         [InlineData("T020101")] // 逻辑组只收录基本 IO 逻辑
         [InlineData("M0199")]
         [InlineData("")]
+        [InlineData("M0103\n")] // 正则 $ 曾接受末尾的换行
+        [InlineData("m0103")]   // 区分大小写
         public void Find_Unknown_ReturnsNull(string id)
         {
             Assert.Null(ZevisionCommandSet.Find(id));
@@ -244,9 +246,48 @@ namespace Zevision.Tests
         [InlineData(CommandActions.Query, "QM0103", null)]  // 已带动作字母
         [InlineData(CommandActions.Update, "M0101", null)]  // 缺数据
         [InlineData(CommandActions.Update, "M0101", "a;b")] // 非法字符
+        [InlineData(CommandActions.Query, "M0103\n", null)] // 末尾换行
         public void BuildById_Invalid_Throws(CommandActions action, string id, string? value)
         {
             Assert.Throws<ArgumentException>(() => ZevisionCommandSet.Build(action, id, value));
+        }
+
+        [Theory]
+        [InlineData("M0103", true)]
+        [InlineData("P02FE", true)]
+        [InlineData("E", true)]
+        [InlineData("Z01", true)]       // 只检查格式,不检查命令组
+        [InlineData("M013", false)]
+        [InlineData("m0103", false)]
+        [InlineData("M0a03", false)]
+        [InlineData("M0103\n", false)]
+        [InlineData("", false)]
+        [InlineData(null, false)]
+        public void IsWellFormedId(string? id, bool expected)
+        {
+            Assert.Equal(expected, ZevisionCommandSet.IsWellFormedId(id));
+        }
+
+        [Fact]
+        public void Build_NullId_ThrowsArgumentNull()
+        {
+            Assert.Throws<ArgumentNullException>(() => ZevisionCommandSet.Build(CommandActions.Query, null!));
+            Assert.Throws<ArgumentNullException>(() => ZevisionCommandSet.Find("M0103")!.ParseIndices(null!));
+        }
+
+        [Fact]
+        public void Catalog_IsReadOnly_AndOptionListsAreShared()
+        {
+            // 调用方不能把只读列表强制转换回去修改,否则整个进程的指令表都变了。
+            Assert.Throws<NotSupportedException>(() => ((IList<CommandDefinition>)ZevisionCommandSet.All).RemoveAt(0));
+            Assert.Throws<NotSupportedException>(() => ((IList<CommandDefinition>)ZevisionCommandSet.GetCommands(CommandGroup.M)).Clear());
+            var output = ZevisionCommandSet.Find("O0103")!.Options;
+            Assert.Throws<NotSupportedException>(() => ((IList<CommandOption>)output).Clear());
+
+            // 同一段选项文本只解析一次:输出分配 (O**03) 与基本动作 (T0102**) 共用一个列表。
+            Assert.Same(output, ZevisionCommandSet.Find("T010201")!.Options);
+            var assigned = ZevisionCommandSet.Find("O0103")!;
+            Assert.Same(assigned.GetRangeText(TextLanguage.English), assigned.GetRangeText(TextLanguage.English)); // 60 项选项的说明只生成一次
         }
 
         [Fact]

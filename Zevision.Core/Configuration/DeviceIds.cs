@@ -1,6 +1,6 @@
 using System;
 using System.Globalization;
-using System.Text.RegularExpressions;
+using Zevision.Commands;
 
 namespace Zevision.Core.Configuration
 {
@@ -14,7 +14,6 @@ namespace Zevision.Core.Configuration
         private const string AppendSlot = "00";
         private const string Count = "FE";
 
-        private static readonly Regex WellFormed = new Regex("^[A-Z](?:[0-9A-F]{2})*$", RegexOptions.CultureInvariant);
 
         /// <summary>两位十六进制编号,如 10 → <c>0A</c>。</summary>
         public static string Number(int number) => number.ToString("X2", CultureInfo.InvariantCulture);
@@ -46,6 +45,6 @@ namespace Zevision.Core.Configuration
             int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out count);
 
         /// <summary>ID 格式是否正确:大写组字母后跟若干两位十六进制 (与指令集生成命令时检查的格式相同)。</summary>
-        public static bool IsWellFormed(string? id) => id != null && WellFormed.IsMatch(id);
+        public static bool IsWellFormed(string? id) => ZevisionCommandSet.IsWellFormedId(id);
     }
 }

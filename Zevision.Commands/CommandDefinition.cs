@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
 using Zevision.Communication;
 
 namespace Zevision.Commands
@@ -19,7 +18,7 @@ namespace Zevision.Commands
         /// <summary>Echo,回显。</summary>
         E,
 
-        /// <summary>Film,膜。</summary>
+        /// <summary>Film,膜系。</summary>
         F,
 
         /// <summary>General,通用。</summary>
@@ -31,7 +30,7 @@ namespace Zevision.Commands
         /// <summary>Inputs,输入。</summary>
         I,
 
-        /// <summary>Layer,层。</summary>
+        /// <summary>Layer,膜层。</summary>
         L,
 
         /// <summary>Materials,材料。</summary>
@@ -46,7 +45,7 @@ namespace Zevision.Commands
         /// <summary>Process,工艺。</summary>
         P,
 
-        /// <summary>Sources,源。</summary>
+        /// <summary>Sources,输出源。</summary>
         S,
 
         /// <summary>Logic,逻辑 (协议文档未列出具体指令)。</summary>
@@ -68,10 +67,10 @@ namespace Zevision.Commands
         /// <summary>U,更新。</summary>
         Update = 2,
 
-        /// <summary>A,添加列表项。</summary>
+        /// <summary>A,添加:在列表末尾追加一项 (如 <c>AM00</c>),或按编号创建对象 (如 <c>AM03</c>)。</summary>
         Add = 4,
 
-        /// <summary>D,删除列表项。</summary>
+        /// <summary>D,删除:删除列表的最后一项 (如 <c>DM00</c>),或按编号删除对象 (如 <c>DM03</c>)。</summary>
         Delete = 8,
 
         /// <summary>S,读取运行时状态 (带同步计数)。</summary>
@@ -96,10 +95,10 @@ namespace Zevision.Commands
         /// <summary>固定选项,如 <c>0=Off, 1=On</c>。</summary>
         Enum,
 
-        /// <summary>时间 <c>H:MM:SS</c>,小时最大 8760。</summary>
+        /// <summary>时间 <c>H:MM:SS</c>;范围见 <see cref="CommandDefinition.Min"/>/<see cref="CommandDefinition.Max"/> (秒数)。</summary>
         Time,
 
-        /// <summary>引用另一个对象的编号 (十进制),如膜的材料。</summary>
+        /// <summary>引用另一个对象的编号 (十进制),如膜系的材料。</summary>
         Reference,
     }
 
@@ -141,7 +140,7 @@ namespace Zevision.Commands
     /// </summary>
     /// <remarks>
     /// <see cref="Pattern"/> 中的 <c>**</c> 是一级编号,用两位十六进制表示,由调用方给出:
-    /// 第一级是对象编号 (如 <c>M**03</c> 中的材料编号、<c>F**02</c> 中的膜编号、<c>P02**01</c> 中的工艺编号),
+    /// 第一级是对象编号 (如 <c>M**03</c> 中的材料编号、<c>F**02</c> 中的膜系编号、<c>P02**01</c> 中的工艺编号),
     /// 之后的是子列表中的序号 (如 <c>F**03**01</c> 中的预熔序号)。
     /// </remarks>
     public sealed class CommandDefinition
@@ -152,8 +151,9 @@ namespace Zevision.Commands
         /// <summary>编号的最大值。FE 是列表的"数量"项,FF 保留,都不是对象编号。</summary>
         public const int MaxIndex = 0xFD;
 
-        private readonly Regex _regex;
         private readonly IReadOnlyList<BilingualText> _indexNames;
+        private string? _rangeChinese;
+        private string? _rangeEnglish;
 
         internal CommandDefinition(
             string pattern,
@@ -173,20 +173,19 @@ namespace Zevision.Commands
             Group = (CommandGroup)Enum.Parse(typeof(CommandGroup), pattern.Substring(0, 1));
             Actions = actions;
             ChineseName = name;
-            EnglishName = ZevisionCommandSet.EnglishNameOf(pattern) ?? name;
+            EnglishName = CommandTexts.EnglishNameOf(pattern) ?? name;
             Kind = kind;
-            Unit = ZevisionCommandSet.Localize(unit);
+            Unit = CommandTexts.Localize(unit);
             Min = min;
             Max = max;
             IsInteger = isInteger;
             Options = options ?? Array.Empty<CommandOption>();
             ReferenceGroup = referenceGroup;
             AllowNone = allowNone;
-            Remark = ZevisionCommandSet.Localize(remark);
+            Remark = CommandTexts.Localize(remark);
             IndexCount = (pattern.Length - pattern.Replace("**", string.Empty).Length) / 2;
             Specificity = pattern.Length - (2 * IndexCount);
             _indexNames = BuildIndexNames(pattern);
-            _regex = new Regex("^" + pattern.Replace("**", "[0-9A-F]{2}") + "$", RegexOptions.CultureInvariant);
         }
 
         /// <summary>命令模式,如 <c>M**03</c>。</summary>
@@ -263,7 +262,10 @@ namespace Zevision.Commands
         public string GetLabel(TextLanguage language) => WithUnit(GetName(language), language);
 
         /// <summary>范围或选项说明,如 <c>0.100 ~ 100.000 g/cm³</c>、<c>0=Off, 1=On</c>;没有时为说明或空。</summary>
-        public string GetRangeText(TextLanguage language)
+        public string GetRangeText(TextLanguage language) =>
+            language.IsChinese() ? _rangeChinese ??= BuildRangeText(language) : _rangeEnglish ??= BuildRangeText(language);
+
+        private string BuildRangeText(TextLanguage language)
         {
             var unit = Unit.Get(language);
             var remark = Remark.Get(language);
@@ -279,7 +281,7 @@ namespace Zevision.Commands
                 case CommandValueKind.Time:
                     return language.Pick("H:MM:SS (小时 0 ~ 8760)", "H:MM:SS (hours 0 ~ 8760)");
                 case CommandValueKind.Reference:
-                    var kind = ZevisionCommandSet.ObjectKind(ReferenceGroup, language);
+                    var kind = CommandTexts.ObjectKind(ReferenceGroup, language);
                     return language.IsChinese()
                         ? (AllowNone ? "0=未选择, " : string.Empty) + "已有的" + kind + "编号"
                         : (AllowNone ? "0=None, " : string.Empty) + "number of an existing " + kind.ToLowerInvariant();
@@ -288,8 +290,24 @@ namespace Zevision.Commands
             }
         }
 
-        /// <summary>命令 ID 是否属于这条指令,如 <c>M0103</c> 属于 <c>M**03</c>。</summary>
-        public bool IsMatch(string id) => id != null && _regex.IsMatch(id);
+        /// <summary>命令 ID 是否属于这条指令,如 <c>M0103</c> 属于 <c>M**03</c> (<c>**</c> 为两位大写十六进制;区分大小写)。</summary>
+        public bool IsMatch(string id)
+        {
+            if (id == null || id.Length != Pattern.Length)
+            {
+                return false;
+            }
+
+            for (var i = 0; i < id.Length; i++)
+            {
+                if (Pattern[i] == '*' ? !IsUpperHex(id[i]) : id[i] != Pattern[i])
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
 
         /// <summary>
         /// 某一项的显示名称:子列表中的项在前面加上列表名和序号,以区分同名的项,
@@ -313,7 +331,7 @@ namespace Zevision.Commands
 
             // 第一级通常是对象本身 (M**、P02**),由分组标题显示;T0101** 这类固定对象下的第一级是序号 (输入 n),要显示。
             // 设备的英文说明已带这一级编号 (Input 1: Basic Event),不再重复。
-            var numbers = ParseIndices(id);
+            var numbers = Indices(id);
             var parts = new List<string>();
             for (var level = FirstIndexIsObject || useDeviceDescription ? 1 : 0; level < numbers.Count; level++)
             {
@@ -343,19 +361,35 @@ namespace Zevision.Commands
         /// <exception cref="ArgumentException">ID 不属于这条指令。</exception>
         public IReadOnlyList<int> ParseIndices(string id)
         {
+            if (id is null)
+            {
+                throw new ArgumentNullException(nameof(id));
+            }
+
             if (!IsMatch(id))
             {
                 throw new ArgumentException($"{id} does not belong to command {Pattern}.", nameof(id));
             }
 
+            return Indices(id);
+        }
+
+        /// <summary>两位大写十六进制中的一个字符 (<c>0-9</c>、<c>A-F</c>)。</summary>
+        internal static bool IsUpperHex(char c) => (c >= '0' && c <= '9') || (c >= 'A' && c <= 'F');
+
+        /// <summary>各级编号 (调用前已确认 <paramref name="id"/> 属于这条指令)。</summary>
+        private List<int> Indices(string id)
+        {
             var numbers = new List<int>(IndexCount);
             for (var i = Pattern.IndexOf("**", StringComparison.Ordinal); i >= 0; i = Pattern.IndexOf("**", i + 2, StringComparison.Ordinal))
             {
-                numbers.Add(int.Parse(id.Substring(i, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture));
+                numbers.Add((HexValue(id[i]) << 4) | HexValue(id[i + 1]));
             }
 
             return numbers;
         }
+
+        private static int HexValue(char c) => c <= '9' ? c - '0' : c - 'A' + 10;
 
         /// <summary>
         /// 生成命令 ID:按顺序把编号 (十进制,如材料 10) 以两位十六进制填入 <c>**</c>,
@@ -442,7 +476,7 @@ namespace Zevision.Commands
             var names = new List<BilingualText>();
             for (var i = pattern.IndexOf("**", StringComparison.Ordinal); i >= 0; i = pattern.IndexOf("**", i + 2, StringComparison.Ordinal))
             {
-                names.Add(ZevisionCommandSet.IndexName(pattern.Substring(0, i)));
+                names.Add(CommandTexts.IndexName(pattern.Substring(0, i)));
             }
 
             return names;
