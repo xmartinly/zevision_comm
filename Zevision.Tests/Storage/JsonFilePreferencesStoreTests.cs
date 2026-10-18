@@ -29,9 +29,12 @@ namespace Zevision.Tests
                 PortName = "COM3",
                 BaudRate = 57600,
                 ResponseTimeoutMs = 2000,
-                ChecksumEnabled = true,
-                LengthEnabled = true,
-                SaveCommunicationData = true,
+                SerialChecksumEnabled = true,
+                SerialLengthEnabled = true,
+                SerialSaveCommunicationData = true,
+                TcpChecksumEnabled = false,
+                TcpLengthEnabled = true,
+                TcpSaveCommunicationData = false,
                 EditSource = "File",
             };
 
@@ -43,7 +46,10 @@ namespace Zevision.Tests
             Assert.Equal("COM3", loaded.PortName);
             Assert.Equal(57600, loaded.BaudRate);
             Assert.Equal(2000, loaded.ResponseTimeoutMs);
-            Assert.True(loaded.ChecksumEnabled && loaded.LengthEnabled && loaded.SaveCommunicationData);
+            Assert.True(loaded.SerialChecksumEnabled && loaded.SerialLengthEnabled && loaded.SerialSaveCommunicationData);
+            Assert.False(loaded.TcpChecksumEnabled);
+            Assert.True(loaded.TcpLengthEnabled);
+            Assert.False(loaded.TcpSaveCommunicationData);
             Assert.Equal("File", loaded.EditSource);
             Assert.Contains("\"portName\": \"COM3\"", File.ReadAllText(SettingsPath)); // 可读的缩进 JSON
             Assert.Single(Directory.GetFiles(_directory)); // 没有残留的临时文件
@@ -85,6 +91,34 @@ namespace Zevision.Tests
             Assert.Equal(115200, result.Value.BaudRate);
             Assert.Equal(1000, result.Value.ResponseTimeoutMs);
             Assert.Equal(ConnectionPreferences.DefaultEditSource, result.Value.EditSource); // 旧文件没有该字段
+        }
+
+        [Fact]
+        public void Load_FileWithoutTcpSwitches_TcpUsesTheSharedValues()
+        {
+            // 0.9.x 两种连接共用一组开关 (键名为 RS232 的):升级后 TCP 沿用这一组,界面与升级前相同。
+            Directory.CreateDirectory(_directory);
+            File.WriteAllText(SettingsPath, "{\"checksumEnabled\": true, \"lengthEnabled\": true, \"rawCaptureEnabled\": true}");
+
+            var loaded = new JsonFilePreferencesStore(SettingsPath).Load().Value;
+
+            Assert.True(loaded.SerialChecksumEnabled && loaded.SerialLengthEnabled && loaded.SerialSaveCommunicationData);
+            Assert.True(loaded.TcpChecksumEnabled && loaded.TcpLengthEnabled && loaded.TcpSaveCommunicationData);
+        }
+
+        [Fact]
+        public void Save_TcpSwitches_AreSeparateKeys()
+        {
+            var store = new JsonFilePreferencesStore(SettingsPath);
+            Assert.True(store.Save(new ConnectionPreferences { SerialChecksumEnabled = true, TcpChecksumEnabled = false }).IsSuccess);
+
+            var json = File.ReadAllText(SettingsPath);
+            var loaded = store.Load().Value;
+
+            Assert.Contains("\"checksumEnabled\": true", json);
+            Assert.Contains("\"tcpChecksumEnabled\": false", json);
+            Assert.True(loaded.SerialChecksumEnabled);
+            Assert.False(loaded.TcpChecksumEnabled);
         }
 
         [Fact]

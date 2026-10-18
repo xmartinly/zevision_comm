@@ -51,6 +51,7 @@
     <Compile Include="Localization\TextCatalogTests.cs" />
     <Compile Include="Storage\TextFileTests.cs" />
     <Compile Include="Localization\LocalizationTests.cs" />
+    <Compile Include="ViewModels\ConnectionSettingsTests.cs" />
     <Compile Include="ViewModels\ObjectEditTests.cs" />
     <Compile Include="Core\ObjectTypesTests.cs" />
     <Compile Include="Core\RecipeDocumentTests.cs" />

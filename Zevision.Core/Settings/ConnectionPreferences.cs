@@ -4,6 +4,7 @@ namespace Zevision.Core.Settings
 {
     /// <summary>
     /// 需要在两次运行之间保留的通讯配置,保存为 <c>settings.json</c>。默认值与设备出厂设置一致。
+    /// 校验和、长度字节和保存通讯数据按连接方式 (RS232 / TCP) 分别保存:设备上两者是独立的设置 (G1304/G1305 与 G1407/G1408)。
     /// </summary>
     /// <remarks>
     /// JSON 中缺少的字段保持默认值 (反序列化前由 <see cref="OnDeserializing"/> 设置),便于以后增加字段。
@@ -29,17 +30,40 @@ namespace Zevision.Core.Settings
         [DataMember(Name = "responseTimeoutMs", Order = 2)]
         public int ResponseTimeoutMs { get; set; }
 
-        /// <summary>是否启用校验和 (G1304)。</summary>
+        /// <summary>RS232 连接是否启用校验和 (设备 G1304)。</summary>
         [DataMember(Name = "checksumEnabled", Order = 3)]
-        public bool ChecksumEnabled { get; set; }
+        public bool SerialChecksumEnabled { get; set; }
 
-        /// <summary>是否启用长度字节 (G1305)。</summary>
+        /// <summary>RS232 连接是否启用长度字节 (设备 G1305)。</summary>
         [DataMember(Name = "lengthEnabled", Order = 4)]
-        public bool LengthEnabled { get; set; }
+        public bool SerialLengthEnabled { get; set; }
 
-        /// <summary>是否保存通讯数据 (数据显示区的内容) 到文本文件。JSON 键名沿用开发版本的 rawCaptureEnabled。</summary>
+        /// <summary>RS232 连接是否保存通讯数据 (数据显示区的内容) 到文本文件。JSON 键名沿用开发版本的 rawCaptureEnabled。</summary>
         [DataMember(Name = "rawCaptureEnabled", Order = 5)]
-        public bool SaveCommunicationData { get; set; }
+        public bool SerialSaveCommunicationData { get; set; }
+
+        /// <summary>
+        /// TCP 连接是否启用校验和 (设备 G1407)。0.9.x 的文件没有这一项 (两种连接共用 RS232 的设置),这时与 RS232 相同。
+        /// </summary>
+        public bool TcpChecksumEnabled
+        {
+            get => _tcpChecksumEnabled ?? SerialChecksumEnabled;
+            set => _tcpChecksumEnabled = value;
+        }
+
+        /// <summary>TCP 连接是否启用长度字节 (设备 G1408)。文件中没有这一项时与 RS232 相同。</summary>
+        public bool TcpLengthEnabled
+        {
+            get => _tcpLengthEnabled ?? SerialLengthEnabled;
+            set => _tcpLengthEnabled = value;
+        }
+
+        /// <summary>TCP 连接是否保存通讯数据。文件中没有这一项时与 RS232 相同。</summary>
+        public bool TcpSaveCommunicationData
+        {
+            get => _tcpSaveCommunicationData ?? SerialSaveCommunicationData;
+            set => _tcpSaveCommunicationData = value;
+        }
 
         /// <summary>修改配置的数据来源 (<c>Device</c> 实机数据 / <c>File</c> 保存的配置)。不认识的值按默认处理。</summary>
         [DataMember(Name = "editSource", Order = 6)]
@@ -81,6 +105,16 @@ namespace Zevision.Core.Settings
         /// <summary><see cref="Language"/> 的默认值:按系统自动选择。</summary>
         public const string DefaultLanguage = "auto";
 
+        // TCP 的三项单独保存;为 null 表示文件中没有 (旧版本),取 RS232 的值。
+        [DataMember(Name = "tcpChecksumEnabled", Order = 14, EmitDefaultValue = false)]
+        private bool? _tcpChecksumEnabled;
+
+        [DataMember(Name = "tcpLengthEnabled", Order = 15, EmitDefaultValue = false)]
+        private bool? _tcpLengthEnabled;
+
+        [DataMember(Name = "tcpSaveCommunicationData", Order = 16, EmitDefaultValue = false)]
+        private bool? _tcpSaveCommunicationData;
+
         [OnDeserializing]
         private void OnDeserializing(StreamingContext context) => SetDefaults();
 
@@ -96,6 +130,9 @@ namespace Zevision.Core.Settings
             DisplayFormat = DefaultDisplayFormat;
             RepeatSend = false;
             RepeatIntervalMs = 1000;
+            _tcpChecksumEnabled = null;
+            _tcpLengthEnabled = null;
+            _tcpSaveCommunicationData = null;
         }
     }
 }

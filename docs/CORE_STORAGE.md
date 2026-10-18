@@ -681,9 +681,12 @@ CommunicationText.Describe(error, command);                  // ZevisionError �
 | `PortName` | `portName` | 空 | 上次使用的串口 |
 | `BaudRate` | `baudRate` | 115200 | |
 | `ResponseTimeoutMs` | `responseTimeoutMs` | 1000 | 响应空闲超时 |
-| `ChecksumEnabled` | `checksumEnabled` | false | G1304 / G1407 |
-| `LengthEnabled` | `lengthEnabled` | false | G1305 / G1408 |
-| `SaveCommunicationData` | `rawCaptureEnabled` | false | 保存通讯数据;键名沿用开发版本 |
+| `SerialChecksumEnabled` | `checksumEnabled` | false | RS232 的校验和 (G1304) |
+| `SerialLengthEnabled` | `lengthEnabled` | false | RS232 的长度字节 (G1305) |
+| `SerialSaveCommunicationData` | `rawCaptureEnabled` | false | RS232 连接时保存通讯数据;键名沿用开发版本 |
+| `TcpChecksumEnabled` | `tcpChecksumEnabled` | 同 RS232 | TCP 的校验和 (G1407) |
+| `TcpLengthEnabled` | `tcpLengthEnabled` | 同 RS232 | TCP 的长度字节 (G1408) |
+| `TcpSaveCommunicationData` | `tcpSaveCommunicationData` | 同 RS232 | TCP 连接时保存通讯数据 |
 | `EditSource` | `editSource` | `Device` | 修改配置的数据来源 (`Device` / `File`) |
 | `ConnectionType` | `connectionType` | `Serial` | `Serial` / `Tcp` |
 | `TcpHost` | `tcpHost` | 空 | 设备 IP;端口固定 2101,不保存 |
@@ -693,6 +696,8 @@ CommunicationText.Describe(error, command);                  // ZevisionError �
 | `RepeatIntervalMs` | `repeatIntervalMs` | 1000 | |
 
 不认识的值 (如旧版本或手工编辑) 由视图模型按默认处理。
+
+校验和、长度字节和保存通讯数据按连接方式分别保存,因为设备上 RS232 (G1304/G1305) 与 TCP (G1407/G1408) 是独立的设置。RS232 沿用 0.9.x 的键名;0.9.x 的文件没有 TCP 的三项,读取时 TCP 取与 RS232 相同的值 (以前两种连接共用一组),升级后界面不变。
 
 ```csharp
 IPreferencesStore store = new JsonFilePreferencesStore(AppFolders.GetSettingsFilePath());
@@ -1248,7 +1253,7 @@ var snapshot = await config.ReadSnapshotAsync(ct);          // → IMC300 Ready
 - `English` = 1: English.
 
 #### class `ConnectionPreferences`
-需要在两次运行之间保留的通讯配置,保存为 `settings.json`。默认值与设备出厂设置一致。
+需要在两次运行之间保留的通讯配置,保存为 `settings.json`。默认值与设备出厂设置一致。 校验和、长度字节和保存通讯数据按连接方式 (RS232 / TCP) 分别保存:设备上两者是独立的设置 (G1304/G1305 与 G1407/G1408)。
 - `ConnectionPreferences()`: 创建默认配置。
 - `const string DefaultEditSource`: `EditSource` 的默认值:实机数据。
 - `const string DefaultConnectionType`: `ConnectionType` 的默认值:RS232。
@@ -1257,9 +1262,12 @@ var snapshot = await config.ReadSnapshotAsync(ct);          // → IMC300 Ready
 - `string PortName { get; set; }`: 上次使用的端口名;为空表示没有记录。
 - `int BaudRate { get; set; }`: 波特率。
 - `int ResponseTimeoutMs { get; set; }`: 响应空闲超时 (毫秒)。
-- `bool ChecksumEnabled { get; set; }`: 是否启用校验和 (G1304)。
-- `bool LengthEnabled { get; set; }`: 是否启用长度字节 (G1305)。
-- `bool SaveCommunicationData { get; set; }`: 是否保存通讯数据 (数据显示区的内容) 到文本文件。JSON 键名沿用开发版本的 rawCaptureEnabled。
+- `bool SerialChecksumEnabled { get; set; }`: RS232 连接是否启用校验和 (设备 G1304)。
+- `bool SerialLengthEnabled { get; set; }`: RS232 连接是否启用长度字节 (设备 G1305)。
+- `bool SerialSaveCommunicationData { get; set; }`: RS232 连接是否保存通讯数据 (数据显示区的内容) 到文本文件。JSON 键名沿用开发版本的 rawCaptureEnabled。
+- `bool TcpChecksumEnabled { get; set; }`: TCP 连接是否启用校验和 (设备 G1407)。0.9.x 的文件没有这一项 (两种连接共用 RS232 的设置),这时与 RS232 相同。
+- `bool TcpLengthEnabled { get; set; }`: TCP 连接是否启用长度字节 (设备 G1408)。文件中没有这一项时与 RS232 相同。
+- `bool TcpSaveCommunicationData { get; set; }`: TCP 连接是否保存通讯数据。文件中没有这一项时与 RS232 相同。
 - `string EditSource { get; set; }`: 修改配置的数据来源 (`Device` 实机数据 / `File` 保存的配置)。不认识的值按默认处理。
 - `string ConnectionType { get; set; }`: 连接方式 (`Serial` RS232 / `Tcp`)。不认识的值按 RS232 处理。
 - `string TcpHost { get; set; }`: TCP 连接的设备 IP 地址或主机名。

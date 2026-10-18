@@ -26,6 +26,10 @@ namespace Zevision.ViewModels.Main
     /// 主窗口左侧的通讯配置:连接方式 (RS232 / TCP)、串口与波特率、IP 地址、协议选项、响应超时、是否保存通讯数据。
     /// 连接期间由主窗口锁定 (<see cref="MainViewModel.IsDisconnected"/>)。
     /// </summary>
+    /// <remarks>
+    /// 校验和、长度字节和保存通讯数据按连接方式各有一组 (设备上 RS232 与 TCP 的帧格式是独立的设置),
+    /// 开关显示的是选中的连接方式的那一组,切换 tab 时随之切换。
+    /// </remarks>
     public sealed class ConnectionSettingsViewModel : ViewModelBase
     {
         private ConnectionType _connectionType = ConnectionType.Serial;
@@ -33,9 +37,8 @@ namespace Zevision.ViewModels.Main
         private string? _selectedPort;
         private int _selectedBaudRate = 115200;
         private int _selectedTimeout = 1000;
-        private bool _isChecksumEnabled;
-        private bool _isLengthEnabled;
-        private bool _isSaveCommunicationDataEnabled;
+        private readonly LinkSwitches _serial = new LinkSwitches();
+        private readonly LinkSwitches _tcp = new LinkSwitches();
 
         /// <summary>
         /// 连接方式 tab 的序号:0 = RS232,1 = TCP (与 <see cref="ConnectionType"/> 的值相同)。
@@ -62,6 +65,7 @@ namespace Zevision.ViewModels.Main
                 if (SetProperty(ref _connectionType, value))
                 {
                     OnPropertiesChanged(nameof(ConnectionTabIndex), nameof(IsSerialConnection), nameof(IsTcpConnection), nameof(ChecksumLabel), nameof(LengthLabel), nameof(QuickCommands));
+                    OnSwitchesChanged();
                     RefreshCommands();
                 }
             }
@@ -137,29 +141,32 @@ namespace Zevision.ViewModels.Main
             set => SetProperty(ref _selectedTimeout, value);
         }
 
-        /// <summary>是否在帧中附加校验和 (对应设备 G1304,TCP 为 G1407)。</summary>
+        /// <summary>选中的连接方式是否在帧中附加校验和 (对应设备 G1304,TCP 为 G1407)。</summary>
         public bool IsChecksumEnabled
         {
-            get => _isChecksumEnabled;
-            set => SetProperty(ref _isChecksumEnabled, value);
+            get => Switches.Checksum;
+            set => SetProperty(ref Switches.Checksum, value);
         }
 
-        /// <summary>是否在帧中附加长度字节 (对应设备 G1305,TCP 为 G1408)。</summary>
+        /// <summary>选中的连接方式是否在帧中附加长度字节 (对应设备 G1305,TCP 为 G1408)。</summary>
         public bool IsLengthEnabled
         {
-            get => _isLengthEnabled;
-            set => SetProperty(ref _isLengthEnabled, value);
+            get => Switches.Length;
+            set => SetProperty(ref Switches.Length, value);
         }
 
         /// <summary>
-        /// 是否保存通讯数据:连接期间把数据显示区的内容 (按当时的显示格式) 追加到 logs\capture_*.txt。
+        /// 选中的连接方式是否保存通讯数据:连接期间把数据显示区的内容 (按当时的显示格式) 追加到 logs\capture_*.txt。
         /// 在连接时生效,连接期间不能修改。
         /// </summary>
         public bool IsSaveCommunicationDataEnabled
         {
-            get => _isSaveCommunicationDataEnabled;
-            set => SetProperty(ref _isSaveCommunicationDataEnabled, value);
+            get => Switches.SaveCommunicationData;
+            set => SetProperty(ref Switches.SaveCommunicationData, value);
         }
+
+        /// <summary>选中的连接方式的开关。</summary>
+        private LinkSwitches Switches => IsTcpConnection ? _tcp : _serial;
 
         /// <summary>重新扫描串口;原来选中的串口仍存在时保持选中,否则选第一个。</summary>
         public void RefreshPorts()
@@ -234,9 +241,13 @@ namespace Zevision.ViewModels.Main
 
             SelectedBaudRate = BaudRates.Contains(saved.BaudRate) ? saved.BaudRate : SelectedBaudRate;
             SelectedTimeout = TimeoutOptions.Contains(saved.ResponseTimeoutMs) ? saved.ResponseTimeoutMs : SelectedTimeout;
-            IsChecksumEnabled = saved.ChecksumEnabled;
-            IsLengthEnabled = saved.LengthEnabled;
-            IsSaveCommunicationDataEnabled = saved.SaveCommunicationData;
+            _serial.Checksum = saved.SerialChecksumEnabled;
+            _serial.Length = saved.SerialLengthEnabled;
+            _serial.SaveCommunicationData = saved.SerialSaveCommunicationData;
+            _tcp.Checksum = saved.TcpChecksumEnabled;
+            _tcp.Length = saved.TcpLengthEnabled;
+            _tcp.SaveCommunicationData = saved.TcpSaveCommunicationData;
+            OnSwitchesChanged();
             if (TryParseName(saved.ConnectionType, out ConnectionType connectionType))
             {
                 SelectedConnectionType = connectionType;
@@ -256,16 +267,30 @@ namespace Zevision.ViewModels.Main
             preferences.PortName = SelectedPort ?? string.Empty;
             preferences.BaudRate = SelectedBaudRate;
             preferences.ResponseTimeoutMs = SelectedTimeout;
-            preferences.ChecksumEnabled = IsChecksumEnabled;
-            preferences.LengthEnabled = IsLengthEnabled;
-            preferences.SaveCommunicationData = IsSaveCommunicationDataEnabled;
+            preferences.SerialChecksumEnabled = _serial.Checksum;
+            preferences.SerialLengthEnabled = _serial.Length;
+            preferences.SerialSaveCommunicationData = _serial.SaveCommunicationData;
+            preferences.TcpChecksumEnabled = _tcp.Checksum;
+            preferences.TcpLengthEnabled = _tcp.Length;
+            preferences.TcpSaveCommunicationData = _tcp.SaveCommunicationData;
             preferences.ConnectionType = SelectedConnectionType.ToString();
             preferences.TcpHost = TcpHost.Trim();
         }
+
+        private void OnSwitchesChanged() =>
+            OnPropertiesChanged(nameof(IsChecksumEnabled), nameof(IsLengthEnabled), nameof(IsSaveCommunicationDataEnabled));
 
         /// <summary>只接受枚举中已定义的名称 (不接受数字)。</summary>
         internal static bool TryParseName<TEnum>(string? text, out TEnum value)
             where TEnum : struct =>
             Enum.TryParse(text, out value) && Enum.IsDefined(typeof(TEnum), value) && !int.TryParse(text, out _);
+
+        /// <summary>一种连接方式的协议选项和数据记录开关。</summary>
+        private sealed class LinkSwitches
+        {
+            public bool Checksum;
+            public bool Length;
+            public bool SaveCommunicationData;
+        }
     }
 }

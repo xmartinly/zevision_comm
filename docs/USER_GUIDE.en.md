@@ -37,6 +37,8 @@ In **Connection** on the left, click the **RS232** or **TCP** tab. On connect, t
 
 Then click **Connect**. While connected, the connection settings are locked; disconnect to change them. If checksum or length bytes do not match the device settings, the device cannot recognize commands.
 
+**Checksum**, **Length bytes** and **Save communication data** are kept separately for RS232 and TCP (the device also has separate settings for them): switching between RS232 and TCP shows the last settings of that connection type, and both are saved on exit.
+
 Hover over a setting to see its description. The connection settings are saved when the program closes and restored the next time it starts.
 
 ## Sending commands
