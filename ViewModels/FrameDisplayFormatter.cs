@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Text;
 using Zevision.Communication;
 
@@ -120,6 +121,12 @@ namespace Zevision.ViewModels
         /// <summary>Binary 格式每行的字节数。</summary>
         public const int BinaryBytesPerLine = 16;
 
+        /// <summary>每个字节值的 HEX 文本 (如 <c>3F</c>),预先生成:逐字节格式化时,一个 ? 响应 (116 KB) 要分配十几万个临时字符串。</summary>
+        private static readonly string[] HexTexts = Enumerable.Range(0, 256).Select(b => b.ToString("X2", CultureInfo.InvariantCulture)).ToArray();
+
+        /// <summary>每个字节值的 Binary 文本 (如 <c>00111111</c>)。</summary>
+        private static readonly string[] BinaryTexts = Enumerable.Range(0, 256).Select(b => Convert.ToString(b, 2).PadLeft(8, '0')).ToArray();
+
         /// <summary>
         /// 按 <paramref name="format"/> 把帧拆成多行显示文本。<see cref="DisplayFormat.Ascii"/> 与
         /// <see cref="ToDisplayLines(byte[], IReadOnlyList{ByteRange}, int)"/> 相同;
@@ -130,15 +137,15 @@ namespace Zevision.ViewModels
             switch (format)
             {
                 case DisplayFormat.Hex:
-                    return ToByteLines(raw, HexBytesPerLine, b => b.ToString("X2", CultureInfo.InvariantCulture));
+                    return ToByteLines(raw, HexBytesPerLine, HexTexts);
                 case DisplayFormat.Binary:
-                    return ToByteLines(raw, BinaryBytesPerLine, b => Convert.ToString(b, 2).PadLeft(8, '0'));
+                    return ToByteLines(raw, BinaryBytesPerLine, BinaryTexts);
                 default:
                     return ToDisplayLines(raw, dataRanges, maxLineLength);
             }
         }
 
-        private static IReadOnlyList<string> ToByteLines(byte[] raw, int bytesPerLine, Func<byte, string> format)
+        private static IReadOnlyList<string> ToByteLines(byte[] raw, int bytesPerLine, string[] byteTexts)
         {
             if (raw is null)
             {
@@ -152,7 +159,7 @@ namespace Zevision.ViewModels
                 var parts = new string[count];
                 for (var i = 0; i < count; i++)
                 {
-                    parts[i] = format(raw[start + i]);
+                    parts[i] = byteTexts[raw[start + i]];
                 }
 
                 lines.Add(string.Join(" ", parts));
@@ -214,7 +221,7 @@ namespace Zevision.ViewModels
             }
             else
             {
-                sb.Append('<').Append(b.ToString("X2", CultureInfo.InvariantCulture)).Append('>');
+                sb.Append('<').Append(HexTexts[b]).Append('>');
             }
         }
     }

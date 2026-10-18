@@ -69,9 +69,21 @@ namespace Zevision.ViewModels
             }
 
             var list = entries.ToList();
-            foreach (var entry in list)
+            if (list.Count > 1)
             {
-                AddCore(entry, writeErrorLog: true);
+                // 一次添加,只发一次通知:逐项添加时,如果用户正向上翻看 (不在底部),列表每添加一项都要重新计算
+                // 全部内容的高度,一个 ? 响应 (1500 多行) 会让界面卡住 2 秒以上,画面也会跳动。
+                foreach (var entry in list)
+                {
+                    WriteErrorLog(entry);
+                }
+
+                Entries.AddRange(list);
+                Trim();
+            }
+            else if (list.Count == 1)
+            {
+                AddCore(list[0], writeErrorLog: true);
             }
 
             if (list.Count > 0)
@@ -96,15 +108,33 @@ namespace Zevision.ViewModels
 
         private void AddCore(LogEntry entry, bool writeErrorLog)
         {
-            if (writeErrorLog && entry.Kind == LogKind.Error && !entry.IsContinuation)
+            if (writeErrorLog)
             {
-                _errorLog.Write(Lang.T("运行", "Runtime"), entry.Text);
+                WriteErrorLog(entry);
             }
 
             Entries.Add(entry);
-            if (Entries.Count > MaxEntries)
+            Trim();
+        }
+
+        private void WriteErrorLog(LogEntry entry)
+        {
+            if (entry.Kind == LogKind.Error && !entry.IsContinuation)
             {
-                Entries.RemoveFirst(TrimBatch);
+                _errorLog.Write(Lang.T("运行", "Runtime"), entry.Text);
+            }
+        }
+
+        /// <summary>
+        /// 超过 <see cref="MaxEntries"/> 时按 <see cref="TrimBatch"/> 的整数倍删除最旧的记录,一次完成;
+        /// 结果与逐项添加、每次超出时删除 <see cref="TrimBatch"/> 条相同。
+        /// </summary>
+        private void Trim()
+        {
+            var excess = Entries.Count - MaxEntries;
+            if (excess > 0)
+            {
+                Entries.RemoveFirst((excess + TrimBatch - 1) / TrimBatch * TrimBatch);
             }
         }
     }
@@ -114,6 +144,26 @@ namespace Zevision.ViewModels
     /// </summary>
     public sealed class LogEntryCollection : ObservableCollection<LogEntry>
     {
+        /// <summary>在末尾添加多项,只发一次 Reset 通知。</summary>
+        public void AddRange(IReadOnlyList<LogEntry> entries)
+        {
+            if (entries is null)
+            {
+                throw new ArgumentNullException(nameof(entries));
+            }
+
+            CheckReentrancy();
+            if (entries.Count == 0)
+            {
+                return;
+            }
+
+            ((List<LogEntry>)Items).AddRange(entries);
+            OnPropertyChanged(new PropertyChangedEventArgs(nameof(Count)));
+            OnPropertyChanged(new PropertyChangedEventArgs("Item[]"));
+            OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
+        }
+
         /// <summary>删除最前面的 <paramref name="count"/> 项。</summary>
         public void RemoveFirst(int count)
         {

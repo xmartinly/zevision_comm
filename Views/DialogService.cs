@@ -5,10 +5,13 @@ using Zevision.ViewModels;
 namespace Zevision.Views
 {
     /// <summary>
-    /// <see cref="IDialogService"/> 的 WPF 实现。对话框以主窗口为所有者,保证模态并居中。
+    /// <see cref="IDialogService"/> 的 WPF 实现。对话框以当前的顶层窗口为所有者 (主窗口,修改配置窗口打开时是它),保证模态并居中。
     /// </summary>
     public sealed class DialogService : IDialogService
     {
+        /// <summary>正在显示的修改配置窗口 (模态);没有时为 null。</summary>
+        private Window? _editor;
+
         /// <inheritdoc />
         public string? ShowSaveFileDialog(string title, string filter, string initialDirectory, string defaultFileName)
         {
@@ -68,18 +71,30 @@ namespace Zevision.Views
                 window.Owner = owner;
             }
 
-            window.ShowDialog();
+            _editor = window;
+            try
+            {
+                window.ShowDialog();
+            }
+            finally
+            {
+                _editor = null;
+            }
         }
 
-        private static Window? Owner => Application.Current?.MainWindow;
+        /// <summary>
+        /// 对话框的所有者。修改配置窗口打开时必须是它:提示框只禁用自己的所有者,属于主窗口时修改配置窗口仍可操作,
+        /// 点一下就把提示框挡在后面,确认框打开时还能修改值 (不再经过检查就写入) 或再点其他按钮 (两个设备操作同时进行)。
+        /// </summary>
+        private Window? Owner => _editor ?? Application.Current?.MainWindow;
 
-        private static bool ShowDialog(CommonDialog dialog)
+        private bool ShowDialog(CommonDialog dialog)
         {
             var owner = Owner;
             return (owner != null ? dialog.ShowDialog(owner) : dialog.ShowDialog()) == true;
         }
 
-        private static MessageBoxResult Show(string message, string title, MessageBoxButton buttons, MessageBoxImage image, MessageBoxResult defaultResult)
+        private MessageBoxResult Show(string message, string title, MessageBoxButton buttons, MessageBoxImage image, MessageBoxResult defaultResult)
         {
             var owner = Owner;
             return owner != null

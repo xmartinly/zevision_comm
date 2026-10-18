@@ -52,6 +52,51 @@ namespace Zevision.Tests
             Assert.Equal("最新", log.Entries.Last().Text);
         }
 
+        [Theory]
+        [InlineData(19000, 1528)]  // 超出一次
+        [InlineData(19999, 2001)]  // 正好需要删除两批
+        [InlineData(15000, 7283)]  // 二进制格式的 ? 响应
+        [InlineData(0, 45000)]
+        [InlineData(100, 5)]       // 未超出
+        public void AddRange_SameEntriesAsAddingOneByOne_WithOneAddNotification(int existing, int added)
+        {
+            // 多行一次添加 (一个 Reset,超出上限时再一个 Reset),结果与逐行添加、每次超出时删除一批完全相同。
+            var time = DateTime.Now;
+            var batch = new LogViewModel(new FakeErrorLog());
+            var oneByOne = new LogViewModel(new FakeErrorLog());
+            batch.AddRange(Enumerable.Range(0, existing).Select(i => new LogEntry(time, LogKind.Rx, "old " + i)));
+            oneByOne.AddRange(Enumerable.Range(0, existing).Select(i => new LogEntry(time, LogKind.Rx, "old " + i)));
+            var lines = Enumerable.Range(0, added).Select(i => new LogEntry(time, LogKind.Rx, "new " + i)).ToList();
+            var notifications = 0;
+            batch.Entries.CollectionChanged += (s, e) => notifications++;
+
+            batch.AddRange(lines);
+            foreach (var line in lines)
+            {
+                oneByOne.AddRange(new[] { line });
+            }
+
+            Assert.Equal(oneByOne.Entries.Select(e => e.Text), batch.Entries.Select(e => e.Text));
+            Assert.Equal(existing + added > LogViewModel.MaxEntries ? 2 : 1, notifications);
+        }
+
+        [Fact]
+        public void AddRange_ErrorLines_WrittenToErrorLogOnce()
+        {
+            var errorLog = new FakeErrorLog();
+            var log = new LogViewModel(errorLog);
+
+            log.AddRange(new[]
+            {
+                new LogEntry(DateTime.Now, LogKind.Error, "帧外数据"),
+                new LogEntry(DateTime.Now, LogKind.Error, "续行", isContinuation: true),
+                new LogEntry(DateTime.Now, LogKind.Rx, "数据"),
+            });
+
+            Assert.Equal(3, log.Entries.Count);
+            Assert.Single(errorLog.Messages);
+        }
+
         [Fact]
         public void RemoveFirst_MoreThanCount_RemovesAll()
         {

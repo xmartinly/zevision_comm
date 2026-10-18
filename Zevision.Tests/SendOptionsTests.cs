@@ -46,6 +46,18 @@ namespace Zevision.Tests
         }
 
         [Fact]
+        public void DisplayLines_HexAndBinary_AllByteValues()
+        {
+            var raw = Enumerable.Range(0, 256).Select(b => (byte)b).ToArray();
+
+            var hex = FrameDisplayFormatter.ToDisplayLines(raw, Array.Empty<ByteRange>(), 160, DisplayFormat.Hex);
+            var binary = FrameDisplayFormatter.ToDisplayLines(raw, Array.Empty<ByteRange>(), 160, DisplayFormat.Binary);
+
+            Assert.Equal(string.Join(" ", raw.Select(b => b.ToString("X2", System.Globalization.CultureInfo.InvariantCulture))), string.Join(" ", hex));
+            Assert.Equal(string.Join(" ", raw.Select(b => Convert.ToString(b, 2).PadLeft(8, '0'))), string.Join(" ", binary));
+        }
+
+        [Fact]
         public void DisplayLines_Ascii_UnchangedFromDefault()
         {
             var raw = Encoding.ASCII.GetBytes("{H01\n}");

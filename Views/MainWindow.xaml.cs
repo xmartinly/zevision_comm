@@ -17,6 +17,7 @@ namespace Zevision.Views
     {
         private bool _scrollPending;
         private bool _followTail = true;
+        private bool _logChanging;
         private bool _connectionClosed;
         private bool _closing;
 
@@ -84,12 +85,12 @@ namespace Zevision.Views
         private void OnLogScrollChanged(object sender, ScrollChangedEventArgs e)
         {
             // 内容高度不变说明是用户滚动:滚到底部时恢复自动滚动,向上翻看时暂停。
-            // 内容不足一屏 (如清空后) 时总是跟随。
+            // 内容不足一屏 (如清空后) 时总是跟随。记录变化后的布局调整和自动滚动不算 (见 OnLogChanged)。
             if (e.ExtentHeight <= e.ViewportHeight)
             {
                 _followTail = true;
             }
-            else if (e.ExtentHeightChange == 0)
+            else if (e.ExtentHeightChange == 0 && !_logChanging)
             {
                 _followTail = e.VerticalOffset >= e.ExtentHeight - e.ViewportHeight - 1;
             }
@@ -97,8 +98,16 @@ namespace Zevision.Views
 
         private void OnLogChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {
-            // 大响应一次会添加几百行,合并为一次滚动,在本批添加完成后执行。
-            if (e.Action != NotifyCollectionChangedAction.Add || _scrollPending || !_followTail)
+            // 记录变化后,按像素虚拟化的列表会在随后的布局中微调滚动位置 (内容高度不变),不能当作用户向上翻看。
+            // 布局 (Render) 和自动滚动 (Background) 都在 ContextIdle 之前完成。
+            if (!_logChanging)
+            {
+                _logChanging = true;
+                Dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, new System.Action(() => _logChanging = false));
+            }
+
+            // 大响应一次会添加几百行,合并为一次滚动,在本批添加完成后执行。多行一次添加时是 Reset 通知。
+            if ((e.Action != NotifyCollectionChangedAction.Add && e.Action != NotifyCollectionChangedAction.Reset) || _scrollPending || !_followTail)
             {
                 return;
             }
