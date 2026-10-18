@@ -14,7 +14,6 @@ namespace Zevision.Core.Configuration
         private const string AppendSlot = "00";
         private const string Count = "FE";
 
-
         /// <summary>两位十六进制编号,如 10 → <c>0A</c>。</summary>
         private static string Number(int number) => number.ToString("X2", CultureInfo.InvariantCulture);
 

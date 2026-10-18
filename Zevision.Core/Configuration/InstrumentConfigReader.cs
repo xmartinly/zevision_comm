@@ -224,7 +224,6 @@ namespace Zevision.Core.Configuration
             : response.IsSuccess ? Result<string>.Ok(response.Data?.Trim() ?? string.Empty)
             : Result<string>.Fail(DescribeRejection(response));
 
-
         /// <summary>设备拒绝的说明,含原始错误码,如"设备拒绝: B 非法参数值"。</summary>
         private static string DescribeRejection(ZevisionResponse response)
         {

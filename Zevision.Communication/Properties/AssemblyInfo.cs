@@ -18,5 +18,5 @@ using System.Runtime.InteropServices;
 
 // 库的版本独立于 Zevision 应用。公开 API 不兼容的修改时提高主版本号。
 [assembly: AssemblyVersion("1.0.0.0")]
-[assembly: AssemblyFileVersion("1.0.1.0")]
-[assembly: AssemblyInformationalVersion("1.0.1")]
+[assembly: AssemblyFileVersion("1.1.0.0")]
+[assembly: AssemblyInformationalVersion("1.1.0")]

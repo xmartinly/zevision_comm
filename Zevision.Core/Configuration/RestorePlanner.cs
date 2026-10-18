@@ -12,8 +12,6 @@ namespace Zevision.Core.Configuration
     /// </summary>
     public static class RestorePlanner
     {
-        /// <summary>设备空闲时 C09 的值。</summary>
-
         /// <summary>
         /// 生成恢复计划。设备型号不符或设备不在空闲状态时返回失败。
         /// </summary>
