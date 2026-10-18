@@ -76,7 +76,7 @@ Zevision ("IMC300通讯测试") is a WPF desktop app that talks to an INFICON IM
 
 ## Commands
 
-- Release: `-p:Configuration=Release` sets `TreatWarningsAsErrors`. What to ship is listed in `docs/RELEASE.md`; the end-user guide is `docs/USER_GUIDE.md`.
+- Release: `-p:Configuration=Release` sets `TreatWarningsAsErrors`. What to ship is listed in `docs/RELEASE.md`; the end-user guide is `docs/USER_GUIDE.md`. Package with `powershell -ExecutionPolicy Bypass -File tools\package.ps1` (rebuild + tests, then `dist\Zevision-<version>\` with only exe, config, `Texts.json` and the guides in the program folder and every dll in `lib\`, zip, SHA256, pdbs in `dist\symbols\Zevision-<version>\`, a test start of the unzipped package unless an instance is running). `App.config` has `<probing privatePath="lib" />` for that layout (user request 2026-10-18: fewer files next to the exe); `bin\Debug`/`bin\Release` stay flat, so the test project and F5 are unchanged. The script is UTF-8 with BOM (Windows PowerShell 5.1 reads Chinese text only with the BOM).
 - If the user has `bin\Debug\Zevision.exe` running, the build fails on the locked file; build with `-p:OutDir=<scratch dir>\` instead.
 - Restore and build: `MSBuild.exe Zevision.sln -restore -t:Rebuild -p:Configuration=Debug` (VS 2019 Community MSBuild 16.11 at `C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\MSBuild.exe`). Output: `bin\Debug\Zevision.exe`. Verified: builds with 0 warnings and 0 errors. Use the `-` switch form; in Git Bash, `/restore` and `/p:` get rewritten as paths.
 - Run: F5 in Visual Studio, or launch `bin\Debug\Zevision.exe`.

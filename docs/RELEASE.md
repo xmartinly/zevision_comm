@@ -22,10 +22,12 @@
 
 ## 发布文件 (`bin\Release\`)
 
+发布包中程序目录只放 `Zevision.exe`、`Zevision.exe.config`、`Texts.json` 和使用说明,下表中的 dll 都放在 `lib\` 子文件夹 (由 `Zevision.exe.config` 的 `<probing privatePath="lib" />` 指定;开发时 dll 在 exe 旁边,同样能找到)。
+
 | 文件 | 说明 |
 |---|---|
 | `Zevision.exe` | 主程序 (内嵌图标和版本信息) |
-| `Zevision.exe.config` | 运行时配置 (程序集绑定重定向),必须随 exe 一起发布 |
+| `Zevision.exe.config` | 运行时配置 (dll 所在的 `lib` 子文件夹、程序集绑定重定向),必须随 exe 一起发布 |
 | `Zevision.Communication.dll` | 通讯库 (传输、帧、响应解析),程序必需 |
 | `Zevision.Commands.dll` | 指令库 (指令集、命令生成),程序必需 |
 | `Zevision.Core.dll` | 业务层 (设备访问、仪器配置读写、恢复计划),程序必需 |
@@ -49,14 +51,22 @@
 
 ## 打包
 
-输出到 `dist\` (不随源码分发):
+用脚本打包 (0.10.0 起),输出到 `dist\` (不随源码分发):
 
-- `dist\Zevision-<版本>\`:上表 10 个文件 + `使用说明.md` (即 `docs/USER_GUIDE.md`) + `User Guide.md` (即 `docs/USER_GUIDE.en.md`) + `dotnet\ndp48-x86-x64-allos-enu.exe`
-- 安装包下载后先核对数字签名 (`Get-AuthenticodeSignature`,签名者为 Microsoft Corporation,状态 Valid) 再放入发布包。
-- `dist\Zevision-<版本>.zip`:上述文件夹的压缩包,即发布包
-- `dist\symbols\Zevision-<版本>.pdb`:调试符号,留档用于分析用户反馈的异常堆栈,不发布
+```
+powershell -ExecutionPolicy Bypass -File tools\package.ps1
+```
 
-打包后把 zip 解压到一个新目录,启动一次,确认标题栏版本正确,再关闭。不要在 `dist\Zevision-<版本>\` 中直接启动 (会生成 `settings.json`、`logs\`)。
+脚本依次:Release 重新构建并运行全部单元测试 (`-SkipBuild` 跳过) → 组装发布文件夹 → 核对 .NET 安装包的数字签名 → 压缩 → 输出 SHA256 → 把 zip 解压到临时目录启动一次,确认标题栏的版本后关闭 (程序已在运行时跳过并提示手动检查:单实例)。版本已存在时拒绝覆盖。
+
+- `dist\Zevision-<版本>\`:
+  - 程序目录:`Zevision.exe`、`Zevision.exe.config`、`Texts.json`、`使用说明.md` (即 `docs/USER_GUIDE.md`)、`User Guide.md` (即 `docs/USER_GUIDE.en.md`)
+  - `lib\`:上表的 7 个 dll
+  - `dotnet\ndp48-x86-x64-allos-enu.exe`:默认取 `dist` 中最近一个发布包里的,或用 `-DotNetInstaller` 指定。脚本核对数字签名 (签名者 Microsoft Corporation,状态 Valid)。
+- `dist\Zevision-<版本>.zip`:上述文件夹的压缩包,即发布包。把脚本输出的 SHA256 填入下面的版本表。
+- `dist\symbols\Zevision-<版本>\`:exe 和 4 个 dll 的 pdb (0.9.x 只有 `dist\symbols\Zevision-<版本>.pdb`),留档用于分析用户反馈的异常堆栈,不发布。
+
+不要在 `dist\Zevision-<版本>\` 中直接启动 (会生成 `settings.json`、`logs\`)。
 
 ### 链接库 (供生产程序使用)
 
@@ -89,7 +99,7 @@
   - 数据存储层:新的 `Zevision.Storage.dll` (配置文件、`settings.json`、错误日志、通讯数据文件),实现业务层定义的接口。
   - 界面层 (`Zevision.exe`) 只依赖业务层的接口,存储层只在程序启动时组装。
   - 业务层和存储层的提示与错误文本集中在翻译文件 `Texts.json` (中英文),放在程序旁边。
-- 两个新 dll 和 `Texts.json` 必须和 `Zevision.exe` 放在同一个文件夹。
+- 发布包结构:程序目录只有 `Zevision.exe`、`Zevision.exe.config`、`Texts.json` 和使用说明,全部 dll 在 `lib\` 子文件夹。升级时删除旧版本程序目录中的 dll (或解压到新文件夹),`settings.json`、`recipe\`、`logs\` 保留。由 `tools\package.ps1` 生成。
 - 修正 RS232 读取配置失败 (2026-10-18 实测):设备的 RS232 校验和、长度字节都开着 (G1304 = G1305 = 1),但 `?` 的响应以不带长度和校验和的整帧发来,程序把开头的 `?+` 当作长度,报告"缺少停止符",其余约 80 KB 显示为"帧外数据"并写入 error.txt。解码器现在能识别这种响应 (`Zevision.Communication` 1.0.1,公开接口不变)。
 - 数据显示区:帮助指令 (`?`、`?M` 等) 只在指令输入框中发送时显示;保存、恢复、修改配置时读取设备用的帮助指令及其响应不再显示,也不保存到通讯数据文件、不计入收发帧数。取消读取后设备仍在发送的剩余数据也不显示。
 - 修正内存泄漏:修改配置窗口关闭后不能被回收,每打开一次多占约 40 MB (托管内存;进程私有内存约 50 MB),多次打开后程序越来越占内存。现在关闭后全部释放。
