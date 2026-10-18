@@ -44,6 +44,7 @@
     <Compile Include="FakeDialogService.cs" />
     <Compile Include="MemoryPreferencesStore.cs" />
     <Compile Include="NoCommunicationRecorders.cs" />
+    <Compile Include="TextCatalogTests.cs" />
     <Compile Include="LocalizationTests.cs" />
     <Compile Include="ObjectEditTests.cs" />
     <Compile Include="ObjectTypesTests.cs" />

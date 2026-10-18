@@ -40,18 +40,18 @@ namespace Zevision.Core.Configuration
                 case CommandValueKind.Time:
                     if (!TryParseTime(text, out var seconds))
                     {
-                        return Lang.T("时间格式应为 H:MM:SS,小时 0~", "Time must be H:MM:SS, hours 0~") + MaxHours + Lang.T(",分、秒 0~59", ", minutes and seconds 0~59");
+                        return Texts.InvalidTime(MaxHours);
                     }
 
                     return (definition.Min.HasValue && seconds < definition.Min.Value) || (definition.Max.HasValue && seconds > definition.Max.Value)
-                        ? Lang.T("超出范围 ", "Out of range ") + definition.RangeText()
+                        ? Texts.OutOfRange + definition.RangeText()
                         : null;
 
                 case CommandValueKind.Enum:
-                    return definition.Options.Any(o => o.Value == text) ? null : Lang.T("只能选择: ", "Must be one of: ") + definition.RangeText();
+                    return definition.Options.Any(o => o.Value == text) ? null : Texts.MustBeOneOf + definition.RangeText();
 
                 case CommandValueKind.Reference:
-                    return int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out _) ? null : Lang.T("应为对象编号", "Must be an object number");
+                    return int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out _) ? null : Texts.MustBeObjectNumber;
 
                 default:
                     return null;
@@ -164,18 +164,18 @@ namespace Zevision.Core.Configuration
         {
             if (!decimal.TryParse(text, NumberStyle, CultureInfo.InvariantCulture, out var number))
             {
-                return definition.IsInteger ? Lang.T("应为整数", "Must be an integer") : Lang.T("应为数字 (小数点用 .)", "Must be a number (use . as the decimal point)");
+                return definition.IsInteger ? Texts.MustBeInteger : Texts.MustBeNumber;
             }
 
             if (definition.IsInteger && text.IndexOf('.') >= 0)
             {
-                return Lang.T("应为整数", "Must be an integer");
+                return Texts.MustBeInteger;
             }
 
             if ((definition.Min.HasValue && number < definition.Min.Value)
                 || (definition.Max.HasValue && number > definition.Max.Value))
             {
-                return Lang.T("超出范围 ", "Out of range ") + definition.RangeText();
+                return Texts.OutOfRange + definition.RangeText();
             }
 
             return null;

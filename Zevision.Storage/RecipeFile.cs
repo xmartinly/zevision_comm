@@ -5,7 +5,6 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Zevision.Core;
 using Zevision.Core.Configuration;
-using Zevision.Core.Localization;
 
 namespace Zevision.Storage
 {
@@ -36,13 +35,13 @@ namespace Zevision.Storage
 
             if (string.IsNullOrEmpty(path))
             {
-                throw new ArgumentException(Lang.T("路径不能为空。", "The path must not be empty."), nameof(path));
+                throw new ArgumentException(Texts.PathEmpty, nameof(path));
             }
 
             var md5 = ComputeMd5(recipe);
             if (!md5.IsSuccess)
             {
-                return Result.Fail(Lang.T("保存仪器配置文件失败: ", "Saving the configuration file failed: ") + md5.Error);
+                return Result.Fail(Texts.RecipeSaveFailed(md5.Error));
             }
 
             recipe.Md5 = md5.Value;
@@ -53,7 +52,7 @@ namespace Zevision.Storage
             }
             catch (Exception ex) when (JsonFile.IsExpectedFailure(ex))
             {
-                return Result.Fail(Lang.T($"保存仪器配置文件失败: {ex.Message}", $"Saving the configuration file failed: {ex.Message}"));
+                return Result.Fail(Texts.RecipeSaveFailed(ex.Message));
             }
         }
 
@@ -64,7 +63,7 @@ namespace Zevision.Storage
         {
             if (string.IsNullOrEmpty(path))
             {
-                throw new ArgumentException(Lang.T("路径不能为空。", "The path must not be empty."), nameof(path));
+                throw new ArgumentException(Texts.PathEmpty, nameof(path));
             }
 
             InstrumentRecipe? recipe;
@@ -74,13 +73,13 @@ namespace Zevision.Storage
             }
             catch (Exception ex) when (JsonFile.IsExpectedFailure(ex))
             {
-                return Result<InstrumentRecipe>.Fail(Lang.T($"无法读取仪器配置文件: {ex.Message}", $"Cannot read the configuration file: {ex.Message}"));
+                return Result<InstrumentRecipe>.Fail(Texts.RecipeReadFailed(ex.Message));
             }
 
             var error = Validate(recipe);
             return error == null
                 ? Result<InstrumentRecipe>.Ok(recipe!)
-                : Result<InstrumentRecipe>.Fail(Lang.T("仪器配置文件无效: ", "Invalid configuration file: ") + error);
+                : Result<InstrumentRecipe>.Fail(Texts.RecipeInvalid + error);
         }
 
         /// <summary>
@@ -138,7 +137,7 @@ namespace Zevision.Storage
             catch (InvalidOperationException ex)
             {
                 // Windows 启用"使用 FIPS 兼容算法"策略时,.NET Framework 的 MD5 实现会抛出此异常。
-                return Result<string>.Fail(Lang.T("系统安全策略 (FIPS) 禁止使用 MD5: ", "The system security policy (FIPS) does not allow MD5: ") + ex.Message);
+                return Result<string>.Fail(Texts.Md5NotAllowed + ex.Message);
             }
         }
 
@@ -159,27 +158,27 @@ namespace Zevision.Storage
             // DataContract 反序列化不调用构造函数,缺失的字段会是 null。
             if (recipe == null)
             {
-                return Lang.T("内容为空。", "The file is empty.");
+                return Texts.RecipeEmpty;
             }
 
             if (recipe.FormatVersion == 1)
             {
-                return Lang.T("这是旧版本 (格式 1) 的文件,没有 MD5 校验,无法确认未被修改。请连接设备后重新\"保存配置\"。", "This file is from an old version (format 1) without an MD5 checksum, so it cannot be confirmed unmodified. Connect to the device and save the configuration again.");
+                return Texts.RecipeFormat1;
             }
 
             if (recipe.FormatVersion != InstrumentRecipe.CurrentFormatVersion)
             {
-                return Lang.T($"格式版本 {recipe.FormatVersion} 不受支持 (本程序支持 {InstrumentRecipe.CurrentFormatVersion})。", $"Format version {recipe.FormatVersion} is not supported (this program supports {InstrumentRecipe.CurrentFormatVersion}).");
+                return Texts.RecipeFormatUnsupported(recipe.FormatVersion, InstrumentRecipe.CurrentFormatVersion);
             }
 
             if (string.IsNullOrEmpty(recipe.Md5))
             {
-                return Lang.T("缺少 MD5 校验值 (md5),无法确认文件未被修改。", "The MD5 checksum (md5) is missing, so the file cannot be confirmed unmodified.");
+                return Texts.Md5Missing;
             }
 
             if (!Md5Pattern.IsMatch(recipe.Md5))
             {
-                return Lang.T("MD5 校验值格式不正确,文件可能已被修改。", "The MD5 checksum has an invalid format; the file may have been modified.");
+                return Texts.Md5Malformed;
             }
 
             // 先校验 MD5 再检查内容:任何修改 (包括删除字段) 都应报告为"文件被修改",而不是某个具体字段的错误。
@@ -191,35 +190,35 @@ namespace Zevision.Storage
 
             if (!string.Equals(actual.Value, recipe.Md5, StringComparison.OrdinalIgnoreCase))
             {
-                return Lang.T("MD5 校验失败,文件在保存后被修改过或已损坏,为安全起见拒绝恢复。", "MD5 check failed: the file was modified after saving or is damaged. Refused for safety.");
+                return Texts.Md5Mismatch;
             }
 
             if (recipe.DeviceName == null || recipe.ModelNumber == null || recipe.FirmwareVersion == null
                 || recipe.SerialNumber == null || recipe.SavedAt == null)
             {
-                return Lang.T("缺少文件头字段。", "Header fields are missing.");
+                return Texts.HeaderMissing;
             }
 
             if (recipe.DeviceName.Length == 0)
             {
-                return Lang.T("缺少设备名称 (deviceName)。", "The device name (deviceName) is missing.");
+                return Texts.DeviceNameMissing;
             }
 
             if (recipe.Entries == null || recipe.Entries.Count == 0)
             {
-                return Lang.T("没有配置项 (entries)。", "There are no configuration entries (entries).");
+                return Texts.NoEntries;
             }
 
             foreach (var entry in recipe.Entries)
             {
                 if (entry == null || !DeviceIds.IsWellFormed(entry.Id))
                 {
-                    return Lang.T($"配置项 ID 不合法: {entry?.Id ?? "(空)"}", $"Invalid configuration entry ID: {entry?.Id ?? "(empty)"}");
+                    return Texts.InvalidEntryId(entry?.Id ?? Texts.EmptyValue);
                 }
 
                 if (entry.Value == null || entry.Description == null)
                 {
-                    return Lang.T($"配置项 {entry.Id} 缺少字段。", $"Configuration entry {entry.Id} is missing fields.");
+                    return Texts.EntryMissingFields(entry.Id);
                 }
             }
 

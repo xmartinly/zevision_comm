@@ -2,7 +2,6 @@ using System;
 using System.Globalization;
 using System.IO;
 using Zevision.Core;
-using Zevision.Core.Localization;
 
 namespace Zevision.Storage
 {
@@ -34,7 +33,7 @@ namespace Zevision.Storage
             }
             catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is ArgumentException || ex is NotSupportedException)
             {
-                return Result<ICommunicationRecorder>.Fail(Lang.T($"无法创建通讯数据文件 {path}: {ex.Message}", $"Cannot create the communication data file {path}: {ex.Message}"));
+                return Result<ICommunicationRecorder>.Fail(Texts.CannotCreateCaptureFile(path, ex.Message));
             }
         }
     }

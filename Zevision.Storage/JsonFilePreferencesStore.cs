@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using Zevision.Core;
-using Zevision.Core.Localization;
 using Zevision.Core.Settings;
 
 namespace Zevision.Storage
@@ -21,7 +20,7 @@ namespace Zevision.Storage
         {
             if (string.IsNullOrEmpty(path))
             {
-                throw new ArgumentException(Lang.T("路径不能为空。", "The path must not be empty."), nameof(path));
+                throw new ArgumentException(Texts.PathEmpty, nameof(path));
             }
 
             _path = path;
@@ -40,7 +39,7 @@ namespace Zevision.Storage
                 var preferences = JsonFile.Read<ConnectionPreferences>(_path);
                 if (preferences == null)
                 {
-                    return Result<ConnectionPreferences>.Fail(Lang.T($"通讯配置文件 {_path} 内容为空,已使用默认值。", $"The settings file {_path} is empty; defaults are used."));
+                    return Result<ConnectionPreferences>.Fail(Texts.SettingsFileEmpty(_path));
                 }
 
                 preferences.PortName = preferences.PortName ?? string.Empty;
@@ -48,7 +47,7 @@ namespace Zevision.Storage
             }
             catch (Exception ex) when (JsonFile.IsExpectedFailure(ex))
             {
-                return Result<ConnectionPreferences>.Fail(Lang.T($"无法读取通讯配置文件 {_path},已使用默认值: {ex.Message}", $"Cannot read the settings file {_path}; defaults are used: {ex.Message}"));
+                return Result<ConnectionPreferences>.Fail(Texts.SettingsReadFailed(_path, ex.Message));
             }
         }
 
@@ -67,7 +66,7 @@ namespace Zevision.Storage
             }
             catch (Exception ex) when (JsonFile.IsExpectedFailure(ex))
             {
-                return Result.Fail(Lang.T($"保存通讯配置失败: {ex.Message}", $"Saving the settings failed: {ex.Message}"));
+                return Result.Fail(Texts.SettingsSaveFailed(ex.Message));
             }
         }
     }

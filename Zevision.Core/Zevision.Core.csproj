@@ -38,6 +38,7 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -45,6 +46,7 @@
     <Compile Include="ICommunicationRecorder.cs" />
     <Compile Include="IErrorLog.cs" />
     <Compile Include="Result.cs" />
+    <Compile Include="Texts.cs" />
     <Compile Include="Configuration\DeviceIds.cs" />
     <Compile Include="Configuration\IInstrumentConfigService.cs" />
     <Compile Include="Configuration\InstrumentConfigReader.cs" />
@@ -64,8 +66,15 @@
     <Compile Include="Localization\CommandText.cs" />
     <Compile Include="Localization\CommunicationText.cs" />
     <Compile Include="Localization\Lang.cs" />
+    <Compile Include="Localization\TextCatalog.cs" />
     <Compile Include="Settings\ConnectionPreferences.cs" />
     <Compile Include="Settings\IPreferencesStore.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- 业务层和存储层的中英文文本 (翻译文件),嵌入程序集,键见 Texts.cs。 -->
+    <EmbeddedResource Include="Localization\Texts.json">
+      <LogicalName>Zevision.Core.Texts.json</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Zevision.Communication\Zevision.Communication.csproj">

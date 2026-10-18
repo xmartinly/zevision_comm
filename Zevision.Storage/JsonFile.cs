@@ -3,7 +3,6 @@ using System.IO;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using System.Text;
-using Zevision.Core.Localization;
 
 namespace Zevision.Storage
 {
@@ -39,7 +38,7 @@ namespace Zevision.Storage
         {
             if (string.IsNullOrEmpty(path))
             {
-                throw new ArgumentException(Lang.T("路径不能为空。", "The path must not be empty."), nameof(path));
+                throw new ArgumentException(Texts.PathEmpty, nameof(path));
             }
 
             var directory = Path.GetDirectoryName(path);

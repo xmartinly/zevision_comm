@@ -41,13 +41,13 @@ namespace Zevision.Core.Configuration
             var reply = await SendForDataAsync(ZevisionCommandSet.HelpCommand, SlowReplyTimeout, cancellationToken).ConfigureAwait(false);
             if (!reply.IsSuccess)
             {
-                return Result<InstrumentSnapshot>.Fail(Lang.T("读取设备配置失败: ", "Failed to read the device configuration: ") + reply.Error);
+                return Result<InstrumentSnapshot>.Fail(Texts.ReadConfigFailed + reply.Error);
             }
 
             var entries = HelpTableParser.Parse(reply.Value);
             if (entries.Count == 0)
             {
-                return Result<InstrumentSnapshot>.Fail(Lang.T("读取设备配置失败: 无法解析帮助表。", "Failed to read the device configuration: the help table could not be parsed."));
+                return Result<InstrumentSnapshot>.Fail(Texts.ReadConfigUnparseable);
             }
 
             return Result<InstrumentSnapshot>.Ok(new InstrumentSnapshot(entries));
@@ -57,7 +57,7 @@ namespace Zevision.Core.Configuration
         public async Task<Result<IReadOnlyList<RecipeEntry>>> ReadGroupAsync(char group, CancellationToken cancellationToken)
         {
             var command = ZevisionCommandSet.HelpCommand + group.ToString();
-            var failure = Lang.T($"读取设备配置 ({command}) 失败: ", $"Failed to read the device configuration ({command}): ");
+            var failure = Texts.ReadGroupFailed(command);
             var reply = await SendForDataAsync(command, SlowReplyTimeout, cancellationToken).ConfigureAwait(false);
             if (!reply.IsSuccess)
             {
@@ -68,7 +68,7 @@ namespace Zevision.Core.Configuration
             var parsed = HelpTableParser.Parse(reply.Value).Where(e => e.Id[0] == group).ToList();
             return parsed.Any(e => DeviceIds.IsCount(e.Id))
                 ? Result<IReadOnlyList<RecipeEntry>>.Ok(RecipeRules.SelectRestorable(parsed))
-                : Result<IReadOnlyList<RecipeEntry>>.Fail(failure + Lang.T("无法解析帮助表。", "the help table could not be parsed."));
+                : Result<IReadOnlyList<RecipeEntry>>.Fail(failure + Texts.HelpTableNotParsed);
         }
 
         /// <inheritdoc />
@@ -86,12 +86,12 @@ namespace Zevision.Core.Configuration
                 var responses = await SendQueriesAsync(batch, SlowReplyTimeout, cancellationToken).ConfigureAwait(false);
                 if (!responses.IsSuccess)
                 {
-                    return Result<IReadOnlyList<QueryValue>>.Fail(Lang.T("查询失败: ", "Query failed: ") + responses.Error);
+                    return Result<IReadOnlyList<QueryValue>>.Fail(Texts.QueryFailed + responses.Error);
                 }
 
                 values.AddRange(batch.Select((id, i) => responses.Value[i] is { } response
                     ? new QueryValue(id, response.IsSuccess ? response.Data?.Trim() ?? string.Empty : null, response.IsSuccess ? null : response.ErrorCode.Localized())
-                    : new QueryValue(id, null, Lang.T("设备没有返回响应", "The device did not respond"))));
+                    : new QueryValue(id, null, Texts.QueryNoResponse)));
             }
 
             return Result<IReadOnlyList<QueryValue>>.Ok(values);
@@ -107,19 +107,19 @@ namespace Zevision.Core.Configuration
             var name = replies.IsSuccess ? ValueOf(replies.Value[0]) : Result<string>.Fail(replies.Error!); // 失败的 Result 总有原因
             if (!name.IsSuccess)
             {
-                return Lang.T("无法读取设备名称 (G03): ", "Cannot read the device name (G03): ") + name.Error;
+                return Texts.CannotReadDeviceName + name.Error;
             }
 
             if (!string.Equals(name.Value, deviceName, StringComparison.OrdinalIgnoreCase))
             {
-                return Lang.T($"设备型号不符:文件来自 {deviceName},当前设备是 {name.Value}。", $"Device model mismatch: the file is from {deviceName}, the connected device is {name.Value}.");
+                return Texts.DeviceModelMismatch(deviceName, name.Value);
             }
 
             var state = ValueOf(replies.Value[1]);
             if (!state.IsSuccess || !string.Equals(state.Value, RestorePlanner.ReadyState, StringComparison.OrdinalIgnoreCase))
             {
                 var current = state.IsSuccess ? state.Value : state.Error;
-                return Lang.T($"设备当前状态为 {current},只有在 {RestorePlanner.ReadyState} (空闲) 状态下才能修改配置。", $"The device state is {current}; the configuration can only be changed in the {RestorePlanner.ReadyState} (idle) state.");
+                return Texts.DeviceNotReadyForChange(current, RestorePlanner.ReadyState);
             }
 
             return null;
@@ -143,7 +143,7 @@ namespace Zevision.Core.Configuration
             var count = await QueryValueAsync(DeviceIds.CountOf(listId), cancellationToken).ConfigureAwait(false);
             return count.IsSuccess && DeviceIds.TryParseCount(count.Value, out var number)
                 ? Result<int>.Ok(number)
-                : Result<int>.Fail(Lang.T($"无法读取 {listId} 的条数 ({DeviceIds.CountOf(listId)}): ", $"Cannot read the number of items in {listId} ({DeviceIds.CountOf(listId)}): ") + (count.IsSuccess ? count.Value : count.Error));
+                : Result<int>.Fail(Texts.CannotReadListCount(listId, DeviceIds.CountOf(listId)) + (count.IsSuccess ? count.Value : count.Error));
         }
 
         /// <summary>发送一条指令,要求设备接受。</summary>
@@ -164,7 +164,7 @@ namespace Zevision.Core.Configuration
             }
 
             return reply.Value.Data == null
-                ? Result<string>.Fail(Lang.T("无响应数据", "no response data"))
+                ? Result<string>.Fail(Texts.NoResponseData)
                 : Result<string>.Ok(reply.Value.Data);
         }
 
@@ -215,13 +215,13 @@ namespace Zevision.Core.Configuration
             : response.IsSuccess ? Result<string>.Ok(response.Data?.Trim() ?? string.Empty)
             : Result<string>.Fail(DescribeRejection(response));
 
-        private static string NoResponse => Lang.T("设备没有返回响应。", "The device did not respond.");
+        private static string NoResponse => Texts.NoResponse;
 
         /// <summary>设备拒绝的说明,含原始错误码,如"设备拒绝: B 非法参数值"。</summary>
         private static string DescribeRejection(ZevisionResponse response)
         {
             var code = response.RawErrorCode.HasValue ? response.RawErrorCode.Value + " " : string.Empty;
-            return Lang.T($"设备拒绝: {code}{response.ErrorCode.Localized()}", $"Rejected by the device: {code}{response.ErrorCode.Localized()}");
+            return Texts.RejectedByDevice(code, response.ErrorCode.Localized());
         }
     }
 }

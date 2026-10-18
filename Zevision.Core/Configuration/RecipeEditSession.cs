@@ -5,7 +5,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Zevision.Commands;
-using Zevision.Core.Localization;
 
 namespace Zevision.Core.Configuration
 {
@@ -201,15 +200,13 @@ namespace Zevision.Core.Configuration
                 var value = result.IsSuccess ? result.Value[0] : null;
                 if (!DeviceIds.TryParseCount(value?.Value, out var deviceCount))
                 {
-                    return Lang.T($"无法读取设备上 {listId} 的条数: ", $"Cannot read the number of items in {listId} on the device: ") + (result.IsSuccess ? value?.Error : result.Error);
+                    return Texts.CannotReadDeviceListCount(listId) + (result.IsSuccess ? value?.Error : result.Error);
                 }
 
                 var fileCount = Document.ListItemCount(listId);
                 return deviceCount == fileCount
                     ? null
-                    : Lang.T(
-                        $"设备与文件中 {listId} 的条数不同 (设备 {deviceCount} 条,文件 {fileCount} 条),无法确定新增条目的编号。请先用\"恢复\"让设备与文件一致。",
-                        $"{listId} has {deviceCount} item(s) on the device but {fileCount} in the file, so the number of the new item cannot be determined. Restore the file to the device first.");
+                    : Texts.ListCountDiffers(listId, deviceCount, fileCount);
             }
 
             /// <summary>只把新的一条 (设备默认值) 加入文件,文件中其他内容不变。</summary>

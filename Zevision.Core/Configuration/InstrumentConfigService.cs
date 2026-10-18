@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using Zevision.Commands;
 using Zevision.Communication;
 using Zevision.Core.Devices;
-using Zevision.Core.Localization;
 
 namespace Zevision.Core.Configuration
 {
@@ -76,7 +75,7 @@ namespace Zevision.Core.Configuration
 
             if (before.Value == 0)
             {
-                return Result<string>.Fail(Lang.T($"{listId} 中没有可删除的条目。", $"{listId} has no item to remove."));
+                return Result<string>.Fail(Texts.NoItemToRemove(listId));
             }
 
             var error = await SendExpectingSuccessAsync(remove, cancellationToken).ConfigureAwait(false);
@@ -88,9 +87,7 @@ namespace Zevision.Core.Configuration
             var after = await ReadListCountAsync(listId, cancellationToken).ConfigureAwait(false);
             if (!after.IsSuccess || after.Value != before.Value - 1)
             {
-                return Result<string>.Fail(Lang.T(
-                    $"已发送 {remove},但 {listId} 的条数不是预期的 {before.Value - 1}: ",
-                    $"{remove} was sent, but {listId} does not have the expected {before.Value - 1} item(s): ") + (after.IsSuccess ? after.Value.ToString(CultureInfo.InvariantCulture) : after.Error));
+                return Result<string>.Fail(Texts.ListCountAfterRemove(remove, listId, before.Value - 1) + (after.IsSuccess ? after.Value.ToString(CultureInfo.InvariantCulture) : after.Error));
             }
 
             return Result<string>.Ok(DeviceIds.Item(listId, before.Value));
@@ -130,7 +127,7 @@ namespace Zevision.Core.Configuration
                 // 1. 系统设置 (传感器、源、输入输出、逻辑、系统偏好):不依赖可创建的对象,最先写入。
                 var systemWrites = plan.Writes.Where(w => RecipeRules.IsSystemSetting(w.Id)).ToList();
                 report.PlannedWriteCount = systemWrites.Count;
-                if (!await WriteAllAsync(systemWrites, Lang.T("写入系统设置", "Writing system settings"), written, report, progress, cancellationToken).ConfigureAwait(false))
+                if (!await WriteAllAsync(systemWrites, Texts.StageWritingSystem, written, report, progress, cancellationToken).ConfigureAwait(false))
                 {
                     return report;
                 }
@@ -153,7 +150,7 @@ namespace Zevision.Core.Configuration
                 //    系统设置已在第 1 步写过,重新计划中即使再次出现也不重复写入,由最后的校验发现问题。
                 var objectWrites = current.Writes.Where(w => !RecipeRules.IsSystemSetting(w.Id)).ToList();
                 report.PlannedWriteCount += objectWrites.Count;
-                if (!await WriteAllAsync(objectWrites, Lang.T("写入", "Writing"), written, report, progress, cancellationToken).ConfigureAwait(false))
+                if (!await WriteAllAsync(objectWrites, Texts.StageWriting, written, report, progress, cancellationToken).ConfigureAwait(false))
                 {
                     return report;
                 }
@@ -195,20 +192,20 @@ namespace Zevision.Core.Configuration
                     if (!RecipeRules.IsRestorable(edit.Id, edit.Value, out var reason))
                     {
                         report.FailedId = edit.Id;
-                        report.Error = Lang.T($"{edit.Id} 不能修改: {reason}", $"{edit.Id} cannot be changed: {reason}");
+                        report.Error = Texts.CannotChange(edit.Id, reason);
                         return report;
                     }
 
                     if (ProtocolText.ValidateValue(edit.Value) != null)
                     {
                         report.FailedId = edit.Id;
-                        report.Error = Lang.T($"{edit.Id} 的值含有协议不支持的字符 (非 ASCII、; 或 {{ }})。", $"The value of {edit.Id} contains characters the protocol does not allow (non-ASCII, ; or {{ }}).");
+                        report.Error = Texts.ValueHasProtocolChars(edit.Id);
                         return report;
                     }
                 }
 
                 // 快速确认设备:用单条查询代替约 10 秒的 ? 读取。
-                progress?.Report(new RestoreProgress(Lang.T("检查设备", "Checking the device"), 0, 0));
+                progress?.Report(new RestoreProgress(Texts.StageCheckingDevice, 0, 0));
                 report.Error = await CheckDeviceReadyAsync(recipe.DeviceName, cancellationToken).ConfigureAwait(false);
                 if (report.Error != null)
                 {
@@ -222,7 +219,7 @@ namespace Zevision.Core.Configuration
                     .ToList();
                 report.PlannedWriteCount = writes.Count;
                 var written = new List<RestoreWrite>();
-                if (!await WriteAllAsync(writes, Lang.T("写入", "Writing"), written, report, progress, cancellationToken).ConfigureAwait(false))
+                if (!await WriteAllAsync(writes, Texts.StageWriting, written, report, progress, cancellationToken).ConfigureAwait(false))
                 {
                     return report;
                 }
@@ -292,15 +289,15 @@ namespace Zevision.Core.Configuration
             if (!count.IsSuccess || count.Value < CommandDefinition.MinIndex || count.Value > CommandDefinition.MaxIndex)
             {
                 return Result<string>.Fail(count.IsSuccess
-                    ? Lang.T($"已在 {listId} 末尾追加一项,但条数 {count.Value} 不合法。", $"Appended an item to {listId}, but its count {count.Value} is invalid.")
-                    : Lang.T($"已在 {listId} 末尾追加一项。", $"Appended an item to {listId}. ") + count.Error);
+                    ? Texts.AppendedInvalidCount(listId, count.Value)
+                    : Texts.AppendedItem(listId) + count.Error);
             }
 
             var itemId = DeviceIds.Item(listId, count.Value);
             var writeError = value == null ? null : await WriteVerifiedAsync(itemId, value, cancellationToken).ConfigureAwait(false);
             return writeError == null
                 ? Result<string>.Ok(itemId)
-                : Result<string>.Fail(Lang.T($"已在末尾追加 {itemId},但", $"Appended {itemId}, but ") + writeError);
+                : Result<string>.Fail(Texts.AppendedBut(itemId) + writeError);
         }
 
         /// <summary>写入一项 (<c>U&lt;id&gt;:&lt;值&gt;</c>) 并读回校验。</summary>
@@ -311,13 +308,13 @@ namespace Zevision.Core.Configuration
             var error = await SendExpectingSuccessAsync(write, cancellationToken).ConfigureAwait(false);
             if (error != null)
             {
-                return Lang.T($"写入失败 ({write}): {error}", $"writing failed ({write}): {error}");
+                return Texts.WriteFailed(write, error);
             }
 
             var readBack = await QueryValueAsync(id, cancellationToken).ConfigureAwait(false);
             return readBack.IsSuccess && ParameterValue.AreEquivalent(value, readBack.Value)
                 ? null
-                : Lang.T($"{id} 写入后读回不一致: 写入 {value},读回 ", $"{id} read back differs: wrote {value}, read ") + (readBack.IsSuccess ? readBack.Value : readBack.Error);
+                : Texts.ReadBackDiffers(id, value) + (readBack.IsSuccess ? readBack.Value : readBack.Error);
         }
 
         /// <summary>
@@ -337,10 +334,10 @@ namespace Zevision.Core.Configuration
                 var readBack = actual.IsSuccess ? actual.Value : null;
                 if (!ParameterValue.AreEquivalent(write.Value, readBack))
                 {
-                    report.VerifyMismatches.Add(Lang.T($"{write.Id}: 期望 \"{write.Value}\",读回 \"{readBack ?? actual.Error}\"", $"{write.Id}: expected \"{write.Value}\", read back \"{readBack ?? actual.Error}\""));
+                    report.VerifyMismatches.Add(Texts.VerifyMismatch(write.Id, write.Value, readBack ?? actual.Error));
                 }
 
-                progress?.Report(new RestoreProgress(Lang.T("校验", "Verifying"), i + 1, written.Count));
+                progress?.Report(new RestoreProgress(Texts.StageVerifying, i + 1, written.Count));
             }
         }
 
@@ -394,11 +391,11 @@ namespace Zevision.Core.Configuration
             {
                 if (round > MaxCreateRounds)
                 {
-                    report.Error = Lang.T($"创建对象超过 {MaxCreateRounds} 轮仍未完成,已停止,未写入任何设置。", $"Creating objects did not finish within {MaxCreateRounds} rounds; stopped without writing any settings.");
+                    report.Error = Texts.CreateRoundsExceeded(MaxCreateRounds);
                     return null;
                 }
 
-                var stage = round == 1 ? Lang.T("创建", "Creating") : Lang.T($"创建 (第 {round} 轮)", $"Creating (round {round})");
+                var stage = round == 1 ? Texts.StageCreating : Texts.StageCreatingRound(round);
                 for (var i = 0; i < current.Creates.Count; i++)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
@@ -407,7 +404,7 @@ namespace Zevision.Core.Configuration
                     if (error != null)
                     {
                         report.FailedId = create.Id;
-                        report.Error = Lang.T($"创建{create.Kind} {create.Id} ({create.Command}) 失败: {error}", $"Creating {create.Kind} {create.Id} ({create.Command}) failed: {error}");
+                        report.Error = Texts.CreateFailed(create.Kind, create.Id, create.Command, error);
                         return null;
                     }
 
@@ -415,18 +412,18 @@ namespace Zevision.Core.Configuration
                     progress?.Report(new RestoreProgress(stage, i + 1, current.Creates.Count));
                 }
 
-                progress?.Report(new RestoreProgress(Lang.T("重新读取设备", "Re-reading the device"), 0, 0));
+                progress?.Report(new RestoreProgress(Texts.StageRereading, 0, 0));
                 var snapshot = await ReadSnapshotAsync(cancellationToken).ConfigureAwait(false);
                 if (!snapshot.IsSuccess)
                 {
-                    report.Error = Lang.T("创建对象后", "After creating objects: ") + snapshot.Error;
+                    report.Error = Texts.AfterCreatingObjects + snapshot.Error;
                     return null;
                 }
 
                 var replanned = RestorePlanner.Plan(recipe, snapshot.Value);
                 if (!replanned.IsSuccess)
                 {
-                    report.Error = Lang.T("创建对象后重新计划失败: ", "Re-planning after creating objects failed: ") + replanned.Error;
+                    report.Error = Texts.ReplanFailed + replanned.Error;
                     return null;
                 }
 
@@ -436,7 +433,7 @@ namespace Zevision.Core.Configuration
                 if (stillMissing != null)
                 {
                     report.FailedId = stillMissing.Id;
-                    report.Error = Lang.T($"已发送创建指令,但设备上仍没有{stillMissing.Kind} {stillMissing.Id},已停止,未写入任何设置。", $"The create command was sent, but {stillMissing.Kind} {stillMissing.Id} still does not exist on the device; stopped without writing any settings.");
+                    report.Error = Texts.CreatedObjectMissing(stillMissing.Kind, stillMissing.Id);
                     return null;
                 }
 

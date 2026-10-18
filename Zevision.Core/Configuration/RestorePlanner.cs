@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Zevision.Commands;
 using Zevision.Communication;
-using Zevision.Core.Localization;
 
 namespace Zevision.Core.Configuration
 {
@@ -33,7 +32,7 @@ namespace Zevision.Core.Configuration
 
             if (snapshot.DeviceName.Length == 0)
             {
-                return Result<RestorePlan>.Fail(Lang.T("无法识别设备 (帮助表中没有 G03 设备名称)。", "Cannot identify the device (no G03 device name in the help table)."));
+                return Result<RestorePlan>.Fail(Texts.DeviceUnidentified);
             }
 
             if (!string.Equals(recipe.DeviceName, snapshot.DeviceName, StringComparison.OrdinalIgnoreCase)
@@ -41,21 +40,19 @@ namespace Zevision.Core.Configuration
                     && !string.Equals(recipe.ModelNumber, snapshot.ModelNumber, StringComparison.OrdinalIgnoreCase)))
             {
                 return Result<RestorePlan>.Fail(
-                    Lang.T($"设备型号不符:文件来自 {recipe.DeviceName} {recipe.ModelNumber},当前设备是 {snapshot.DeviceName} {snapshot.ModelNumber}。", $"Device model mismatch: the file is from {recipe.DeviceName} {recipe.ModelNumber}, the connected device is {snapshot.DeviceName} {snapshot.ModelNumber}."));
+                    Texts.RestoreModelMismatch(recipe.DeviceName, recipe.ModelNumber, snapshot.DeviceName, snapshot.ModelNumber));
             }
 
             if (!string.Equals(snapshot.CurrentState, ReadyState, StringComparison.OrdinalIgnoreCase))
             {
                 return Result<RestorePlan>.Fail(
-                    Lang.T(
-                        $"设备当前状态为 {snapshot.CurrentState ?? "(未知)"},只有在 {ReadyState} (空闲) 状态下才能恢复配置。",
-                        $"The device state is {snapshot.CurrentState ?? "(unknown)"}; the configuration can only be restored in the {ReadyState} (idle) state."));
+                    Texts.RestoreNotReady(snapshot.CurrentState ?? Texts.UnknownValue, ReadyState));
             }
 
             var warnings = new List<string>();
             if (!string.Equals(recipe.FirmwareVersion, snapshot.FirmwareVersion, StringComparison.Ordinal))
             {
-                warnings.Add(Lang.T($"固件版本不同:文件 {recipe.FirmwareVersion},设备 {snapshot.FirmwareVersion}。部分设置项的含义可能不同。", $"Different firmware: file {recipe.FirmwareVersion}, device {snapshot.FirmwareVersion}. Some settings may have a different meaning."));
+                warnings.Add(Texts.FirmwareDiffers(recipe.FirmwareVersion, snapshot.FirmwareVersion));
             }
 
             // 文件中有设置项、设备上缺少的对象,分两类创建:
@@ -98,7 +95,7 @@ namespace Zevision.Core.Configuration
             creates = creates.OrderBy(c => RecipeRules.GroupRank(c.Id)).ThenBy(c => c.Id, StringComparer.Ordinal).ToList();
             foreach (var list in appendTo.Keys.OrderBy(id => RecipeRules.GroupRank(id)).ThenBy(id => id, StringComparer.Ordinal))
             {
-                var kind = snapshot.GetDescription(list) is string description && description.Length > 0 ? description + Lang.T(" 条目", " entry") : Lang.T("子列表条目", "sub-list entry");
+                var kind = snapshot.GetDescription(list) is string description && description.Length > 0 ? description + Texts.EntrySuffix : Texts.SubListEntry;
                 for (var n = CountItems(snapshot, list) + 1; n <= appendTo[list]; n++)
                 {
                     var itemId = DeviceIds.Item(list, n);
@@ -117,19 +114,19 @@ namespace Zevision.Core.Configuration
             {
                 if (!seen.Add(entry.Id))
                 {
-                    skipped.Add(new RestoreSkip(entry, Lang.T("文件中重复出现", "appears more than once in the file")));
+                    skipped.Add(new RestoreSkip(entry, Texts.DuplicateInFile));
                     continue;
                 }
 
                 if (!RecipeRules.IsRestorable(entry.Id, entry.Value, out var reason))
                 {
-                    skipped.Add(new RestoreSkip(entry, Lang.T("不在可恢复范围: ", "not restorable: ") + reason));
+                    skipped.Add(new RestoreSkip(entry, Texts.NotRestorablePrefix + reason));
                     continue;
                 }
 
                 if (ProtocolText.ValidateValue(entry.Value) != null)
                 {
-                    skipped.Add(new RestoreSkip(entry, Lang.T("值含有协议不支持的字符 (非 ASCII、; 或 { })", "the value contains characters the protocol does not allow (non-ASCII, ; or { })")));
+                    skipped.Add(new RestoreSkip(entry, Texts.SkipProtocolChars));
                     continue;
                 }
 
@@ -139,7 +136,7 @@ namespace Zevision.Core.Configuration
                     // 所属对象将被创建:创建后重新计划时再处理,这里不算跳过。
                     if (!deferred.Contains(entry.Id))
                     {
-                        skipped.Add(new RestoreSkip(entry, notCreatable.TryGetValue(entry.Id, out var why) ? why : Lang.T("设备上不存在该项", "not present on the device")));
+                        skipped.Add(new RestoreSkip(entry, notCreatable.TryGetValue(entry.Id, out var why) ? why : Texts.NotOnDevice));
                     }
 
                     continue;
@@ -156,7 +153,7 @@ namespace Zevision.Core.Configuration
                     && snapshot.GetValue(targetId) == null
                     && !createIds.Contains(targetId))
                 {
-                    skipped.Add(new RestoreSkip(entry, Lang.T($"引用的{targetKind} {targetId} 在设备上不存在,文件中也没有它的设置", $"the referenced {targetKind} {targetId} does not exist on the device and is not in the file")));
+                    skipped.Add(new RestoreSkip(entry, Texts.ReferenceMissing(targetKind, targetId)));
                     continue;
                 }
 
@@ -197,14 +194,14 @@ namespace Zevision.Core.Configuration
 
                 if (length == 3)
                 {
-                    reason = Lang.T($"所属对象 {ancestor} 在设备上不存在,且该类对象不能自动创建", $"the owning object {ancestor} does not exist on the device and cannot be created automatically");
+                    reason = Texts.OwnerObjectMissing(ancestor);
                     return false;
                 }
 
                 var list = ancestor.Substring(0, length - 2);
                 if (snapshot.GetValue(DeviceIds.AppendSlotOf(list)) == null || !DeviceIds.IsItemNumber(ancestor.Substring(length - 2)))
                 {
-                    reason = Lang.T($"所属条目 {ancestor} 在设备上不存在,且子列表 {list} 不支持追加", $"the owning entry {ancestor} does not exist on the device and the sub-list {list} cannot be appended to");
+                    reason = Texts.OwnerEntryMissing(ancestor, list);
                     return false;
                 }
 
@@ -213,7 +210,7 @@ namespace Zevision.Core.Configuration
                 {
                     if (snapshot.GetValue(DeviceIds.Item(list, n)) == null)
                     {
-                        reason = Lang.T($"子列表 {list} 的现有条目编号不连续,无法通过追加对齐到 {ancestor}", $"the existing entries of sub-list {list} are not numbered contiguously, so appending cannot reach {ancestor}");
+                        reason = Texts.SubListNotContiguous(list, ancestor);
                         return false;
                     }
                 }
@@ -224,7 +221,7 @@ namespace Zevision.Core.Configuration
                 return true;
             }
 
-            reason = Lang.T("设备上不存在该项 (所属对象存在,但没有这个设置)", "not present on the device (the object exists but has no such setting)");
+            reason = Texts.SettingNotOnDevice;
             return false;
         }
 

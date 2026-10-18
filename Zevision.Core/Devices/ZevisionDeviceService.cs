@@ -79,7 +79,7 @@ namespace Zevision.Core.Devices
             {
                 if (_connecting || _client?.IsConnected == true)
                 {
-                    return Result.Fail(Lang.T("已经连接。", "Already connected."));
+                    return Result.Fail(Texts.AlreadyConnected);
                 }
 
                 _connecting = true;
@@ -119,7 +119,7 @@ namespace Zevision.Core.Devices
             var client = Current;
             if (client == null)
             {
-                return Result<ZevisionReply>.Fail(Lang.T("未连接。", "Not connected."));
+                return Result<ZevisionReply>.Fail(Texts.NotConnected);
             }
 
             var result = await client.SendAsync(command, minimumResponseTimeout, cancellationToken).ConfigureAwait(false);
@@ -166,14 +166,14 @@ namespace Zevision.Core.Devices
             if (!(ex is IOException || ex is InvalidOperationException || ex is ObjectDisposedException || ex is UnauthorizedAccessException))
             {
                 // 拔线、对端关闭是预期内的;其他异常说明读取时出了意外错误,记下来以便诊断。
-                _errorLog?.Write(Lang.T("读取循环", "Read loop"), Lang.T("读取循环意外终止: ", "The read loop ended unexpectedly: ") + ex.Message, ex);
+                _errorLog?.Write(Texts.LogSourceReadLoop, Texts.ReadLoopEnded + ex.Message, ex);
             }
 
             ConnectionLost?.Invoke(this, e);
         }
 
         private void OnHandlerFailed(object? sender, HandlerFailedEventArgs e) =>
-            _errorLog?.Write(Lang.T("事件处理", "Event handler"), Lang.T($"{e.EventName} 的处理程序出错: {e.Exception.Message}", $"A {e.EventName} handler failed: {e.Exception.Message}"), e.Exception);
+            _errorLog?.Write(Texts.LogSourceEventHandler, Texts.HandlerFailed(e.EventName, e.Exception.Message), e.Exception);
 
         private static Func<ConnectionEndpoint, IDeviceTransport> CheckTransport(IDeviceTransport transport)
         {

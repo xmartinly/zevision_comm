@@ -3,7 +3,6 @@ using System.Globalization;
 using System.IO;
 using System.Text;
 using Zevision.Core;
-using Zevision.Core.Localization;
 
 namespace Zevision.Storage
 {
@@ -40,7 +39,7 @@ namespace Zevision.Storage
         {
             if (string.IsNullOrEmpty(path))
             {
-                throw new ArgumentException(Lang.T("路径不能为空。", "The path must not be empty."), nameof(path));
+                throw new ArgumentException(Texts.PathEmpty, nameof(path));
             }
 
             _path = path;
@@ -54,7 +53,7 @@ namespace Zevision.Storage
             var text = message ?? string.Empty;
             if (text.Length > MaxMessageLength)
             {
-                text = text.Substring(0, MaxMessageLength) + Lang.T("…(已截断)", "…(truncated)");
+                text = text.Substring(0, MaxMessageLength) + Texts.Truncated;
             }
 
             var sb = new StringBuilder();

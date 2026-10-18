@@ -24,29 +24,29 @@ namespace Zevision.Core.Localization
             switch (error.Kind)
             {
                 case ZevisionErrorKind.AlreadyConnected:
-                    return Lang.T("已经连接。", "Already connected.");
+                    return Texts.AlreadyConnected;
                 case ZevisionErrorKind.ConnectFailed:
                     var endpoint = error.Endpoint?.ToString() ?? string.Empty;
                     var detail = error.Exception is TimeoutException && error.Endpoint is TcpSettings
-                        ? Lang.T($"连接超时 ({TcpTransport.ConnectTimeout.TotalSeconds:0} 秒内无响应)。请检查 IP 地址、端口和网络。", $"Connection timed out (no response within {TcpTransport.ConnectTimeout.TotalSeconds:0} s). Check the IP address and the network.")
+                        ? Texts.ConnectTimeout(TcpTransport.ConnectTimeout.TotalSeconds)
                         : error.Exception?.Message ?? error.Message;
-                    return Lang.T($"无法连接 {endpoint}: {detail}", $"Cannot connect to {endpoint}: {detail}");
+                    return Texts.CannotConnect(endpoint, detail);
                 case ZevisionErrorKind.NotConnected:
-                    return Lang.T("未连接。", "Not connected.");
+                    return Texts.NotConnected;
                 case ZevisionErrorKind.InvalidCommand:
                     return DescribeInvalidCommand(command);
                 case ZevisionErrorKind.SendFailed:
                     var reason = error.Exception?.Message ?? error.Message;
-                    return Lang.T($"发送失败: {reason}", $"Sending failed: {reason}");
+                    return Texts.SendFailed(reason);
                 case ZevisionErrorKind.Timeout:
-                    var partial = error.ReceivedIncompleteData ? Lang.T(",已收到的不完整数据见上方", "; the incomplete data received is shown above") : string.Empty;
-                    return Lang.T($"等待响应超时 ({error.Timeout.TotalMilliseconds:0} ms 内未收到数据{partial})。", $"Timed out waiting for a response (no data within {error.Timeout.TotalMilliseconds:0} ms{partial}).");
+                    var partial = error.ReceivedIncompleteData ? Texts.PartialDataShown : string.Empty;
+                    return Texts.ResponseTimeout(error.Timeout.TotalMilliseconds, partial);
                 case ZevisionErrorKind.Disconnected:
-                    return Lang.T("连接已断开。", "Disconnected.");
+                    return Texts.Disconnected;
                 case ZevisionErrorKind.InvalidFrame:
-                    return Lang.T("响应帧无效: ", "Invalid response frame: ") + error.FrameError.Localized();
+                    return Texts.InvalidFrame + error.FrameError.Localized();
                 case ZevisionErrorKind.UnparseableResponse:
-                    return Lang.T($"无法解析响应 ({error.DataLength} 字节)。", $"Cannot parse the response ({error.DataLength} bytes).");
+                    return Texts.UnparseableResponse(error.DataLength);
                 default:
                     return error.Message;
             }
@@ -57,15 +57,15 @@ namespace Zevision.Core.Localization
         {
             switch (code)
             {
-                case ZevisionErrorCode.None: return Lang.T("无错误", "No error");
-                case ZevisionErrorCode.IllegalCommand: return Lang.T("非法命令,不支持该命令", "Illegal command, not supported");
-                case ZevisionErrorCode.IllegalArgument: return Lang.T("非法参数值", "Illegal parameter value");
-                case ZevisionErrorCode.ChecksumError: return Lang.T("校验和错误", "Checksum error");
-                case ZevisionErrorCode.IllegalFormat: return Lang.T("非法格式", "Illegal format");
-                case ZevisionErrorCode.StateError: return Lang.T("状态错误,系统处于错误状态", "State error, the system is in the wrong state");
-                case ZevisionErrorCode.LengthError: return Lang.T("长度错误", "Length error");
-                case ZevisionErrorCode.Timeout: return Lang.T("超时,未收到停止符", "Timeout, no stop character received");
-                default: return Lang.T("未知错误", "Unknown error");
+                case ZevisionErrorCode.None: return Texts.ErrorCodeNone;
+                case ZevisionErrorCode.IllegalCommand: return Texts.ErrorCodeIllegalCommand;
+                case ZevisionErrorCode.IllegalArgument: return Texts.ErrorCodeIllegalArgument;
+                case ZevisionErrorCode.ChecksumError: return Texts.ErrorCodeChecksum;
+                case ZevisionErrorCode.IllegalFormat: return Texts.ErrorCodeIllegalFormat;
+                case ZevisionErrorCode.StateError: return Texts.ErrorCodeState;
+                case ZevisionErrorCode.LengthError: return Texts.ErrorCodeLength;
+                case ZevisionErrorCode.Timeout: return Texts.ErrorCodeTimeout;
+                default: return Texts.ErrorCodeUnknown;
             }
         }
 
@@ -74,15 +74,15 @@ namespace Zevision.Core.Localization
         {
             switch (error)
             {
-                case FrameError.ChecksumMismatch: return Lang.T("校验和不匹配", "checksum mismatch");
-                case FrameError.InvalidLength: return Lang.T("长度字节无效", "invalid length bytes");
-                case FrameError.MissingStopByte: return Lang.T("缺少停止符", "missing stop character");
-                case FrameError.Truncated: return Lang.T("帧不完整", "incomplete frame");
-                case FrameError.UnexpectedData: return Lang.T("帧外数据", "data outside a frame");
-                case FrameError.TooShort: return Lang.T("帧过短", "frame too short");
-                case FrameError.MissingContinuation: return Lang.T("'>' 之后缺少续包 '<'", "missing continuation packet '<' after '>'");
-                case FrameError.Incomplete: return Lang.T("消息未接收完整", "message not completely received");
-                default: return Lang.T("帧错误", "frame error");
+                case FrameError.ChecksumMismatch: return Texts.FrameChecksumMismatch;
+                case FrameError.InvalidLength: return Texts.FrameInvalidLength;
+                case FrameError.MissingStopByte: return Texts.FrameMissingStopByte;
+                case FrameError.Truncated: return Texts.FrameTruncated;
+                case FrameError.UnexpectedData: return Texts.FrameUnexpectedData;
+                case FrameError.TooShort: return Texts.FrameTooShort;
+                case FrameError.MissingContinuation: return Texts.FrameMissingContinuation;
+                case FrameError.Incomplete: return Texts.FrameIncomplete;
+                default: return Texts.FrameError;
             }
         }
 
@@ -97,11 +97,11 @@ namespace Zevision.Core.Localization
                 case ProtocolTextError.None:
                     return null;
                 case ProtocolTextError.Empty:
-                    return Lang.T("命令不能为空。", "The command must not be empty.");
+                    return Texts.CommandEmpty;
                 case ProtocolTextError.NotPrintableAscii:
-                    return Lang.T($"命令只能包含可打印 ASCII 字符,发现 U+{(int)c:X4}。", $"Commands may only contain printable ASCII characters; found U+{(int)c:X4}.");
+                    return Texts.CommandNotAscii((int)c);
                 default:
-                    return Lang.T("命令中不能包含起止符 { 或 },它们由程序自动添加。", "Commands must not contain the delimiters { or }; they are added automatically.");
+                    return Texts.CommandHasDelimiters;
             }
         }
 
@@ -116,11 +116,11 @@ namespace Zevision.Core.Localization
                 case ProtocolTextError.None:
                     return null;
                 case ProtocolTextError.Empty:
-                    return Lang.T("值不能为空", "The value must not be empty");
+                    return Texts.ValueEmpty;
                 case ProtocolTextError.NotPrintableAscii:
-                    return Lang.T("只能使用英文、数字和常用符号 (可打印 ASCII)", "Only letters, digits and common symbols (printable ASCII) are allowed");
+                    return Texts.ValueNotAscii;
                 default:
-                    return Lang.T("不能包含 ; { }", "Must not contain ; { }");
+                    return Texts.ValueHasDelimiters;
             }
         }
 
@@ -128,11 +128,11 @@ namespace Zevision.Core.Localization
         {
             if (string.IsNullOrWhiteSpace(command))
             {
-                return Lang.T("命令不能为空。", "The command must not be empty.");
+                return Texts.CommandEmpty;
             }
 
             return ValidateCommand(command)
-                ?? Lang.T($"命令长度超过 {ZevisionFrameCodec.MaxDataLength} 字节。", $"The command is longer than {ZevisionFrameCodec.MaxDataLength} bytes.");
+                ?? Texts.CommandTooLong(ZevisionFrameCodec.MaxDataLength);
         }
     }
 }

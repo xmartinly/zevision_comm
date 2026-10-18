@@ -153,7 +153,7 @@ namespace Zevision.Core.Configuration
         {
             if (string.IsNullOrEmpty(id))
             {
-                throw new ArgumentException(Lang.T("ID 不能为空。", "The ID must not be empty."), nameof(id));
+                throw new ArgumentException(Texts.IdEmpty, nameof(id));
             }
 
             var prefix = Find(id[0])?.Prefix;

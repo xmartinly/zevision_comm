@@ -1,5 +1,4 @@
 using System;
-using Zevision.Core.Localization;
 
 namespace Zevision.Core
 {
@@ -49,7 +48,7 @@ namespace Zevision.Core
         public string? Error { get; }
 
         /// <summary>返回值。失败时访问会抛出 <see cref="InvalidOperationException"/>。</summary>
-        public T Value => IsSuccess ? _value : throw new InvalidOperationException(Lang.T("失败的结果没有返回值: ", "A failed result has no value: ") + Error);
+        public T Value => IsSuccess ? _value : throw new InvalidOperationException(Texts.FailedResultHasNoValue + Error);
 
         /// <summary>创建成功结果。</summary>
         public static Result<T> Ok(T value) => new Result<T>(true, value, null);

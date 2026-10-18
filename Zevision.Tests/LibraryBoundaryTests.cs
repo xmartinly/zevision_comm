@@ -41,6 +41,17 @@ namespace Zevision.Tests
         }
 
         [Fact]
+        public void CoreAndStorage_HaveNoChineseStrings()
+        {
+            // 业务层和存储层的中文提示都在翻译文件 Texts.json 中,代码里只有键。
+            foreach (var assembly in new[] { typeof(Zevision.Core.Result).Assembly, typeof(Zevision.Storage.RecipeFile).Assembly })
+            {
+                var chinese = UserStrings(assembly).Where(ContainsCjk).ToList();
+                Assert.True(chinese.Count == 0, "Chinese strings in " + assembly.GetName().Name + ": " + string.Join(" | ", chinese));
+            }
+        }
+
+        [Fact]
         public void Communication_DoesNotUseFiles()
         {
             var names = new HashSet<string>(MetadataStrings(CommunicationAssembly), StringComparer.Ordinal);

@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using Zevision.Commands;
 using Zevision.Communication;
-using Zevision.Core.Localization;
 
 namespace Zevision.Core.Configuration
 {
@@ -40,27 +39,27 @@ namespace Zevision.Core.Configuration
         private static readonly IReadOnlyList<Rule> Exclusions = new[]
         {
             // 列表计数 (Number of ...) 由列表条目决定,不能直接写。
-            new Rule("^[A-Z].*FE$", "列表计数", "list count"),
+            new Rule("^[A-Z].*FE$", () => Texts.ExcludedListCount),
 
             // 传感器的运行状态。
-            new Rule("^N[0-9A-F]{2}09$", "传感器当前位置 (运行状态)", "current sensor position (runtime state)"),
-            new Rule("^N[0-9A-F]{2}10", "QCM 运行状态", "QCM runtime state"),
-            new Rule("^N[0-9A-F]{2}1[1-7]$", "当前 QCM 状态值", "current QCM state"),
-            new Rule("^N[0-9A-F]{2}1[C-E]$", "XIU 连接状态/型号/序列号", "XIU connection/type/serial number"),
-            new Rule("^N[0-9A-F]{2}20$", "速率偏差 (运行状态)", "rate deviation (runtime state)"),
+            new Rule("^N[0-9A-F]{2}09$", () => Texts.ExcludedSensorPosition),
+            new Rule("^N[0-9A-F]{2}10", () => Texts.ExcludedQcmRuntime),
+            new Rule("^N[0-9A-F]{2}1[1-7]$", () => Texts.ExcludedQcmState),
+            new Rule("^N[0-9A-F]{2}1[C-E]$", () => Texts.ExcludedXiu),
+            new Rule("^N[0-9A-F]{2}20$", () => Texts.ExcludedRateDeviation),
 
             // 源:当前输出值是状态;开关挡板、切换坩埚是物理动作。
-            new Rule("^S[0-9A-F]{2}0[34]$", "输出源当前输出 (运行状态)", "current source output (runtime state)"),
-            new Rule("^S[0-9A-F]{2}06$", "开/关挡板 (物理动作)", "open/close shutter (physical action)"),
-            new Rule("^S[0-9A-F]{2}08$", "切换当前坩埚 (物理动作)", "switch crucible (physical action)"),
+            new Rule("^S[0-9A-F]{2}0[34]$", () => Texts.ExcludedSourceOutput),
+            new Rule("^S[0-9A-F]{2}06$", () => Texts.ExcludedShutter),
+            new Rule("^S[0-9A-F]{2}08$", () => Texts.ExcludedCrucible),
 
             // 输入输出:分配情况和当前状态是状态;写输出状态会直接动作继电器。
-            new Rule("^I[0-9A-F]{2}0[345]$", "输入的分配/当前状态", "input assignment/state"),
-            new Rule("^O[0-9A-F]{2}0[345]$", "输出的分配/当前状态 (写入会动作继电器)", "output assignment/state (writing switches the relay)"),
+            new Rule("^I[0-9A-F]{2}0[345]$", () => Texts.ExcludedInputState),
+            new Rule("^O[0-9A-F]{2}0[345]$", () => Texts.ExcludedOutputState),
 
             // 计数器和历史值。
-            new Rule("^P02[0-9A-F]{2}06$", "工艺运行次数 (计数器)", "process run number (counter)"),
-            new Rule("^F[0-9A-F]{2}07[0-9A-F]{2}04$", "上次晶片位置 (历史值)", "last crystal position (history)"),
+            new Rule("^P02[0-9A-F]{2}06$", () => Texts.ExcludedProcessRunNumber),
+            new Rule("^F[0-9A-F]{2}07[0-9A-F]{2}04$", () => Texts.ExcludedLastCrystal),
         };
 
         /// <summary>
@@ -78,13 +77,13 @@ namespace Zevision.Core.Configuration
 
             if (string.IsNullOrEmpty(value))
             {
-                reason = Lang.T("无值 (分组标题或动作命令)", "no value (group title or action command)");
+                reason = Texts.NotRestorableNoValue;
                 return false;
             }
 
             if (!IsIncludedGroup(id))
             {
-                reason = Lang.T("不在保存范围内的组 (工艺控制、系统、通讯、Hello 等)", "group not saved (process control, system, communication, Hello etc.)");
+                reason = Texts.NotRestorableGroup;
                 return false;
             }
 
@@ -101,7 +100,7 @@ namespace Zevision.Core.Configuration
             var definition = ZevisionCommandSet.Find(id);
             if (definition != null && !definition.CanUpdate)
             {
-                reason = Lang.T("只读项 (协议只允许查询)", "read-only (the protocol only allows queries)");
+                reason = Texts.NotRestorableReadOnly;
                 return false;
             }
 
@@ -168,7 +167,7 @@ namespace Zevision.Core.Configuration
 
             if (string.IsNullOrEmpty(objectId))
             {
-                throw new ArgumentException(Lang.T("对象 ID 不能为空。", "The object ID must not be empty."), nameof(objectId));
+                throw new ArgumentException(Texts.ObjectIdEmpty, nameof(objectId));
             }
 
             return entries.Where(e => References.Concat(DeleteCheckReferences).Any(rule => rule.Refers(e.Id, e.Value, objectId))).ToList();
@@ -272,19 +271,17 @@ namespace Zevision.Core.Configuration
         /// <summary>排除规则:ID 模式与原因 (调用时按界面语言取)。</summary>
         private sealed class Rule
         {
-            private readonly string _chinese;
-            private readonly string _english;
+            private readonly Func<string> _reason;
 
-            public Rule(string pattern, string chinese, string english)
+            public Rule(string pattern, Func<string> reason)
             {
                 Pattern = new Regex(pattern, RegexOptions.CultureInvariant);
-                _chinese = chinese;
-                _english = english;
+                _reason = reason;
             }
 
             public Regex Pattern { get; }
 
-            public string Reason => Lang.T(_chinese, _english);
+            public string Reason => _reason();
         }
     }
 }

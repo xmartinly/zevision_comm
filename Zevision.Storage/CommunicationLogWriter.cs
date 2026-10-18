@@ -6,7 +6,6 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Zevision.Core;
-using Zevision.Core.Localization;
 
 namespace Zevision.Storage
 {
@@ -43,7 +42,7 @@ namespace Zevision.Storage
         {
             if (string.IsNullOrEmpty(path))
             {
-                throw new ArgumentException(Lang.T("路径不能为空。", "The path must not be empty."), nameof(path));
+                throw new ArgumentException(Texts.PathEmpty, nameof(path));
             }
 
             if (errorLog is null)
@@ -110,7 +109,7 @@ namespace Zevision.Storage
             }
             catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
             {
-                _errorLog.Write(Lang.T("保存通讯数据", "Save communication data"), Lang.T($"写入 {Path} 失败,停止保存: {ex.Message}", $"Writing {Path} failed; saving stopped: {ex.Message}"), ex);
+                _errorLog.Write(Texts.LogSourceSaveCommunicationData, Texts.CaptureWriteFailed(Path, ex.Message), ex);
                 CloseWriter();
             }
         }
@@ -124,7 +123,7 @@ namespace Zevision.Storage
             }
             catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
             {
-                _errorLog.Write(Lang.T("保存通讯数据", "Save communication data"), Lang.T($"关闭 {Path} 失败: {ex.Message}", $"Closing {Path} failed: {ex.Message}"), ex);
+                _errorLog.Write(Texts.LogSourceSaveCommunicationData, Texts.CaptureCloseFailed(Path, ex.Message), ex);
             }
 
             _writer = null;
