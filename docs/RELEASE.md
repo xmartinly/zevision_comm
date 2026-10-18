@@ -28,8 +28,9 @@
 | `Zevision.exe.config` | 运行时配置 (程序集绑定重定向),必须随 exe 一起发布 |
 | `Zevision.Communication.dll` | 通讯库 (传输、帧、响应解析),程序必需 |
 | `Zevision.Commands.dll` | 指令库 (指令集、命令生成),程序必需 |
-| `Zevision.Core.dll` | 业务层 (设备访问、仪器配置读写、恢复计划;内嵌中英文文本 `Texts.json`),程序必需 |
+| `Zevision.Core.dll` | 业务层 (设备访问、仪器配置读写、恢复计划),程序必需 |
 | `Zevision.Storage.dll` | 存储层 (配置文件、`settings.json`、错误日志、通讯数据文件),程序必需 |
+| `Texts.json` | 业务层和存储层的中英文提示与错误文本 (翻译文件),程序必需;缺少或格式错误时程序提示后退出。可以修改翻译 (UTF-8,每条都要有 `zh` 和 `en`,`{0}` 等占位符要保留) |
 | `MaterialDesignThemes.Wpf.dll` | 界面主题 |
 | `MaterialDesignColors.dll` | 界面主题颜色 |
 | `Microsoft.Xaml.Behaviors.dll` | MaterialDesignThemes 的依赖 |
@@ -50,7 +51,7 @@
 
 输出到 `dist\` (不随源码分发):
 
-- `dist\Zevision-<版本>\`:上表 9 个文件 + `使用说明.md` (即 `docs/USER_GUIDE.md`) + `User Guide.md` (即 `docs/USER_GUIDE.en.md`) + `dotnet\ndp48-x86-x64-allos-enu.exe`
+- `dist\Zevision-<版本>\`:上表 10 个文件 + `使用说明.md` (即 `docs/USER_GUIDE.md`) + `User Guide.md` (即 `docs/USER_GUIDE.en.md`) + `dotnet\ndp48-x86-x64-allos-enu.exe`
 - 安装包下载后先核对数字签名 (`Get-AuthenticodeSignature`,签名者为 Microsoft Corporation,状态 Valid) 再放入发布包。
 - `dist\Zevision-<版本>.zip`:上述文件夹的压缩包,即发布包
 - `dist\symbols\Zevision-<版本>.pdb`:调试符号,留档用于分析用户反馈的异常堆栈,不发布
@@ -86,8 +87,9 @@
   - 业务逻辑层:新的 `Zevision.Core.dll` (设备访问、仪器配置读写、恢复计划、修改配置时与设备和文件的同步)。
   - 数据存储层:新的 `Zevision.Storage.dll` (配置文件、`settings.json`、错误日志、通讯数据文件),实现业务层定义的接口。
   - 界面层 (`Zevision.exe`) 只依赖业务层的接口,存储层只在程序启动时组装。
-  - 业务层和存储层的提示与错误文本集中在翻译文件 `Texts.json` (中英文,内嵌在 `Zevision.Core.dll` 中)。
-- 两个新 dll 必须和 `Zevision.exe` 放在同一个文件夹。
+  - 业务层和存储层的提示与错误文本集中在翻译文件 `Texts.json` (中英文),放在程序旁边。
+- 两个新 dll 和 `Texts.json` 必须和 `Zevision.exe` 放在同一个文件夹。
+- 数据显示区:帮助指令 (`?`、`?M` 等) 只在指令输入框中发送时显示;保存、恢复、修改配置时读取设备用的帮助指令及其响应不再显示,也不保存到通讯数据文件、不计入收发帧数。取消读取后设备仍在发送的剩余数据也不显示。
 - 兼容:0.9.0~0.9.6 的 `settings.json` 和配置文件可以直接使用。
 
 ## 0.9.6 更新内容 (相对 0.9.5)

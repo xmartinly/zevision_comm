@@ -71,10 +71,11 @@
     <Compile Include="Settings\IPreferencesStore.cs" />
   </ItemGroup>
   <ItemGroup>
-    <!-- 业务层和存储层的中英文文本 (翻译文件),嵌入程序集,键见 Texts.cs。 -->
-    <EmbeddedResource Include="Localization\Texts.json">
-      <LogicalName>Zevision.Core.Texts.json</LogicalName>
-    </EmbeddedResource>
+    <!-- 业务层和存储层的中英文文本 (翻译文件),复制到输出目录 (程序旁边),键见 Texts.cs。 -->
+    <Content Include="Localization\Texts.json">
+      <Link>Texts.json</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Zevision.Communication\Zevision.Communication.csproj">

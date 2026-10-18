@@ -40,6 +40,13 @@ namespace Zevision
                 return;
             }
 
+            // 业务层和存储层的文本 (程序旁边的 Texts.json) 在任何文本被使用之前读入;读不到时稍后提示并退出。
+            var texts = TextFile.Load(TextFile.DefaultPath);
+            if (texts.IsSuccess)
+            {
+                TextCatalog.Initialize(texts.Value);
+            }
+
             // 先确定界面语言:日志的会话标题和所有界面文本都依赖它。
             // 中国地区或中文系统用中文,其他用英文;settings.json 的 language (zh/en) 可以强制指定,配置文件读取失败时按系统选择。
             var preferences = new JsonFilePreferencesStore(AppFolders.GetSettingsFilePath());
@@ -53,6 +60,18 @@ namespace Zevision
             TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
 
             base.OnStartup(e);
+
+            if (!texts.IsSuccess)
+            {
+                // 没有文本时提示和错误信息都无法显示 (只会显示键名),不能继续运行。
+                var message = Lang.T(
+                    $"程序无法启动:无法读取文本文件 {TextFile.DefaultPath}。请重新安装程序,或把发布包中的 {TextCatalog.FileName} 放回程序所在的文件夹。{Environment.NewLine}{texts.Error}",
+                    $"The program cannot start: the text file {TextFile.DefaultPath} cannot be read. Reinstall the program, or put {TextCatalog.FileName} from the release package back into the program folder.{Environment.NewLine}{texts.Error}");
+                _errorLog.Write(Lang.T("启动", "Startup"), message);
+                MessageBox.Show(message, "Zevision", MessageBoxButton.OK, MessageBoxImage.Error);
+                Shutdown(1);
+                return;
+            }
 
             try
             {

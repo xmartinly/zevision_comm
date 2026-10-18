@@ -51,6 +51,7 @@
     <Compile Include="JsonFilePreferencesStore.cs" />
     <Compile Include="RecipeFile.cs" />
     <Compile Include="RecipeFileStore.cs" />
+    <Compile Include="TextFile.cs" />
     <Compile Include="Texts.cs" />
   </ItemGroup>
   <ItemGroup>
