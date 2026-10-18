@@ -60,7 +60,7 @@
 
 ### 链接库 (供生产程序使用)
 
-两个库的版本独立于应用 (各自 `Properties\AssemblyInfo.cs`,当前 1.0.0),公开 API 不兼容的修改时提高主版本号。用法见 `docs/LIBRARY.md`。
+两个库的版本独立于应用 (各自 `Properties\AssemblyInfo.cs`,当前 `Zevision.Communication` 1.0.1、`Zevision.Commands` 1.0.0),公开 API 不兼容的修改时提高主版本号。用法见 `docs/LIBRARY.md`。
 
 - `dist\Zevision.Libraries-<库版本>\`:`Zevision.Communication.dll`/`.xml`、`Zevision.Commands.dll`/`.xml` (XML 是 IntelliSense 文档,放在 dll 旁边) + `LIBRARY.md` (即 `docs/LIBRARY.md`) + `sample\Program.cs` (即 `samples/Zevision.Sample/Program.cs`)
 - `dist\Zevision.Libraries-<库版本>.zip`:上述文件夹的压缩包
@@ -83,12 +83,13 @@
 ## 0.10.0 更新内容 (相对 0.9.6)
 
 - 分层重构 (功能、界面文字和错误日志内容不变):
-  - 硬件通讯层与协议解析层:`Zevision.Communication.dll`、`Zevision.Commands.dll` (未变,仍为 1.0.0)。
+  - 硬件通讯层与协议解析层:`Zevision.Communication.dll`、`Zevision.Commands.dll` (结构未变)。
   - 业务逻辑层:新的 `Zevision.Core.dll` (设备访问、仪器配置读写、恢复计划、修改配置时与设备和文件的同步)。
   - 数据存储层:新的 `Zevision.Storage.dll` (配置文件、`settings.json`、错误日志、通讯数据文件),实现业务层定义的接口。
   - 界面层 (`Zevision.exe`) 只依赖业务层的接口,存储层只在程序启动时组装。
   - 业务层和存储层的提示与错误文本集中在翻译文件 `Texts.json` (中英文),放在程序旁边。
 - 两个新 dll 和 `Texts.json` 必须和 `Zevision.exe` 放在同一个文件夹。
+- 修正 RS232 读取配置失败 (2026-10-18 实测):设备的 RS232 校验和、长度字节都开着 (G1304 = G1305 = 1),但 `?` 的响应以不带长度和校验和的整帧发来,程序把开头的 `?+` 当作长度,报告"缺少停止符",其余约 80 KB 显示为"帧外数据"并写入 error.txt。解码器现在能识别这种响应 (`Zevision.Communication` 1.0.1,公开接口不变)。
 - 数据显示区:帮助指令 (`?`、`?M` 等) 只在指令输入框中发送时显示;保存、恢复、修改配置时读取设备用的帮助指令及其响应不再显示,也不保存到通讯数据文件、不计入收发帧数。取消读取后设备仍在发送的剩余数据也不显示。
 - 兼容:0.9.0~0.9.6 的 `settings.json` 和配置文件可以直接使用。
 

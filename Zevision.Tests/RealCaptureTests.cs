@@ -44,6 +44,32 @@ namespace Zevision.Tests
             Assert.Equal(new[] { 56931, 56957, 2602 }, help.DataRanges.Select(r => r.Length));
         }
 
+        [Theory]
+        [InlineData(1)]
+        [InlineData(4096)]
+        public void Decode_HelpReplyWithoutLengthAndChecksum_InLengthMode(int chunkSize)
+        {
+            // 2026-10-18 实测 RS232 (G1304 = G1305 = 1):设备把 ? 的响应作为一个不带长度和校验和的 {数据} 发送。
+            // 用录下的真实帮助表按这种格式重新组帧,解码器 (长度 + 校验和模式) 应完整读出,帮助表解析结果相同。
+            var decoder = new ZevisionFrameDecoder(LengthAndChecksum);
+            var help = decoder.Push(LoadCapture(), 0, LoadCapture().Length)[2];
+            var plain = new[] { ZevisionFrameCodec.StartByte }.Concat(help.Data).Concat(new[] { ZevisionFrameCodec.StopByte })
+                .Concat(ZevisionFrameCodec.Encode("H01+:Zevision IMC300", LengthAndChecksum)).ToArray();
+
+            var frames = new List<ZevisionFrame>();
+            var replay = new ZevisionFrameDecoder(LengthAndChecksum);
+            for (var offset = 0; offset < plain.Length; offset += chunkSize)
+            {
+                frames.AddRange(replay.Push(plain, offset, Math.Min(chunkSize, plain.Length - offset)));
+            }
+
+            Assert.Equal(2, frames.Count);
+            Assert.True(frames[0].IsValid, frames[0].Error.ToString());
+            Assert.Equal(help.Payload, frames[0].Payload);
+            Assert.Equal(HelpTableParser.Parse(help.Payload.Substring(3)).Count, HelpTableParser.Parse(frames[0].Payload.Substring(3)).Count);
+            Assert.Equal("H01+:Zevision IMC300", frames[1].Payload);
+        }
+
         [Fact]
         public void HelpReply_ParsesIntoSnapshotAndRecipe()
         {

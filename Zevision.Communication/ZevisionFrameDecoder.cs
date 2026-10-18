@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Zevision.Communication
 {
@@ -18,6 +19,11 @@ namespace Zevision.Communication
     /// 未启用长度时只能扫描分隔符:<c>&gt;</c> 只有紧跟 <c>&lt;</c> 才视为包结束,否则当作数据。
     /// 若同时启用校验和、且校验和恰好等于 <c>}</c>/<c>&gt;</c>,包会被提前截断并报告错误。
     /// 这是协议本身的歧义,启用长度字节可以避免。
+    /// </para>
+    /// <para>
+    /// 启用长度时,设备偶尔不按设置发送:实测 IMC300 1.8.11 经 RS232 回复 <c>?</c> 时 (G1304 = G1305 = 1),
+    /// 约 97 KB 的响应是不带长度、校验和、也不分包的 <c>{数据}</c>。解码器把开头的 <c>?+</c> 当作长度 (16171),
+    /// 读完后找不到结束符。这种消息按无长度重新解读,见 <see cref="TryReadAsPlain"/>。
     /// </para>
     /// 非线程安全,应只由一个读取循环调用。
     /// </remarks>
@@ -63,12 +69,20 @@ namespace Zevision.Communication
         private int _packetCount;
         private FrameError _messageError;
 
+        /// <summary>当前消息是否按长度读取 (通常同 <see cref="FrameOptions.LengthEnabled"/>,按无长度重新解读时为 false)。</summary>
+        private bool _lengthMode;
+
+        /// <summary>当前消息是否带校验和 (通常同 <see cref="FrameOptions.ChecksumEnabled"/>,按无长度重新解读时为 false)。</summary>
+        private bool _checksumMode;
+
         /// <summary>
         /// 创建解码器。
         /// </summary>
         public ZevisionFrameDecoder(FrameOptions options)
         {
             _options = options ?? throw new ArgumentNullException(nameof(options));
+            _lengthMode = options.LengthEnabled;
+            _checksumMode = options.ChecksumEnabled;
         }
 
         /// <summary>
@@ -159,14 +173,14 @@ namespace Zevision.Communication
                     break;
 
                 case State.Data:
-                    if (_options.LengthEnabled)
+                    if (_lengthMode)
                     {
                         // 长度已知:按字节数读取,数据中的 { } < > 都不作为分隔符。
                         _raw.Add(b);
                         _data.Add(b);
                         if (_data.Count - _packetDataStart == _expectedLength)
                         {
-                            _state = _options.ChecksumEnabled ? State.Checksum : State.Stop;
+                            _state = _checksumMode ? State.Checksum : State.Stop;
                         }
                     }
                     else
@@ -190,7 +204,7 @@ namespace Zevision.Communication
                     break;
 
                 case State.Stop:
-                    if (!_options.ChecksumEnabled && b == ZevisionFrameCodec.StopByte && TryEndOvercountedLastPacket(trailerLength: 1))
+                    if (!_checksumMode && b == ZevisionFrameCodec.StopByte && TryEndOvercountedLastPacket(trailerLength: 1))
                     {
                         _raw.Add(b);
                         Emit(frames, _messageError);
@@ -207,7 +221,7 @@ namespace Zevision.Communication
                         EndPacket();
                         _state = State.WaitContinuation;
                     }
-                    else
+                    else if (!TryReadAsPlain(b, frames))
                     {
                         Emit(frames, FrameError.MissingStopByte);
 
@@ -292,7 +306,7 @@ namespace Zevision.Communication
             }
 
             var dataEnd = _data.Count - trailerLength;
-            if (_options.ChecksumEnabled)
+            if (_checksumMode)
             {
                 var checksum = _data[_data.Count - 2];
                 var sum = 0;
@@ -314,6 +328,38 @@ namespace Zevision.Communication
             EndPacket();
             return true;
         }
+
+        /// <summary>
+        /// 按长度读完第一个包后没有遇到结束符时,判断这条消息是否其实没有长度和校验和 (<c>{数据}</c>),
+        /// 是则把已收到的字节 (含被当作长度和校验和的) 连同 <paramref name="b"/> 按无长度、无校验和重新扫描。
+        /// </summary>
+        /// <remarks>
+        /// 只在以下情况重新解读,其余仍报告 <see cref="FrameError.MissingStopByte"/>:
+        /// 是消息的第一个包;被当作长度高字节的是命令回显的开头 (<c>?</c> 或大写字母,真实长度的高字节一般不是);
+        /// 已收到的字节都是文本 (可打印字符、换行、制表符、UTF-8)。真正带长度的消息,其长度和校验和字节大多不是文本,
+        /// 数据损坏时不会被误当作无长度消息。
+        /// </remarks>
+        /// <returns>已按无长度重新解读时返回 true。</returns>
+        private bool TryReadAsPlain(byte b, List<ZevisionFrame> frames)
+        {
+            if (!_lengthMode || _packetCount > 0 || _raw.Count < 2 || !IsEchoStart(_raw[1]) || !IsText(b) || !_raw.Skip(1).All(IsText))
+            {
+                return false;
+            }
+
+            var received = _raw.Skip(1).Concat(new[] { b }).ToArray();
+            BeginMessage(plain: true);
+            foreach (var x in received)
+            {
+                Process(x, frames);
+            }
+
+            return true;
+        }
+
+        private static bool IsEchoStart(byte b) => b == (byte)'?' || (b >= (byte)'A' && b <= (byte)'Z');
+
+        private static bool IsText(byte b) => b == (byte)'\t' || b == (byte)'\n' || b == (byte)'\r' || (b >= 0x20 && b != 0x7F);
 
         /// <summary>
         /// 未启用长度时,逐字节扫描分隔符。
@@ -359,7 +405,7 @@ namespace Zevision.Communication
         /// </summary>
         private bool TryTakeScannedChecksum(List<ZevisionFrame> frames)
         {
-            if (!_options.ChecksumEnabled)
+            if (!_checksumMode)
             {
                 return true;
             }
@@ -375,9 +421,12 @@ namespace Zevision.Communication
             return true;
         }
 
-        private void BeginMessage()
+        /// <param name="plain">按无长度、无校验和读取这条消息 (见 <see cref="TryReadAsPlain"/>)。</param>
+        private void BeginMessage(bool plain = false)
         {
             ClearMessage();
+            _lengthMode = !plain && _options.LengthEnabled;
+            _checksumMode = !plain && _options.ChecksumEnabled;
             _raw.Add(ZevisionFrameCodec.StartByte);
             BeginPacket();
         }
@@ -385,10 +434,10 @@ namespace Zevision.Communication
         private void BeginPacket()
         {
             _packetDataStart = _data.Count;
-            _packetRawStart = _raw.Count + (_options.LengthEnabled ? 2 : 0);
+            _packetRawStart = _raw.Count + (_lengthMode ? 2 : 0);
             _packetOpen = true;
             _expectedLength = 0;
-            _state = _options.LengthEnabled ? State.LengthHigh : State.Data;
+            _state = _lengthMode ? State.LengthHigh : State.Data;
         }
 
         /// <summary>
@@ -401,7 +450,7 @@ namespace Zevision.Communication
             _packetOpen = false;
             _packetCount++;
 
-            if (_options.ChecksumEnabled && _messageError == FrameError.None)
+            if (_checksumMode && _messageError == FrameError.None)
             {
                 var sum = 0;
                 for (var i = _packetDataStart; i < _data.Count; i++)

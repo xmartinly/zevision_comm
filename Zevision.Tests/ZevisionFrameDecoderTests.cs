@@ -141,6 +141,42 @@ namespace Zevision.Tests
             Assert.Equal("b", frames[1].Payload);
         }
 
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void Push_LengthMode_PlainHelpReply_IsReadWithoutLength(bool checksum)
+        {
+            // 实测 IMC300 1.8.11 经 RS232 (G1304 = G1305 = 1):? 的约 97 KB 响应不带长度和校验和,也不分包。
+            // 开头的 "?+" 会被当作长度 0x3F2B (16171),读完后找不到结束符;应按无长度读出整条消息,之后的帧照常解码。
+            var options = new FrameOptions(checksumEnabled: checksum, lengthEnabled: true);
+            var decoder = new ZevisionFrameDecoder(options);
+            var payload = "?+:\n" + Encoding.ASCII.GetString(MakeText(40000));
+            var bytes = Encoding.ASCII.GetBytes("{" + payload + "}").Concat(ZevisionFrameCodec.Encode("H01+:IMC300", options)).ToArray();
+
+            var frames = PushInChunks(decoder, bytes, 4096);
+
+            Assert.Equal(2, frames.Count);
+            Assert.True(frames[0].IsValid, frames[0].Error.ToString());
+            Assert.Equal(payload, frames[0].Payload);
+            Assert.Empty(frames[0].DeclaredLengths);
+            Assert.True(frames[1].IsValid);
+            Assert.Equal("H01+:IMC300", frames[1].Payload);
+        }
+
+        [Fact]
+        public void Push_LengthMode_MissingStopWithBinaryData_IsStillReported()
+        {
+            // 长度高字节像回显 (?),但数据中有控制字符:不是无长度的文本消息,仍按缺少结束符报告。
+            var decoder = new ZevisionFrameDecoder(LengthOnly);
+            var data = MakeText(0x3F00);
+            data[100] = 0x01;
+            var bytes = new[] { (byte)'{', (byte)'?', (byte)0x00 }.Concat(data).Concat(new[] { (byte)'x' }).ToArray();
+
+            var frames = decoder.Push(bytes, 0, bytes.Length);
+
+            Assert.Equal(FrameError.MissingStopByte, frames[0].Error);
+        }
+
         [Fact]
         public void Push_ZeroLength_ReportsInvalidLength()
         {

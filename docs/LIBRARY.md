@@ -1,6 +1,7 @@
 # Zevision 链接库使用说明
 
-INFICON IMC300 Zevision 协议的两个 .NET 链接库,供生产程序使用。作者:martin.liang@inficon.com。库版本 1.0.0 (独立于 Zevision 应用版本)。
+INFICON IMC300 Zevision 协议的两个 .NET 链接库,供生产程序使用。作者:martin.liang@inficon.com。库版本:`Zevision.Communication` 1.0.1、`Zevision.Commands` 1.0.0 (独立于 Zevision 应用版本)。
+1.0.1:启用长度字节时,设备偶尔发来不带长度和校验和的 `{数据}` (实测 RS232 上的 `?` 响应),解码器改为按无长度读出,不再报告缺少停止符;公开接口不变。
 
 | 文件 | 内容 | 依赖 |
 |---|---|---|

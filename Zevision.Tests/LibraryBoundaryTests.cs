@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 using Xunit;
 using Zevision.Commands;
@@ -75,15 +76,11 @@ namespace Zevision.Tests
         public void UserInterface_UsesStorageOnlyInCompositionRoot()
         {
             // 视图和视图模型只依赖业务层的接口;存储层的实现只在 App (组装根) 中创建。
-            var root = new DirectoryInfo(AppDomain.CurrentDomain.BaseDirectory);
-            while (root != null && !File.Exists(Path.Combine(root.FullName, "Zevision.sln")))
-            {
-                root = root.Parent;
-            }
-
-            Assert.NotNull(root);
+            // 源码目录取自编译时本文件的路径,与输出目录无关 (程序运行中时会输出到其他目录构建)。
+            var root = Path.GetDirectoryName(Path.GetDirectoryName(SourceFilePath()))!;
+            Assert.True(File.Exists(Path.Combine(root, "Zevision.sln")), root);
             var offending = new[] { "ViewModels", "Views" }
-                .SelectMany(folder => Directory.GetFiles(Path.Combine(root!.FullName, folder), "*.cs"))
+                .SelectMany(folder => Directory.GetFiles(Path.Combine(root, folder), "*.cs"))
                 .Where(file => File.ReadAllText(file).Contains("Zevision.Storage"))
                 .Select(Path.GetFileName)
                 .ToList();
@@ -154,6 +151,8 @@ namespace Zevision.Tests
 
         private static IReadOnlyList<string> References(Assembly assembly) =>
             assembly.GetReferencedAssemblies().Select(a => a.Name).OrderBy(n => n, StringComparer.Ordinal).ToList();
+
+        private static string SourceFilePath([CallerFilePath] string path = "") => path;
 
         private static string FirstLine(string text) => text.Split(new[] { '\r', '\n' }, 2)[0];
 
