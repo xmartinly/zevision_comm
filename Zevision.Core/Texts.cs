@@ -186,6 +186,10 @@ namespace Zevision.Core
 
         public static string UnparseableResponse(int length) => TextCatalog.Format(nameof(UnparseableResponse), length);
 
+        public static string FramingReplyHasLength(string lengthId, string checksumId) => TextCatalog.Format(nameof(FramingReplyHasLength), lengthId, checksumId);
+
+        public static string FramingReplyWithoutLength(string lengthId, string checksumId) => TextCatalog.Format(nameof(FramingReplyWithoutLength), lengthId, checksumId);
+
         public static string ErrorCodeNone => TextCatalog.Get(nameof(ErrorCodeNone));
 
         public static string ErrorCodeIllegalCommand => TextCatalog.Get(nameof(ErrorCodeIllegalCommand));

@@ -88,6 +88,8 @@
   "Disconnected": { "zh": "连接已断开。", "en": "Disconnected." },
   "InvalidFrame": { "zh": "响应帧无效: ", "en": "Invalid response frame: " },
   "UnparseableResponse": { "zh": "无法解析响应 ({0} 字节)。", "en": "Cannot parse the response ({0} bytes)." },
+  "FramingReplyHasLength": { "zh": "设备的响应带长度字节,而程序未启用长度:程序与设备的长度 ({0})、校验和 ({1}) 设置必须相同,请检查后重新连接。", "en": "The device's response has length bytes, but length is off in the program: length ({0}) and checksum ({1}) must be set the same in the program and on the device; check them and reconnect." },
+  "FramingReplyWithoutLength": { "zh": "设备的响应不带长度字节,而程序启用了长度:程序与设备的长度 ({0})、校验和 ({1}) 设置必须相同,请检查后重新连接。", "en": "The device's response has no length bytes, but length is on in the program: length ({0}) and checksum ({1}) must be set the same in the program and on the device; check them and reconnect." },
   "ErrorCodeNone": { "zh": "无错误", "en": "No error" },
   "ErrorCodeIllegalCommand": { "zh": "非法命令,不支持该命令", "en": "Illegal command, not supported" },
   "ErrorCodeIllegalArgument": { "zh": "非法参数值", "en": "Illegal parameter value" },

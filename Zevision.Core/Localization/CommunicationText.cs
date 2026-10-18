@@ -1,5 +1,6 @@
 using System;
 using Zevision.Communication;
+using Zevision.Core.Devices;
 
 namespace Zevision.Core.Localization
 {
@@ -49,6 +50,25 @@ namespace Zevision.Core.Localization
                     return Texts.UnparseableResponse(error.DataLength);
                 default:
                     return error.Message;
+            }
+        }
+
+        /// <summary>
+        /// 帧格式不一致的提示 (<see cref="FramingCheck"/>),附在通讯错误之后,如"设备的响应带长度字节,而程序未启用长度…"。
+        /// </summary>
+        /// <param name="mismatch">不一致的情况;<see cref="FramingMismatch.None"/> 时返回 null。</param>
+        /// <param name="endpoint">连接目标,决定设置项的 ID (RS232:G1304/G1305,TCP:G1407/G1408)。</param>
+        public static string? FramingHint(FramingMismatch mismatch, ConnectionEndpoint endpoint)
+        {
+            var (checksum, length) = FramingCheck.SettingIds(endpoint ?? throw new ArgumentNullException(nameof(endpoint)));
+            switch (mismatch)
+            {
+                case FramingMismatch.ReplyHasLength:
+                    return Texts.FramingReplyHasLength(length, checksum);
+                case FramingMismatch.ReplyWithoutLength:
+                    return Texts.FramingReplyWithoutLength(length, checksum);
+                default:
+                    return null;
             }
         }
 

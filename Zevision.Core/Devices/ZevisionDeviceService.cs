@@ -18,6 +18,10 @@ namespace Zevision.Core.Devices
     /// 不显示的收发 (<see cref="SendHiddenAsync"/>):通讯库在发送的异步流中触发 <c>FrameSent</c> (以及超时时报告的不完整数据),
     /// 用 <see cref="AsyncLocal{T}"/> 标记这个流即可识别;响应在读取循环中收到,按回显识别。
     /// 隐藏的回显保留到同一指令再次正常发送为止,因此取消后设备仍在发送的剩余数据也不显示。
+    /// <para>
+    /// 帧格式不一致:每个收到的帧用 <see cref="FramingCheck"/> 与当前的帧格式比较。一次发送失败 (超时、帧无效、无法解析),
+    /// 而发送期间收到过格式不一致的帧时,错误说明后附上检查设置的提示 (<see cref="CommunicationText.FramingHint"/>)。
+    /// </para>
     /// </remarks>
     public sealed class ZevisionDeviceService : IDeviceService
     {
@@ -28,7 +32,12 @@ namespace Zevision.Core.Devices
         private readonly object _sync = new object();
         private readonly HashSet<string> _hiddenEchoes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private ZevisionClient? _client;
+        private ConnectionOptions? _options;
         private bool _connecting;
+
+        /// <summary>收到格式不一致的帧的次数 (发送前后比较) 和最近一次的情况。用 <see cref="_sync"/> 保护。</summary>
+        private int _mismatchCount;
+        private FramingMismatch _lastMismatch;
 
         /// <summary>
         /// 创建服务。每次连接时用 <paramref name="transportFactory"/> 按连接目标 (串口或 TCP) 创建传输,
@@ -95,6 +104,7 @@ namespace Zevision.Core.Devices
                 _connecting = true;
                 previous = _client;
                 _hiddenEchoes.Clear();
+                _options = options;
                 client = new ZevisionClient(options, _transportFactory);
                 Attach(client);
                 _client = client;
@@ -142,10 +152,43 @@ namespace Zevision.Core.Devices
 
             // 只作用于这次发送的异步流 (方法返回后恢复):通讯库在这个流中触发 FrameSent 和超时时的不完整数据。
             Hidden.Value = hidden;
+            var mismatches = MismatchCount;
             var result = await client.SendAsync(command, minimumResponseTimeout, cancellationToken).ConfigureAwait(false);
-            return result.IsSuccess
-                ? Result<ZevisionReply>.Ok(result.Value)
-                : Result<ZevisionReply>.Fail(CommunicationText.Describe(result.Error!, command));
+            if (result.IsSuccess)
+            {
+                return Result<ZevisionReply>.Ok(result.Value);
+            }
+
+            var message = CommunicationText.Describe(result.Error!, command);
+            var hint = FramingHintSince(mismatches, result.Error!.Kind);
+            return Result<ZevisionReply>.Fail(hint == null ? message : message + (Lang.IsChinese ? string.Empty : " ") + hint);
+        }
+
+        private int MismatchCount
+        {
+            get
+            {
+                lock (_sync)
+                {
+                    return _mismatchCount;
+                }
+            }
+        }
+
+        /// <summary>
+        /// 发送期间 (计数变了) 收到过格式不一致的帧,且失败是格式不一致会造成的 (超时、帧无效、无法解析) 时,检查设置的提示;否则为 null。
+        /// </summary>
+        private string? FramingHintSince(int mismatchesBefore, ZevisionErrorKind kind)
+        {
+            if (kind != ZevisionErrorKind.Timeout && kind != ZevisionErrorKind.InvalidFrame && kind != ZevisionErrorKind.UnparseableResponse)
+            {
+                return null;
+            }
+
+            lock (_sync)
+            {
+                return _mismatchCount == mismatchesBefore || _options == null ? null : CommunicationText.FramingHint(_lastMismatch, _options.Endpoint);
+            }
         }
 
         /// <inheritdoc />
@@ -200,6 +243,22 @@ namespace Zevision.Core.Devices
 
         private void OnFrameReceived(object? sender, FrameReceivedEventArgs e)
         {
+            ConnectionOptions? options;
+            lock (_sync)
+            {
+                options = _options;
+            }
+
+            var mismatch = options == null ? FramingMismatch.None : FramingCheck.Check(e.Frame, options.Frame);
+            if (mismatch != FramingMismatch.None)
+            {
+                lock (_sync)
+                {
+                    _lastMismatch = mismatch;
+                    _mismatchCount++;
+                }
+            }
+
             if (!Hidden.Value && !IsHiddenReply(e.Frame))
             {
                 FrameReceived?.Invoke(this, e);
