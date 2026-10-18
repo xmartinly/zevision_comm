@@ -214,7 +214,7 @@ namespace Zevision.Commands
             Int("F**0809", "稳定性单个", string.Empty, 0, 9999, "文档范围 25~9999;实机值为 0"),
             Int("F**080A", "稳定性总计", string.Empty, 0, 9999, "文档范围 25~9999;实机值为 0"),
             Ref("F**0901", "输出源 ID", 'S', allowNone: true),
-            Int("F**0902", "坩埚", string.Empty, 0, null, "0=禁用"),
+            Int("F**0902", "坩埚", string.Empty, 0, null, "0=任意, 1~所选输出源的坩埚数量 (S**07)"), // 文档写 0=disabled;设备上的选项为 Any、1~最大数量 (用户确认)
             Dec("F**0903", "P 项", string.Empty, 0.010m, 10000.00m),
             Dec("F**0904", "I 项", "秒", 0.000m, 10000.000m),
             Dec("F**0905", "D 项", "秒", 0.000m, 10000.000m),

@@ -587,6 +587,73 @@ namespace Zevision.Tests
             Assert.Contains("QS010902", device.CommandsSnapshot()); // 也读回校验
         }
 
+        /// <summary>膜系 F01 用输出源 S01 (6 个坩埚),坩埚为任意 (0);另有 S02 (8 个坩埚)。</summary>
+        private static FakeDeviceService NewDeviceWithSources() => NewDevice()
+            .With("F0109", string.Empty, "Source")
+            .With("F010901", "1", "Source Setting")
+            .With("F010902", "0", "Crucible")
+            .With("S01", string.Empty, "Source S01")
+            .With("S0107", "6", "Number of Crucibles")
+            .With("S02", string.Empty, "Source S02")
+            .With("S0207", "8", "Number of Crucibles");
+
+        [Fact]
+        public async Task Plan_CrucibleAboveSourceCount_IsSkippedWithReason()
+        {
+            var (_, _, plan) = await PlanWithChangesAsync(NewDeviceWithSources(), ("F010902", "7"));
+
+            Assert.DoesNotContain(plan.Writes, w => w.Id == "F010902");
+            Assert.Equal("坩埚 7 超出输出源 S01 的坩埚数量 (6)", Assert.Single(plan.Skipped).Reason);
+        }
+
+        [Fact]
+        public async Task Plan_Crucible_JudgedByValuesAfterRestore()
+        {
+            // 文件中的输出源 (S02,8 个坩埚) 和坩埚数量也会写入:按恢复后的值判断。
+            var (_, _, otherSource) = await PlanWithChangesAsync(NewDeviceWithSources(), ("F010901", "2"), ("F010902", "7"));
+            var (_, _, moreCrucibles) = await PlanWithChangesAsync(NewDeviceWithSources(), ("S0107", "8"), ("F010902", "7"));
+            var (_, _, fewerCrucibles) = await PlanWithChangesAsync(NewDeviceWithSources(), ("S0207", "4"), ("F010901", "2"), ("F010902", "7"));
+
+            Assert.Empty(otherSource.Skipped);
+            Assert.Contains(otherSource.Writes, w => w.Command == "UF010902:7");
+            Assert.Empty(moreCrucibles.Skipped);
+            Assert.Contains(moreCrucibles.Writes, w => w.Command == "UF010902:7");
+            Assert.Equal("F010902", Assert.Single(fewerCrucibles.Skipped).Id);
+        }
+
+        [Fact]
+        public async Task ApplyEdits_CrucibleAboveSourceCount_RefusedBeforeWriting()
+        {
+            var device = NewDeviceWithSources();
+            var service = new InstrumentConfigService(device);
+            var recipe = (await service.ReadSnapshotAsync(CancellationToken.None)).Value.ToRecipe(DateTimeOffset.Now);
+
+            var report = await service.ApplyEditsAsync(recipe, new[] { new RecipeEntry { Id = "F010902", Value = "7", Description = "Crucible" } }, null, CancellationToken.None);
+
+            Assert.False(report.IsSuccess);
+            Assert.Equal("F010902", report.FailedId);
+            Assert.Equal("F010902 不能修改: 坩埚 7 超出输出源 S01 的坩埚数量 (6)", report.Error);
+            Assert.DoesNotContain(device.CommandsSnapshot(), c => c.StartsWith("U", StringComparison.Ordinal));
+        }
+
+        [Fact]
+        public async Task ApplyEdits_SourceChangedInSameEdit_UsesTheNewSourceCount()
+        {
+            var device = NewDeviceWithSources();
+            var service = new InstrumentConfigService(device);
+            var recipe = (await service.ReadSnapshotAsync(CancellationToken.None)).Value.ToRecipe(DateTimeOffset.Now);
+            var edits = new[]
+            {
+                new RecipeEntry { Id = "F010901", Value = "2", Description = "Source Setting" },
+                new RecipeEntry { Id = "F010902", Value = "7", Description = "Crucible" },
+            };
+
+            var report = await service.ApplyEditsAsync(recipe, edits, null, CancellationToken.None);
+
+            Assert.True(report.IsSuccess, report.Error);
+            Assert.Equal("7", device.Get("F010902"));
+        }
+
         private static async Task<(InstrumentConfigService Service, InstrumentRecipe Recipe, RestorePlan Plan)> PlanWithChangesAsync(
             FakeDeviceService device, params (string Id, string Value)[] changes)
         {

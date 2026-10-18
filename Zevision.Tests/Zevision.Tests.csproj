@@ -46,6 +46,7 @@
     <Compile Include="Fakes\NoCommunicationRecorders.cs" />
     <Compile Include="TestSetup.cs" />
     <Compile Include="Architecture\BindingSourceTests.cs" />
+    <Compile Include="Core\CrucibleRuleTests.cs" />
     <Compile Include="Core\FramingCheckTests.cs" />
     <Compile Include="Localization\TextCatalogTests.cs" />
     <Compile Include="Storage\TextFileTests.cs" />

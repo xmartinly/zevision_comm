@@ -150,6 +150,8 @@ namespace Zevision.Core
 
         public static string ReferenceMissing(string kind, string id) => TextCatalog.Format(nameof(ReferenceMissing), kind, id);
 
+        public static string CrucibleExceedsCount(int crucible, string source, int count) => TextCatalog.Format(nameof(CrucibleExceedsCount), crucible, source, count);
+
         public static string OwnerObjectMissing(string objectId) => TextCatalog.Format(nameof(OwnerObjectMissing), objectId);
 
         public static string OwnerEntryMissing(string entryId, string listId) => TextCatalog.Format(nameof(OwnerEntryMissing), entryId, listId);

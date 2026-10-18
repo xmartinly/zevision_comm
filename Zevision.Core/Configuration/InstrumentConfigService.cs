@@ -196,6 +196,7 @@ namespace Zevision.Core.Configuration
             try
             {
                 // 写入前逐项检查,任何一项不合格都不写,避免设备只改了一半。
+                var valueAfterEdit = ValuesAfterEdit(recipe, edits);
                 foreach (var edit in edits)
                 {
                     if (!RecipeRules.IsRestorable(edit.Id, edit.Value, out var reason))
@@ -209,6 +210,15 @@ namespace Zevision.Core.Configuration
                     {
                         report.FailedId = edit.Id;
                         report.Error = Texts.ValueHasProtocolChars(edit.Id);
+                        return report;
+                    }
+
+                    // 同时修改的输出源 (F**0901)、坩埚数量 (S**07) 按修改后的值判断。
+                    var crucible = CrucibleRule.Check(edit.Id, edit.Value, valueAfterEdit);
+                    if (crucible != null)
+                    {
+                        report.FailedId = edit.Id;
+                        report.Error = Texts.CannotChange(edit.Id, crucible);
                         return report;
                     }
                 }
@@ -241,6 +251,21 @@ namespace Zevision.Core.Configuration
                 report.Cancelled = true;
                 return report;
             }
+        }
+
+        /// <summary>写入后各项的值:修改的项取新值,其他取配置中的值 (ID 重复时取第一次出现的)。</summary>
+        private static Func<string, string?> ValuesAfterEdit(InstrumentRecipe recipe, IReadOnlyList<RecipeEntry> edits)
+        {
+            var values = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var entry in edits.Concat(recipe.Entries))
+            {
+                if (!values.ContainsKey(entry.Id))
+                {
+                    values.Add(entry.Id, entry.Value);
+                }
+            }
+
+            return id => values.TryGetValue(id, out var value) ? value : null;
         }
 
         /// <summary>确认设备型号与空闲状态后发送一条指令。</summary>

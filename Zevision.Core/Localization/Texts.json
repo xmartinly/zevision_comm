@@ -70,6 +70,7 @@
   "SkipProtocolChars": { "zh": "值含有协议不支持的字符 (非 ASCII、; 或 { })", "en": "the value contains characters the protocol does not allow (non-ASCII, ; or { })" },
   "NotOnDevice": { "zh": "设备上不存在该项", "en": "not present on the device" },
   "ReferenceMissing": { "zh": "引用的{0} {1} 在设备上不存在,文件中也没有它的设置", "en": "the referenced {0} {1} does not exist on the device and is not in the file" },
+  "CrucibleExceedsCount": { "zh": "坩埚 {0} 超出输出源 {1} 的坩埚数量 ({2})", "en": "crucible {0} exceeds the number of crucibles of source {1} ({2})" },
   "OwnerObjectMissing": { "zh": "所属对象 {0} 在设备上不存在,且该类对象不能自动创建", "en": "the owning object {0} does not exist on the device and cannot be created automatically" },
   "OwnerEntryMissing": { "zh": "所属条目 {0} 在设备上不存在,且子列表 {1} 不支持追加", "en": "the owning entry {0} does not exist on the device and the sub-list {1} cannot be appended to" },
   "SubListNotContiguous": { "zh": "子列表 {0} 的现有条目编号不连续,无法通过追加对齐到 {1}", "en": "the existing entries of sub-list {0} are not numbered contiguously, so appending cannot reach {1}" },

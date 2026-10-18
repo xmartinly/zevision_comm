@@ -105,6 +105,7 @@ namespace Zevision.Core.Configuration
             var skipped = new List<RestoreSkip>();
             var unchanged = 0;
             var seen = new HashSet<string>(StringComparer.Ordinal);
+            var afterRestore = ValuesAfterRestore(recipe, snapshot);
 
             // OrderBy 是稳定排序:组内保持文件 (即设备帮助表) 中的顺序。
             foreach (var entry in recipe.Entries.OrderBy(e => RecipeRules.GroupRank(e.Id)))
@@ -154,10 +155,33 @@ namespace Zevision.Core.Configuration
                     continue;
                 }
 
+                // 坩埚号超出膜系所选输出源的坩埚数量时设备不会接受;输出源和坩埚数量按恢复后的值判断 (文件中的也会写入)。
+                var crucible = CrucibleRule.Check(entry.Id, entry.Value, afterRestore);
+                if (crucible != null)
+                {
+                    skipped.Add(new RestoreSkip(entry, crucible));
+                    continue;
+                }
+
                 writes.Add(new RestoreWrite(entry.Id, entry.Value, current, entry.Description));
             }
 
             return Result<RestorePlan>.Ok(new RestorePlan(creates, writes, unchanged, skipped, warnings));
+        }
+
+        /// <summary>恢复后各项的值:文件中有的取文件中的值 (ID 重复时取第一次出现的),其他取设备的当前值。</summary>
+        private static Func<string, string?> ValuesAfterRestore(InstrumentRecipe recipe, InstrumentSnapshot snapshot)
+        {
+            var file = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var entry in recipe.Entries)
+            {
+                if (!file.ContainsKey(entry.Id))
+                {
+                    file.Add(entry.Id, entry.Value);
+                }
+            }
+
+            return id => file.TryGetValue(id, out var value) ? value : snapshot.GetValue(id);
         }
 
         /// <summary>

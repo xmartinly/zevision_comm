@@ -181,7 +181,7 @@ namespace Zevision.ViewModels.Editor
             }
 
             var definition = ZevisionCommandSet.Find(entry.Id);
-            return new RecipeItemViewModel(entry, definition, definition == null ? null : options.For(definition));
+            return new RecipeItemViewModel(entry, definition, definition == null ? null : options.For(definition, entry.Id));
         }
 
         /// <summary>当前值不在选项中时 (设备值超出文档、引用的对象已不存在) 追加一项,保证下拉框能显示原值。</summary>

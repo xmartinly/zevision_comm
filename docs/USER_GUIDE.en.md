@@ -97,6 +97,7 @@ Available while connected:
     - Successful saves, New, Delete and list changes show no message box; the result is shown at the bottom of the window. Errors still show a message box.
   - Each row is "name (unit) | value | ID". In English the name is the description the device reports in its help table. Hover over a row to see the range or options.
   - Check a row to edit it. Settings with fixed options (such as on/off or a material) use a drop-down; others are typed in.
+  - A film's crucible: the drop-down offers **0 - Any** and 1 to the number of crucibles of the film's source (the source's "Number of Crucibles"; 1 when no source is selected). If the source is changed in the same save, the crucible is checked against the new source before writing; a crucible above its number of crucibles is not written and an error is shown.
   - Numbers are written with the number of decimal places of the original value (5.89 is written as 5.890). Times use hours:minutes:seconds, e.g. 0:01:30.
   - Invalid values are shown in red; hover over them to see why. Saving is not possible while a value is invalid.
 - Process control, system time and communication settings cannot be edited.
@@ -104,7 +105,7 @@ Available while connected:
 ### Restore
 
 - Order: system settings → materials → films → layers → processes. Materials, films etc. deleted on the device are re-created.
-- The confirmation lists the objects to create, the settings to change, and the settings that will not be written (with the reason).
+- The confirmation lists the objects to create, the settings to change, and the settings that will not be written (with the reason, for example a referenced material that does not exist or a crucible above the number of crucibles of its source).
 - Restoring stops at the first error; settings already written are not rolled back.
 - Each phase is limited to 60 s; click **Cancel** at any time.
 - Communication settings (G13/G14) and process control (C) are never restored.

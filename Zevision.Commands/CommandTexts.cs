@@ -304,7 +304,7 @@ namespace Zevision.Commands
             ["文档范围 25~9999;实机值为 0"] = "documented range 25~9999; device value is 0",
             ["文档范围 1~晶振数;实机值为 0"] = "documented range 1~number of crystals; device value is 0",
             ["0=禁用, 1~晶振数"] = "0=Disabled, 1~number of crystals",
-            ["0=禁用"] = "0=disabled",
+            ["0=任意, 1~所选输出源的坩埚数量 (S**07)"] = "0=Any, 1~number of crucibles of the selected source (S**07)",
             ["0=无"] = "0=None",
             ["1~膜层列表中的膜层数"] = "1~number of layers in the list",
             ["工艺编号;文档写 P0201~P02C8"] = "process number; the document says P0201~P02C8",

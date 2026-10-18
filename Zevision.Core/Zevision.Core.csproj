@@ -48,6 +48,7 @@
     <Compile Include="IErrorLog.cs" />
     <Compile Include="Result.cs" />
     <Compile Include="Texts.cs" />
+    <Compile Include="Configuration\CrucibleRule.cs" />
     <Compile Include="Configuration\DeviceIds.cs" />
     <Compile Include="Configuration\IInstrumentConfigService.cs" />
     <Compile Include="Configuration\InstrumentConfigReader.cs" />

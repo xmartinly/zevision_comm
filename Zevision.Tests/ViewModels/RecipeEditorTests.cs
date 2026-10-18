@@ -308,6 +308,29 @@ namespace Zevision.Tests
         }
 
         [Fact]
+        public void Item_FilmCrucible_IsAnyThenOneToSourceCrucibleCount()
+        {
+            // 设备上的坩埚号选项:Any、1 ~ 膜系所选输出源的坩埚数量。
+            var entries = new[] { Entry("F010901", "2", "Source Setting"), Entry("F010902", "0", "Crucible"), Entry("S0107", "6", "Number of Crucibles"), Entry("S0207", "3", "Number of Crucibles") };
+
+            var item = RecipeItemViewModel.Create(entries[1], new ParameterOptions(entries));
+
+            Assert.True(item.UsesOptions);
+            Assert.Equal(new[] { "0 - 任意", "1", "2", "3" }, item.Options.Select(o => o.Label));
+            Assert.Equal("0 - 任意", item.DisplayValue);
+        }
+
+        [Fact]
+        public void Item_FilmCrucible_SourceUnknown_DefaultsToOneAndKeepsValue()
+        {
+            var noSource = new[] { Entry("F010901", "0", "Source Setting"), Entry("F010902", "4", "Crucible") };
+
+            var item = RecipeItemViewModel.Create(noSource[1], new ParameterOptions(noSource));
+
+            Assert.Equal(new[] { "0 - 任意", "1", "4 - (未知)" }, item.Options.Select(o => o.Label));
+        }
+
+        [Fact]
         public void Item_ReferenceOptionsFromFile_MissingTargetMarked()
         {
             var entries = new[] { Entry("M0101", "Al", "Name"), Entry("F0101", "F1", "Name"), Entry("F0102", "3", "Material") };

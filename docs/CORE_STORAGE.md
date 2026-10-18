@@ -68,7 +68,7 @@ Zevision.Commands.dll ─► Zevision.Communication.dll     指令集、协议�
 |---|---|---|
 | `Zevision.Core` | `Result`、`Result<T>`、`IErrorLog`、`ICommunicationRecorder`、`ICommunicationRecorderFactory` | 结果类型;错误日志和通讯数据记录的接口 |
 | `Zevision.Core.Devices` | `IDeviceService`、`ZevisionDeviceService`、`DeviceServiceExtensions`、`ManualCommandPolicy`、`FramingCheck` | 设备连接与收发 |
-| `Zevision.Core.Configuration` | `InstrumentConfigService` (`IInstrumentConfigReader`/`Writer`/`Service`)、`InstrumentSnapshot`、`InstrumentRecipe`、`RestorePlanner`、`RecipeRules`、`ObjectTypes`、`DeviceIds`、`ParameterValue`、`RecipeDocument`、`RecipeEditSession`、`IRecipeStore` | 仪器配置 |
+| `Zevision.Core.Configuration` | `InstrumentConfigService` (`IInstrumentConfigReader`/`Writer`/`Service`)、`InstrumentSnapshot`、`InstrumentRecipe`、`RestorePlanner`、`RecipeRules`、`CrucibleRule`、`ObjectTypes`、`DeviceIds`、`ParameterValue`、`RecipeDocument`、`RecipeEditSession`、`IRecipeStore` | 仪器配置 |
 | `Zevision.Core.Localization` | `Lang`、`TextCatalog`、`CommandText`、`CommunicationText` | 中英文 |
 | `Zevision.Core.Settings` | `ConnectionPreferences`、`IPreferencesStore` | 通讯配置 |
 | `Zevision.Storage` | `AppFolders`、`TextFile`、`JsonFilePreferencesStore`、`RecipeFileStore`、`FileErrorLog`、`CommunicationLogFiles` | 文件实现 |
@@ -361,7 +361,7 @@ var report = await config.ExecuteRestoreAsync(loaded.Value, plan, progress, canc
    这些项不在 `Writes` 中:新对象带的是设备默认值,要等创建后重新读取才知道该写哪些。
 4. 与设备当前值相同 → 计入 `UnchangedCount`。
 5. 不同 → `Writes`,按 `RecipeRules.GroupRank` 排序 (N S I O T G M F L P),组内保持文件中的顺序。
-6. 跳过 (`Skipped`):文件中重复的 ID;不可恢复的项 (8.1);值含协议字符 (`;`、`{`、`}` 或非 ASCII);引用的对象 (如 `F0302 = 3` → `M03`) 既不在设备上、也不会被创建 (设备必然回 `-B`)。
+6. 跳过 (`Skipped`):文件中重复的 ID;不可恢复的项 (8.1);值含协议字符 (`;`、`{`、`}` 或非 ASCII);引用的对象 (如 `F0302 = 3` → `M03`) 既不在设备上、也不会被创建 (设备必然回 `-B`);膜系的坩埚号超出所选输出源的坩埚数量 (按恢复后的输出源和坩埚数量判断,见 8.5)。
 
 `RestoreSkip` 带 ID、文件中的值、说明和原因,`ToString()` 为单行文本,如 `F01030301 Start Ramp/Rise time = 0:00:30 (原因)`。
 
@@ -370,7 +370,7 @@ var report = await config.ExecuteRestoreAsync(loaded.Value, plan, progress, canc
 1. 再次确认型号和 `Ready`:计划是在确认框之前做的,用户确认期间设备可能已开始工艺。不满足时不写任何项。
 2. 写入系统设置 (`RecipeRules.IsSystemSetting`:N S I O T G)。
 3. 有 `Creates` 时:发送创建指令 → 重新读取 `?` → 重新计划,循环直到不再需要创建,最多 4 轮 (嵌套的列表要等上级创建后才出现)。创建的对象没有出现在预期编号上时停止。
-4. 写入其余的项:对象的设置,以及创建后才出现的系统项 (如输出源新追加的坩埚材料 `S**09**`)。第 2 步写过的项不重复写。
+4. 写入其余的项:对象的设置,以及创建后才出现的系统项 (如协议文档中输出源的坩埚材料 `S**09**`,追加后才出现)。第 2 步写过的项不重复写。
 5. 用 `Q` 逐项读回,与写入的值比较 (`ParameterValue.AreEquivalent`)。
 
 - 遇到第一个设备拒绝就停止,不回滚。设备上比文件多出的对象或条目不删除。
@@ -414,7 +414,7 @@ if (!report.IsSuccess)
 // 设备不在 Ready 时 → "设备当前状态为 Running,只有在 Ready (空闲) 状态下才能修改配置。"
 ```
 
-- `ApplyEditsAsync`:先检查每一项可以写 (`RecipeRules.IsRestorable`) 且不含协议字符,任何一项不合格都不发送;按恢复的顺序写入,逐项读回。不创建对象:设备上不存在的项会被设备拒绝。
+- `ApplyEditsAsync`:先检查每一项可以写 (`RecipeRules.IsRestorable`)、不含协议字符,膜系的坩埚号不超过所选输出源的坩埚数量 (同时修改的输出源和坩埚数量按新值,见 8.5),任何一项不合格都不发送;按恢复的顺序写入,逐项读回。不创建对象:设备上不存在的项会被设备拒绝。
 - `CreateObjectAsync` 的默认引用按 `type.NewDefault` (8.2):膜系写材料项 `F..02`;膜层先追加膜系列表一项 (`AL..0200`) 再写其膜系 (`L..02nn01`);工艺追加膜层列表一项并写入 (`AP02..0700` → `UP02..07nn`)。`defaultValue` 为 null 时只创建。对象创建成功但默认引用失败时 `Error` 为 null、`DefaultsError` 为原因 (对象保留在设备上)。
 - 只有 `M**`、`F**`、`L**`、`P02**` 可以按编号新建/删除 (指令集检查,其他 ID 抛 `ArgumentException`)。按编号删除 (`DM03`) 协议文档没有说明;按编号新建已在实机确认 M、F,L、P 是推断的。
 - 修改后调用方应重新读取该组 (`ReadGroupAsync`) 确认结果,编辑会话就是这样做的 (9.3)。
@@ -455,7 +455,7 @@ RecipeRules.FindReferencesTo(entries, "M03");                   // entries 含 F
 new[] { "P0101", "M0101", "G0E01", "N0101", "X01" }.OrderBy(RecipeRules.GroupRank);   // → N0101 G0E01 M0101 P0101 X01
 ```
 
-删除检查比恢复计划多用几条规则,是因为实机上工艺的膜层列表有指向不存在膜层的值 (31/32/33,而只有 L01–L09):恢复计划若用它,会跳过这些写入;删除检查只比较是否等于要删除的对象,不受影响。坩埚材料 `S??09??` 属于系统设置,在创建材料之前写入,是否在恢复计划中据此跳过需要实机确认,暂不使用。
+删除检查比恢复计划多用几条规则,是因为实机上工艺的膜层列表有指向不存在膜层的值 (31/32/33,而只有 L01–L09):恢复计划若用它,会跳过这些写入;删除检查只比较是否等于要删除的对象,不受影响。坩埚材料 `S??09??` (协议文档) 属于系统设置,在创建材料之前写入,恢复计划不使用;固件 1.8.11 的设备上也没有这个列表 (保存的配置和抓包中都没有)。
 
 ### 8.2 ObjectTypes:可以新建/删除的对象
 
@@ -518,6 +518,27 @@ ParameterValue.FormatTime(7205);                         // → "2:00:05"
 - 类型和范围来自指令集 (`CommandDefinition`):数字、时间 (`H:MM:SS`,小时 ≤ 8760,部分项有自己的上下限)、选项、引用、文本。
 - 设备上的值可能超出文档的范围:界面只在值被修改后才检查类型和范围,协议字符总是检查。
 - 写入前用 `Normalize` 规整:设备按固定小数位保存,读回校验才能一致。
+
+### 8.5 CrucibleRule:膜系的坩埚号
+
+膜系的坩埚号 `F**0902` 的取值为 0 = 任意 (Any),或 1 ~ 膜系所选输出源 (`F**0901`) 的坩埚数量 (`S**07`)。设备上的选项就是 Any、1 ~ 最大数量 (用户确认);协议文档写的 "0 = disabled" 与设备不符。输出源未选择、不存在,或坩埚数量未知或为 0 时,最大坩埚号按 `DefaultCount` (1) 计。
+
+```csharp
+// 实机:S01 有 6 个坩埚,S02 有 8 个;膜系 F01 选输出源 1
+Func<string, string?> valueOf = id => values.TryGetValue(id, out var v) ? v : null;
+CrucibleRule.IsCrucible("F010902");                  // → true;"F010901" (输出源) → false
+CrucibleRule.MaxFor("F010902", valueOf);             // → 6;F01 未选择输出源 (F010901 = 0) 时 → 1
+CrucibleRule.Check("F010902", "6", valueOf);         // → null (可以);"0" (任意) 总是可以
+CrucibleRule.Check("F010902", "7", valueOf);         // → "坩埚 7 超出输出源 S01 的坩埚数量 (6)"
+```
+
+| 使用处 | `valueOf` 取的值 | 超出时 |
+|---|---|---|
+| 修改窗口的下拉框 (界面层 `ParameterOptions`) | 页面中的配置 | 选项为 `0 - 任意`、1 ~ `MaxFor`;超出的当前值保留并标为"(未知)" |
+| `ApplyEditsAsync` 写入前 | 修改的新值,其他取配置 | 不发送任何指令,`Error` = "F010902 不能修改: 坩埚 7 超出…" |
+| `RestorePlanner.Plan` | 文件中的值 (恢复后),文件中没有的取设备 | 放入 `Skipped`,原因同上 |
+
+只在坩埚数量已知时检查;0 和不是数字的值不检查 (后者由 `ParameterValue` 校验)。
 
 ## 9. 修改窗口的编辑会话
 
@@ -854,6 +875,14 @@ var snapshot = await config.ReadSnapshotAsync(ct);          // → IMC300 Ready
 - `T Value { get; }`: 返回值。失败时访问会抛出 `InvalidOperationException`。
 - `static Result<T> Ok(T value)`: 创建成功结果。
 - `static Result<T> Fail(string error)`: 创建失败结果。
+
+#### static class `CrucibleRule`
+膜系的坩埚号 (`F**0902`):0 = 任意 (Any),1 ~ 膜系所选输出源 (`F**0901`) 的坩埚数量 (`S**07`)。 输出源未选择、不存在,或其坩埚数量未知或为 0 时,最大坩埚号按 `DefaultCount` 计。
+- `const string Any`: "任意坩埚"的值。
+- `const int DefaultCount`: 输出源的坩埚数量未知或为 0 时的最大坩埚号。
+- `static bool IsCrucible(string id)`: 是否是膜系的坩埚号项,如 `F010902`。
+- `static int MaxFor(string crucibleId, Func<string, string> valueOf)`: 坩埚号的最大值:膜系所选输出源的坩埚数量;未知或为 0 时为 `DefaultCount`。
+- `static string Check(string crucibleId, string value, Func<string, string> valueOf)`: 检查坩埚号是否超出所选输出源的坩埚数量。只在坩埚数量已知时检查;0 (任意) 和非数字的值不检查。
 
 #### static class `DeviceIds`
 配置项 ID 的组成:组字母 + 若干级两位十六进制编号 (如 `F0103` = 膜系 F01 的预熔列表)。 列表条目编号为 01~FD;`00` 是"在末尾追加/删除最后一项"的指令项,`FE` 是条数项。 程序中拼接、拆分 ID 都用这里的方法,不手写这些编号。
