@@ -6,7 +6,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
-using Zevision.ViewModels;
+using Zevision.ViewModels.Display;
+using Zevision.ViewModels.Main;
 
 namespace Zevision.Views
 {
@@ -33,11 +34,11 @@ namespace Zevision.Views
         }
 
         /// <summary>
-        /// 关闭窗口时仍连接:先取消关闭,停止重复发送、断开并写完通讯数据文件 (<see cref="ViewModels.MainViewModel.CloseConnectionAsync"/>),再关闭。
+        /// 关闭窗口时仍连接:先取消关闭,停止重复发送、断开并写完通讯数据文件 (<see cref="MainViewModel.CloseConnectionAsync"/>),再关闭。
         /// </summary>
         private async void OnClosing(object? sender, CancelEventArgs e)
         {
-            if (_connectionClosed || !(DataContext is ViewModels.MainViewModel viewModel) || !viewModel.HasConnection)
+            if (_connectionClosed || !(DataContext is MainViewModel viewModel) || !viewModel.HasConnection)
             {
                 return;
             }
@@ -134,7 +135,7 @@ namespace Zevision.Views
             }
 
             e.Handled = true;
-            if (DataContext is ViewModels.MainViewModel viewModel && viewModel.SendCommand.CanExecute(null))
+            if (DataContext is MainViewModel viewModel && viewModel.SendCommand.CanExecute(null))
             {
                 viewModel.SendCommand.Execute(null);
             }

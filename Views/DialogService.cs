@@ -1,6 +1,6 @@
 using System.Windows;
 using Microsoft.Win32;
-using Zevision.ViewModels;
+using Zevision.ViewModels.Common;
 
 namespace Zevision.Views
 {

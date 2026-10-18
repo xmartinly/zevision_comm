@@ -13,7 +13,7 @@ using Zevision.Core.Configuration;
 using Zevision.Core.Devices;
 using Zevision.Core.Localization;
 using Zevision.Storage;
-using Zevision.ViewModels;
+using Zevision.ViewModels.Main;
 using Zevision.Views;
 
 namespace Zevision

@@ -4,7 +4,8 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
-        xmlns:vm="clr-namespace:Zevision.ViewModels"
+        xmlns:vm="clr-namespace:Zevision.ViewModels.Main"
+        xmlns:display="clr-namespace:Zevision.ViewModels.Display"
         xmlns:t="clr-namespace:Zevision.Views"
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
         mc:Ignorable="d"
@@ -27,7 +28,7 @@
         </Style>
 
         <!-- 数据显示区单条记录 -->
-        <DataTemplate x:Key="LogEntryTemplate" DataType="{x:Type vm:LogEntry}">
+        <DataTemplate x:Key="LogEntryTemplate" DataType="{x:Type display:LogEntry}">
             <Grid Margin="0,1">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -46,17 +47,17 @@
                 <TextBlock x:Name="EntryText" Grid.Column="2" Text="{Binding Text}" TextWrapping="Wrap" />
             </Grid>
             <DataTemplate.Triggers>
-                <DataTrigger Binding="{Binding Kind}" Value="{x:Static vm:LogKind.Tx}">
+                <DataTrigger Binding="{Binding Kind}" Value="{x:Static display:LogKind.Tx}">
                     <Setter TargetName="KindText" Property="Text" Value="TX" />
                     <Setter TargetName="KindBadge" Property="Background" Value="{DynamicResource MaterialDesign.Brush.Primary}" />
                     <Setter TargetName="KindText" Property="Foreground" Value="{DynamicResource MaterialDesign.Brush.Primary.Foreground}" />
                 </DataTrigger>
-                <DataTrigger Binding="{Binding Kind}" Value="{x:Static vm:LogKind.Rx}">
+                <DataTrigger Binding="{Binding Kind}" Value="{x:Static display:LogKind.Rx}">
                     <Setter TargetName="KindText" Property="Text" Value="RX" />
                     <Setter TargetName="KindBadge" Property="Background" Value="{DynamicResource MaterialDesign.Brush.Secondary}" />
                     <Setter TargetName="KindText" Property="Foreground" Value="{DynamicResource MaterialDesign.Brush.Secondary.Foreground}" />
                 </DataTrigger>
-                <DataTrigger Binding="{Binding Kind}" Value="{x:Static vm:LogKind.Error}">
+                <DataTrigger Binding="{Binding Kind}" Value="{x:Static display:LogKind.Error}">
                     <Setter TargetName="KindText" Property="Text" Value="ERR" />
                     <Setter TargetName="KindBadge" Property="Background" Value="{DynamicResource MaterialDesign.Brush.ValidationError}" />
                     <Setter TargetName="KindText" Property="Foreground" Value="White" />
@@ -70,7 +71,7 @@
                 <MultiDataTrigger>
                     <MultiDataTrigger.Conditions>
                         <Condition Binding="{Binding IsContinuation}" Value="True" />
-                        <Condition Binding="{Binding Kind}" Value="{x:Static vm:LogKind.Info}" />
+                        <Condition Binding="{Binding Kind}" Value="{x:Static display:LogKind.Info}" />
                     </MultiDataTrigger.Conditions>
                     <Setter TargetName="EntryText" Property="Foreground" Value="{DynamicResource MaterialDesign.Brush.ForegroundLight}" />
                 </MultiDataTrigger>

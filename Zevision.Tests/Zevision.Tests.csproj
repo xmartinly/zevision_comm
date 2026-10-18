@@ -40,42 +40,42 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="FakeDeviceService.cs" />
-    <Compile Include="FakeDialogService.cs" />
-    <Compile Include="MemoryPreferencesStore.cs" />
-    <Compile Include="NoCommunicationRecorders.cs" />
+    <Compile Include="Fakes\FakeDeviceService.cs" />
+    <Compile Include="Fakes\FakeDialogService.cs" />
+    <Compile Include="Fakes\MemoryPreferencesStore.cs" />
+    <Compile Include="Fakes\NoCommunicationRecorders.cs" />
     <Compile Include="TestSetup.cs" />
-    <Compile Include="BindingSourceTests.cs" />
-    <Compile Include="FramingCheckTests.cs" />
-    <Compile Include="TextCatalogTests.cs" />
-    <Compile Include="TextFileTests.cs" />
-    <Compile Include="LocalizationTests.cs" />
-    <Compile Include="ObjectEditTests.cs" />
-    <Compile Include="ObjectTypesTests.cs" />
-    <Compile Include="RecipeDocumentTests.cs" />
-    <Compile Include="ResponseLogFormatterTests.cs" />
-    <Compile Include="SendOptionsTests.cs" />
-    <Compile Include="TcpTransportTests.cs" />
-    <Compile Include="RecipeEditorTests.cs" />
-    <Compile Include="FakeSerialTransport.cs" />
-    <Compile Include="FileErrorLogTests.cs" />
-    <Compile Include="FrameDisplayFormatterTests.cs" />
-    <Compile Include="LogViewModelTests.cs" />
-    <Compile Include="ProtocolTextTests.cs" />
-    <Compile Include="RestoreMessagesTests.cs" />
-    <Compile Include="HelpTableParserTests.cs" />
-    <Compile Include="InstrumentConfigServiceTests.cs" />
-    <Compile Include="JsonFilePreferencesStoreTests.cs" />
-    <Compile Include="OperationTimeoutTests.cs" />
-    <Compile Include="ManualCommandPolicyTests.cs" />
-    <Compile Include="RecipeFileTests.cs" />
-    <Compile Include="RecipeRulesTests.cs" />
-    <Compile Include="RealCaptureTests.cs" />
-    <Compile Include="ZevisionCommandSetTests.cs" />
-    <Compile Include="ZevisionClientTests.cs" />
-    <Compile Include="CommunicationTextTests.cs" />
-    <Compile Include="LibraryBoundaryTests.cs" />
-    <Compile Include="ParameterValueTests.cs" />
+    <Compile Include="Architecture\BindingSourceTests.cs" />
+    <Compile Include="Core\FramingCheckTests.cs" />
+    <Compile Include="Localization\TextCatalogTests.cs" />
+    <Compile Include="Storage\TextFileTests.cs" />
+    <Compile Include="Localization\LocalizationTests.cs" />
+    <Compile Include="ViewModels\ObjectEditTests.cs" />
+    <Compile Include="Core\ObjectTypesTests.cs" />
+    <Compile Include="Core\RecipeDocumentTests.cs" />
+    <Compile Include="ViewModels\ResponseLogFormatterTests.cs" />
+    <Compile Include="ViewModels\SendOptionsTests.cs" />
+    <Compile Include="Communication\TcpTransportTests.cs" />
+    <Compile Include="ViewModels\RecipeEditorTests.cs" />
+    <Compile Include="Fakes\FakeSerialTransport.cs" />
+    <Compile Include="Storage\FileErrorLogTests.cs" />
+    <Compile Include="ViewModels\FrameDisplayFormatterTests.cs" />
+    <Compile Include="ViewModels\LogViewModelTests.cs" />
+    <Compile Include="Communication\ProtocolTextTests.cs" />
+    <Compile Include="ViewModels\RestoreMessagesTests.cs" />
+    <Compile Include="Communication\HelpTableParserTests.cs" />
+    <Compile Include="Core\InstrumentConfigServiceTests.cs" />
+    <Compile Include="Storage\JsonFilePreferencesStoreTests.cs" />
+    <Compile Include="ViewModels\OperationTimeoutTests.cs" />
+    <Compile Include="Core\ManualCommandPolicyTests.cs" />
+    <Compile Include="Storage\RecipeFileTests.cs" />
+    <Compile Include="Core\RecipeRulesTests.cs" />
+    <Compile Include="Communication\RealCaptureTests.cs" />
+    <Compile Include="Commands\ZevisionCommandSetTests.cs" />
+    <Compile Include="Communication\ZevisionClientTests.cs" />
+    <Compile Include="Localization\CommunicationTextTests.cs" />
+    <Compile Include="Architecture\LibraryBoundaryTests.cs" />
+    <Compile Include="Core\ParameterValueTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <!-- 实机 (IMC300 固件 1.8.11) 原始接收字节:H01、H02、?(3 包,约 116 KB)、H01、H02、H01。 -->
@@ -87,10 +87,10 @@
     <None Include="TestData\imc300_1.8.11_h01_h02_help.bin">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <Compile Include="ZevisionDeviceServiceTests.cs" />
-    <Compile Include="ZevisionFrameCodecTests.cs" />
-    <Compile Include="ZevisionFrameDecoderTests.cs" />
-    <Compile Include="ZevisionResponseParserTests.cs" />
+    <Compile Include="Core\ZevisionDeviceServiceTests.cs" />
+    <Compile Include="Communication\ZevisionFrameCodecTests.cs" />
+    <Compile Include="Communication\ZevisionFrameDecoderTests.cs" />
+    <Compile Include="Communication\ZevisionResponseParserTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Zevision.csproj">

@@ -7,7 +7,8 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
-using Zevision.ViewModels;
+using Zevision.ViewModels.Common;
+using Zevision.ViewModels.Editor;
 
 namespace Zevision.Views
 {
