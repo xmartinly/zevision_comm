@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Zevision.Commands;
-using Zevision.Communication;
 
 namespace Zevision.Core.Configuration
 {

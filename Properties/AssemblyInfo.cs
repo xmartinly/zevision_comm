@@ -20,6 +20,6 @@ using System.Windows;
     ResourceDictionaryLocation.SourceAssembly)]
 
 // 发布时只改这里:AssemblyInformationalVersion 显示在标题栏和 error.txt 中。
-[assembly: AssemblyVersion("0.9.6.0")]
-[assembly: AssemblyFileVersion("0.9.6.0")]
-[assembly: AssemblyInformationalVersion("0.9.6")]
+[assembly: AssemblyVersion("0.10.0.0")]
+[assembly: AssemblyFileVersion("0.10.0.0")]
+[assembly: AssemblyInformationalVersion("0.10.0")]

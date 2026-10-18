@@ -1,7 +1,7 @@
 using System;
 using System.Globalization;
 
-namespace Zevision.Models
+namespace Zevision.ViewModels
 {
     /// <summary>
     /// 数据显示区中一条记录的类型。

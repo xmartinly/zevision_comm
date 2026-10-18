@@ -2,8 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
+using Zevision.Communication;
 
-namespace Zevision.Communication
+namespace Zevision.ViewModels
 {
     /// <summary>
     /// 把帧字节格式化为便于阅读的文本,用于数据显示区。

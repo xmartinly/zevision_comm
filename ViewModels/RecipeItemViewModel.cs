@@ -4,10 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Windows.Input;
 using Zevision.Commands;
-using Zevision.Communication;
 using Zevision.Core.Configuration;
 using Zevision.Core.Localization;
-using Zevision.Services;
 
 namespace Zevision.ViewModels
 {

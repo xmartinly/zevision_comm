@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using Zevision.Core;
-using Zevision.Services;
+using Zevision.ViewModels;
 
 namespace Zevision.Tests
 {

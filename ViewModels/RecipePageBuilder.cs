@@ -6,7 +6,6 @@ using System.Windows.Input;
 using Zevision.Commands;
 using Zevision.Core.Configuration;
 using Zevision.Core.Localization;
-using Zevision.Services;
 using M = Zevision.ViewModels.RecipeEditorMessages;
 
 namespace Zevision.ViewModels

@@ -1,6 +1,7 @@
 using System.Text;
 using Xunit;
 using Zevision.Communication;
+using Zevision.ViewModels;
 
 namespace Zevision.Tests
 {

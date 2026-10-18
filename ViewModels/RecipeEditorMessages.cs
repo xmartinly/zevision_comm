@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Zevision.Commands;
-using Zevision.Communication;
 using Zevision.Core.Configuration;
 using Zevision.Core.Localization;
 

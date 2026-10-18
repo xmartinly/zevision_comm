@@ -6,7 +6,6 @@ using System.ComponentModel;
 using System.Linq;
 using Zevision.Core;
 using Zevision.Core.Localization;
-using Zevision.Models;
 
 namespace Zevision.ViewModels
 {

@@ -12,7 +12,6 @@ using Zevision.Core.Configuration;
 using Zevision.Core.Devices;
 using Zevision.Core.Localization;
 using Zevision.Core.Settings;
-using Zevision.Models;
 using Zevision.Storage;
 using Zevision.ViewModels;
 

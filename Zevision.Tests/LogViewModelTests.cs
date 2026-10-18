@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text;
 using Xunit;
 using Zevision.Communication;
-using Zevision.Models;
 using Zevision.ViewModels;
 
 namespace Zevision.Tests

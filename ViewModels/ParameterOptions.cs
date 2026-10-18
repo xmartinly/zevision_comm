@@ -7,7 +7,7 @@ using Zevision.Commands;
 using Zevision.Core.Configuration;
 using Zevision.Core.Localization;
 
-namespace Zevision.Services
+namespace Zevision.ViewModels
 {
     /// <summary>
     /// 下拉框中的一项 (界面语言)。由指令集的 <see cref="CommandOption"/> 或配置中的对象生成。

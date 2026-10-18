@@ -1,4 +1,4 @@
-namespace Zevision.Communication
+namespace Zevision.ViewModels
 {
     /// <summary>数据显示区中收发数据的显示格式。</summary>
     public enum DisplayFormat

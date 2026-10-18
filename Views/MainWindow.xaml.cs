@@ -6,7 +6,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
-using Zevision.Models;
+using Zevision.ViewModels;
 
 namespace Zevision.Views
 {

@@ -8,7 +8,6 @@ using System.Windows.Input;
 using Zevision.Core;
 using Zevision.Core.Configuration;
 using Zevision.Core.Localization;
-using Zevision.Services;
 
 namespace Zevision.ViewModels
 {

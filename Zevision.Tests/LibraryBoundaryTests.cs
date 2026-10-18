@@ -11,13 +11,17 @@ using Zevision.Communication;
 namespace Zevision.Tests
 {
     /// <summary>
-    /// 两个链接库的边界:只依赖 .NET Framework (Commands 另依赖 Communication),不引用 WPF 和应用;
-    /// 通讯库只输出英文,不读写文件 (日志等由调用方处理)。
+    /// 各层程序集的边界。依赖方向只能向下:界面 (Zevision.exe) → 业务层 (Zevision.Core) → 协议与通讯
+    /// (Zevision.Commands → Zevision.Communication);存储层 (Zevision.Storage) 实现业务层定义的接口,只依赖业务层。
+    /// 链接库只依赖 .NET Framework,不引用 WPF 和应用;通讯库只输出英文,业务层不读写文件。
     /// </summary>
     public class LibraryBoundaryTests
     {
         private static readonly Assembly CommunicationAssembly = typeof(ZevisionClient).Assembly;
         private static readonly Assembly CommandsAssembly = typeof(ZevisionCommandSet).Assembly;
+        private static readonly Assembly CoreAssembly = typeof(Zevision.Core.Result).Assembly;
+        private static readonly Assembly StorageAssembly = typeof(Zevision.Storage.RecipeFile).Assembly;
+        private static readonly string[] FileTypes = { "File", "FileInfo", "FileStream", "StreamWriter", "Directory", "DirectoryInfo" };
 
         [Fact]
         public void Communication_ReferencesOnlyFramework()
@@ -41,6 +45,52 @@ namespace Zevision.Tests
         }
 
         [Fact]
+        public void Core_ReferencesOnlyFrameworkAndProtocolLibraries()
+        {
+            // 不引用 WPF (PresentationFramework、WindowsBase、System.Xaml)、存储层和应用。
+            Assert.Empty(References(CoreAssembly).Except(new[]
+            {
+                "mscorlib", "System", "System.Core", "System.Runtime.Serialization", "System.Xml", "Zevision.Commands", "Zevision.Communication",
+            }));
+        }
+
+        [Fact]
+        public void Storage_ReferencesOnlyFrameworkAndCore()
+        {
+            Assert.Empty(References(StorageAssembly).Except(new[] { "mscorlib", "System", "System.Core", "System.Runtime.Serialization", "System.Xml", "Zevision.Core" }));
+            Assert.Contains("Zevision.Core", References(StorageAssembly));
+        }
+
+        [Fact]
+        public void Core_DoesNotUseFiles()
+        {
+            // 文件读写在存储层,业务层只通过接口 (IRecipeStore、IPreferencesStore、IErrorLog、ICommunicationRecorder) 使用。
+            var names = new HashSet<string>(MetadataStrings(CoreAssembly), StringComparer.Ordinal);
+
+            var used = FileTypes.Where(names.Contains).ToList();
+            Assert.True(used.Count == 0, "Zevision.Core uses: " + string.Join(", ", used));
+        }
+
+        [Fact]
+        public void UserInterface_UsesStorageOnlyInCompositionRoot()
+        {
+            // 视图和视图模型只依赖业务层的接口;存储层的实现只在 App (组装根) 中创建。
+            var root = new DirectoryInfo(AppDomain.CurrentDomain.BaseDirectory);
+            while (root != null && !File.Exists(Path.Combine(root.FullName, "Zevision.sln")))
+            {
+                root = root.Parent;
+            }
+
+            Assert.NotNull(root);
+            var offending = new[] { "ViewModels", "Views" }
+                .SelectMany(folder => Directory.GetFiles(Path.Combine(root!.FullName, folder), "*.cs"))
+                .Where(file => File.ReadAllText(file).Contains("Zevision.Storage"))
+                .Select(Path.GetFileName)
+                .ToList();
+            Assert.True(offending.Count == 0, "Zevision.Storage used in: " + string.Join(", ", offending));
+        }
+
+        [Fact]
         public void CoreAndStorage_HaveNoChineseStrings()
         {
             // 业务层和存储层的中文提示都在翻译文件 Texts.json 中,代码里只有键。
@@ -55,7 +105,7 @@ namespace Zevision.Tests
         public void Communication_DoesNotUseFiles()
         {
             var names = new HashSet<string>(MetadataStrings(CommunicationAssembly), StringComparer.Ordinal);
-            var fileTypes = new[] { "File", "FileInfo", "FileStream", "StreamWriter", "Directory", "DirectoryInfo", "Trace", "Debug", "EventLog" };
+            var fileTypes = FileTypes.Concat(new[] { "Trace", "Debug", "EventLog" });
 
             var used = fileTypes.Where(names.Contains).ToList();
             Assert.True(used.Count == 0, "Zevision.Communication uses: " + string.Join(", ", used));

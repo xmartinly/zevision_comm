@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using Xunit;
 using Zevision.Core.Configuration;
 using Zevision.Core.Settings;
-using Zevision.Services;
 using Zevision.Storage;
 using Zevision.ViewModels;
 

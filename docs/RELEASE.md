@@ -2,7 +2,7 @@
 
 ## 版本
 
-- 当前版本:**0.9.6** (预发布;没有 0.9.2)
+- 当前版本:**0.10.0** (预发布;没有 0.9.2)
 - 公司:INFICON;作者:martin.liang@inficon.com (写在 `AssemblyInfo.cs` 的 `AssemblyDescription` 和 `AssemblyMetadata("Author")` 中,文件属性的"备注"可见)
 - 版本号只在 `Properties/AssemblyInfo.cs` 中修改:`AssemblyVersion`、`AssemblyFileVersion` 和 `AssemblyInformationalVersion`。
 - 标题栏和 `logs\error.txt` 的会话标题都显示 `AssemblyInformationalVersion`。
@@ -28,6 +28,8 @@
 | `Zevision.exe.config` | 运行时配置 (程序集绑定重定向),必须随 exe 一起发布 |
 | `Zevision.Communication.dll` | 通讯库 (传输、帧、响应解析),程序必需 |
 | `Zevision.Commands.dll` | 指令库 (指令集、命令生成),程序必需 |
+| `Zevision.Core.dll` | 业务层 (设备访问、仪器配置读写、恢复计划;内嵌中英文文本 `Texts.json`),程序必需 |
+| `Zevision.Storage.dll` | 存储层 (配置文件、`settings.json`、错误日志、通讯数据文件),程序必需 |
 | `MaterialDesignThemes.Wpf.dll` | 界面主题 |
 | `MaterialDesignColors.dll` | 界面主题颜色 |
 | `Microsoft.Xaml.Behaviors.dll` | MaterialDesignThemes 的依赖 |
@@ -48,7 +50,7 @@
 
 输出到 `dist\` (不随源码分发):
 
-- `dist\Zevision-<版本>\`:上表 7 个文件 + `使用说明.md` (即 `docs/USER_GUIDE.md`) + `User Guide.md` (即 `docs/USER_GUIDE.en.md`) + `dotnet\ndp48-x86-x64-allos-enu.exe`
+- `dist\Zevision-<版本>\`:上表 9 个文件 + `使用说明.md` (即 `docs/USER_GUIDE.md`) + `User Guide.md` (即 `docs/USER_GUIDE.en.md`) + `dotnet\ndp48-x86-x64-allos-enu.exe`
 - 安装包下载后先核对数字签名 (`Get-AuthenticodeSignature`,签名者为 Microsoft Corporation,状态 Valid) 再放入发布包。
 - `dist\Zevision-<版本>.zip`:上述文件夹的压缩包,即发布包
 - `dist\symbols\Zevision-<版本>.pdb`:调试符号,留档用于分析用户反馈的异常堆栈,不发布
@@ -76,6 +78,17 @@
 | 0.9.4 | 2026-10-16 | `7C9352B61A5F079C18D331CB323479724A2DA0A49D406CE2206C9D11852D0FCB` |
 | 0.9.5 | 2026-10-16 | `7FC95325891C23DE48338426FCE3DFB717F1326266B298958EB0B647E961BD09` |
 | 0.9.6 | 2026-10-16 | `02547CBBF00A1EA70C7D813361708D25CB61A310EABBDCB5EEE93C27B3403C18` |
+
+## 0.10.0 更新内容 (相对 0.9.6)
+
+- 分层重构 (功能、界面文字和错误日志内容不变):
+  - 硬件通讯层与协议解析层:`Zevision.Communication.dll`、`Zevision.Commands.dll` (未变,仍为 1.0.0)。
+  - 业务逻辑层:新的 `Zevision.Core.dll` (设备访问、仪器配置读写、恢复计划、修改配置时与设备和文件的同步)。
+  - 数据存储层:新的 `Zevision.Storage.dll` (配置文件、`settings.json`、错误日志、通讯数据文件),实现业务层定义的接口。
+  - 界面层 (`Zevision.exe`) 只依赖业务层的接口,存储层只在程序启动时组装。
+  - 业务层和存储层的提示与错误文本集中在翻译文件 `Texts.json` (中英文,内嵌在 `Zevision.Core.dll` 中)。
+- 两个新 dll 必须和 `Zevision.exe` 放在同一个文件夹。
+- 兼容:0.9.0~0.9.6 的 `settings.json` 和配置文件可以直接使用。
 
 ## 0.9.6 更新内容 (相对 0.9.5)
 

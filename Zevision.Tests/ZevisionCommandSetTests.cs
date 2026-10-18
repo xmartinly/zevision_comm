@@ -10,7 +10,7 @@ using Zevision.Commands;
 using Zevision.Communication;
 using Zevision.Core.Configuration;
 using Zevision.Core.Localization;
-using Zevision.Services;
+using Zevision.ViewModels;
 
 namespace Zevision.Tests
 {

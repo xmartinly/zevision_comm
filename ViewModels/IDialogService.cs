@@ -1,4 +1,4 @@
-namespace Zevision.Services
+namespace Zevision.ViewModels
 {
     /// <summary>
     /// 文件对话框和消息框。视图模型通过它与用户交互,不直接依赖 WPF 窗口,便于测试。

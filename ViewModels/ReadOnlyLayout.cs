@@ -3,11 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Zevision.Commands;
-using Zevision.Communication;
 using Zevision.Core.Configuration;
 using Zevision.Core.Localization;
 
-namespace Zevision.Services
+namespace Zevision.ViewModels
 {
     /// <summary>修改配置窗口"只读"页中的一节。</summary>
     public sealed class ReadOnlySection

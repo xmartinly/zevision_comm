@@ -1,4 +1,5 @@
 using Zevision.Core.Localization;
+using Zevision.ViewModels;
 
 namespace Zevision.Views
 {

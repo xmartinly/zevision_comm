@@ -4,7 +4,7 @@ using System.Linq;
 using Zevision.Core.Configuration;
 using Zevision.Core.Localization;
 
-namespace Zevision.Services
+namespace Zevision.ViewModels
 {
     /// <summary>
     /// 修改配置时按"项目"(所属对象) 分组的一组配置项。

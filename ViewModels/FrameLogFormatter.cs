@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Text;
 using Zevision.Communication;
 using Zevision.Core.Localization;
-using Zevision.Models;
 
 namespace Zevision.ViewModels
 {

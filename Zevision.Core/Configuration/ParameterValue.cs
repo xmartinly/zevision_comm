@@ -2,7 +2,6 @@ using System;
 using System.Globalization;
 using System.Linq;
 using Zevision.Commands;
-using Zevision.Communication;
 using Zevision.Core.Localization;
 
 namespace Zevision.Core.Configuration
