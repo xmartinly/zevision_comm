@@ -25,6 +25,33 @@ namespace Zevision.Communication
                 throw new ArgumentNullException(nameof(payload));
             }
 
+            return TryParseCore(payload, out var responses, out var invalid)
+                ? responses
+                : throw new FormatException($"Response is missing the status + or -: \"{invalid}\"");
+        }
+
+        /// <summary>
+        /// 尝试解析;格式错误时返回 false (不抛出异常)。
+        /// </summary>
+        public static bool TryParse(string payload, out IReadOnlyList<ZevisionResponse> responses)
+        {
+            if (payload is null)
+            {
+                throw new ArgumentNullException(nameof(payload));
+            }
+
+            if (TryParseCore(payload, out var parsed, out _))
+            {
+                responses = parsed;
+                return true;
+            }
+
+            responses = Array.Empty<ZevisionResponse>();
+            return false;
+        }
+
+        private static bool TryParseCore(string payload, out IReadOnlyList<ZevisionResponse> responses, out string? invalid)
+        {
             // 协议没有转义 ';'。没有状态符的片段视为上一条响应数据的一部分 (例如帮助文本中的 ';'),重新拼回去。
             var segments = new List<string>();
             foreach (var part in payload.Split(';'))
@@ -45,13 +72,23 @@ namespace Zevision.Communication
                 }
             }
 
-            var responses = new List<ZevisionResponse>(segments.Count);
+            var list = new List<ZevisionResponse>(segments.Count);
             foreach (var segment in segments)
             {
-                responses.Add(ParseSingle(segment));
+                var response = ParseSingle(segment);
+                if (response == null)
+                {
+                    responses = Array.Empty<ZevisionResponse>();
+                    invalid = segment;
+                    return false;
+                }
+
+                list.Add(response);
             }
 
-            return responses;
+            responses = list;
+            invalid = null;
+            return true;
         }
 
         /// <summary>
@@ -65,7 +102,8 @@ namespace Zevision.Communication
                 throw new ArgumentNullException(nameof(command));
             }
 
-            var first = command.Split(';')[0].Trim();
+            var end = command.IndexOf(';');
+            var first = (end >= 0 ? command.Substring(0, end) : command).Trim();
             var separator = first.IndexOf(':');
             return separator >= 0 ? first.Substring(0, separator) : first;
         }
@@ -74,37 +112,29 @@ namespace Zevision.Communication
         /// 这一帧是否是对回显为 <paramref name="expectedEcho"/> 的请求的响应。
         /// 无法判断时 (帧无效、无法解析、设备未回显命令,如 <c>-C</c>) 视为是,交给调用方报告。
         /// </summary>
-        public static bool IsReplyTo(ZevisionFrame frame, string expectedEcho)
-        {
-            if (frame is null)
-            {
-                throw new ArgumentNullException(nameof(frame));
-            }
-
-            if (!frame.IsValid || !TryParse(frame.Payload, out var responses) || responses.Count == 0)
-            {
-                return true;
-            }
-
-            var echo = responses[0].Command;
-            return echo.Length == 0 || string.Equals(echo, expectedEcho, StringComparison.OrdinalIgnoreCase);
-        }
+        public static bool IsReplyTo(ZevisionFrame frame, string expectedEcho) =>
+            IsReplyTo(frame ?? throw new ArgumentNullException(nameof(frame)), expectedEcho, out _);
 
         /// <summary>
-        /// 尝试解析;格式错误时返回 false。
+        /// 同 <see cref="IsReplyTo(ZevisionFrame, string)"/>,并给出解析结果 (帧无效或无法解析时为 null),
+        /// 让客户端不必再解析一次 (<c>?</c> 的响应约 116 KB)。
         /// </summary>
-        public static bool TryParse(string payload, out IReadOnlyList<ZevisionResponse> responses)
+        internal static bool IsReplyTo(ZevisionFrame frame, string expectedEcho, out IReadOnlyList<ZevisionResponse>? responses)
         {
-            try
+            responses = null;
+            if (!frame.IsValid || !TryParseCore(frame.Payload, out var parsed, out _))
             {
-                responses = Parse(payload);
                 return true;
             }
-            catch (FormatException)
+
+            responses = parsed;
+            if (parsed.Count == 0)
             {
-                responses = Array.Empty<ZevisionResponse>();
-                return false;
+                return true;
             }
+
+            var echo = parsed[0].Command;
+            return echo.Length == 0 || string.Equals(echo, expectedEcho, StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool LooksLikeResponse(string text)
@@ -120,7 +150,8 @@ namespace Zevision.Communication
             return last == '+' || last == '-' || head[head.Length - 2] == '-';
         }
 
-        private static ZevisionResponse ParseSingle(string text)
+        /// <returns>一条响应;没有状态符 <c>+</c>/<c>-</c> 时为 null。</returns>
+        private static ZevisionResponse? ParseSingle(string text)
         {
             var separator = text.IndexOf(':');
             var head = separator >= 0 ? text.Substring(0, separator) : text;
@@ -143,7 +174,7 @@ namespace Zevision.Communication
                 return new ZevisionResponse(head.Substring(0, head.Length - 2), false, MapErrorCode(code), code, data);
             }
 
-            throw new FormatException($"Response is missing the status + or -: \"{text}\"");
+            return null;
         }
 
         private static ZevisionErrorCode MapErrorCode(char code)

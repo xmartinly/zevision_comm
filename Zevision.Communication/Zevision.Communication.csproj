@@ -49,6 +49,7 @@
     <Compile Include="ProtocolText.cs" />
     <Compile Include="SerialPortTransport.cs" />
     <Compile Include="SerialSettings.cs" />
+    <Compile Include="TcpSettings.cs" />
     <Compile Include="TcpTransport.cs" />
     <Compile Include="ZevisionClient.cs" />
     <Compile Include="ZevisionClientEvents.cs" />

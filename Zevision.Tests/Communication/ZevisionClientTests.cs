@@ -275,6 +275,108 @@ namespace Zevision.Tests
             return await task;
         }
 
+        [Fact]
+        public async Task Dispose_WhileConnecting_ClosesTheTransportAndConnectThrows()
+        {
+            // 连接过程中释放:打开完成后不能留下打开的端口 (以前会发布会话并启动读取循环)。
+            var transport = new GatedTransport();
+            var client = new ZevisionClient(Options, _ => transport);
+            var connect = client.ConnectAsync();
+
+            client.Dispose();
+            transport.Open.SetResult(true);
+
+            await Assert.ThrowsAsync<ObjectDisposedException>(() => connect);
+            Assert.Equal(1, transport.CloseCount);
+            Assert.False(client.IsConnected);
+        }
+
+        [Fact]
+        public async Task Connect_OpenFails_ClosesTheTransport()
+        {
+            var transport = new GatedTransport();
+            transport.Open.SetException(new System.IO.IOException("port in use"));
+            using (var client = new ZevisionClient(Options, _ => transport))
+            {
+                var result = await client.ConnectAsync();
+
+                Assert.Equal(ZevisionErrorKind.ConnectFailed, result.Error!.Kind);
+                Assert.Equal(1, transport.CloseCount);
+            }
+        }
+
+        [Fact]
+        public async Task SlowFrameReceivedHandler_DoesNotTurnTheReplyIntoTimeout()
+        {
+            // 响应已收到、FrameReceived 的处理程序比超时还慢:以前超时先到,收到的响应被当成超时。
+            var transport = new FakeSerialTransport { Responder = _ => Ascii("{H01+:Zevision}") };
+            using (var client = new ZevisionClient(Options, _ => transport))
+            {
+                client.FrameReceived += (s, e) => Thread.Sleep(400);
+                Assert.True((await client.ConnectAsync()).IsSuccess);
+
+                var result = await client.SendAsync("H01");
+
+                Assert.True(result.IsSuccess, result.Error?.Message);
+                Assert.Equal("Zevision", Assert.Single(result.Value.Responses).Data);
+            }
+        }
+
+        [Fact]
+        public async Task EmptyResponse_IsUnparseable()
+        {
+            var transport = new FakeSerialTransport { Responder = _ => Ascii("{}") };
+            using (var client = new ZevisionClient(Options, _ => transport))
+            {
+                Assert.True((await client.ConnectAsync()).IsSuccess);
+
+                var result = await client.SendAsync("H01");
+
+                Assert.Equal(ZevisionErrorKind.UnparseableResponse, result.Error!.Kind);
+            }
+        }
+
+        [Fact]
+        public void Decoder_InvalidRange_Throws()
+        {
+            var decoder = new ZevisionFrameDecoder(FrameOptions.Plain);
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => decoder.Push(new byte[4], 2, 3));
+            Assert.Throws<ArgumentOutOfRangeException>(() => decoder.Push(new byte[4], -1, 1));
+            Assert.Throws<ArgumentOutOfRangeException>(() => ZevisionFrameCodec.ComputeChecksum(new byte[4], 0, 5));
+        }
+
+        [Fact]
+        public void Parser_InvalidResponse_TryParseFalse_ParseThrows()
+        {
+            Assert.False(ZevisionResponseParser.TryParse("H01", out var responses));
+            Assert.Empty(responses);
+            Assert.Contains("\"H01\"", Assert.Throws<FormatException>(() => ZevisionResponseParser.Parse("H01")).Message);
+            Assert.Equal("UG1304", ZevisionResponseParser.EchoOf(" UG1304:1;H01"));
+        }
+
         private static byte[] Ascii(string text) => Encoding.ASCII.GetBytes(text);
+
+        /// <summary>打开要等测试放行的传输,记录关闭次数。</summary>
+        private sealed class GatedTransport : IDeviceTransport
+        {
+            public TaskCompletionSource<bool> Open { get; } = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            public int CloseCount { get; private set; }
+
+            public bool IsOpen => false;
+
+            public Task OpenAsync(ConnectionEndpoint endpoint, CancellationToken cancellationToken) => Open.Task;
+
+            public void Close() => CloseCount++;
+
+            public Task WriteAsync(byte[] data, CancellationToken cancellationToken) => Task.CompletedTask;
+
+            public Task<int> ReadAsync(byte[] buffer, CancellationToken cancellationToken) => Task.FromResult(0);
+
+            public void Dispose()
+            {
+            }
+        }
     }
 }

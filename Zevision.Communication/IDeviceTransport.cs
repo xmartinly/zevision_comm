@@ -22,7 +22,8 @@ namespace Zevision.Communication
         Task OpenAsync(ConnectionEndpoint endpoint, CancellationToken cancellationToken);
 
         /// <summary>
-        /// 关闭连接。会使挂起的 <see cref="ReadAsync"/> 以异常结束或返回 0。重复调用无副作用。
+        /// 关闭连接。会使挂起的 <see cref="ReadAsync"/> 以异常结束或返回 0。重复调用无副作用,
+        /// 不能抛出异常 (设备已拔出等情况下关闭失败也应忽略:连接反正要丢弃)。<see cref="ZevisionClient"/> 在断开和连接失败时调用。
         /// </summary>
         void Close();
 

@@ -90,10 +90,7 @@ namespace Zevision.Communication
         /// </summary>
         public IReadOnlyList<ZevisionFrame> Push(byte[] buffer, int offset, int count)
         {
-            if (buffer is null)
-            {
-                throw new ArgumentNullException(nameof(buffer));
-            }
+            ZevisionFrameCodec.CheckRange(buffer, offset, count);
 
             var frames = new List<ZevisionFrame>();
             for (var i = offset; i < offset + count; i++)
@@ -309,14 +306,9 @@ namespace Zevision.Communication
             if (_checksumMode)
             {
                 var checksum = _data[_data.Count - 2];
-                var sum = 0;
-                for (var i = _packetDataStart; i < dataEnd; i++)
-                {
-                    sum += _data[i];
-                }
 
                 // 用校验和确认数据边界,避免把数据中恰好出现的 "x>" 误判为包尾。
-                if ((byte)(sum & 0xFF) != checksum)
+                if (Checksum(_packetDataStart, dataEnd) != checksum)
                 {
                     return false;
                 }
@@ -450,19 +442,22 @@ namespace Zevision.Communication
             _packetOpen = false;
             _packetCount++;
 
-            if (_checksumMode && _messageError == FrameError.None)
+            if (_checksumMode && _messageError == FrameError.None && Checksum(_packetDataStart, _data.Count) != _receivedChecksum)
             {
-                var sum = 0;
-                for (var i = _packetDataStart; i < _data.Count; i++)
-                {
-                    sum += _data[i];
-                }
-
-                if ((byte)(sum & 0xFF) != _receivedChecksum)
-                {
-                    _messageError = FrameError.ChecksumMismatch;
-                }
+                _messageError = FrameError.ChecksumMismatch;
             }
+        }
+
+        /// <summary>收到的数据 [<paramref name="start"/>, <paramref name="end"/>) 的校验和 (逐字节求和,取模 256)。</summary>
+        private byte Checksum(int start, int end)
+        {
+            var sum = 0;
+            for (var i = start; i < end; i++)
+            {
+                sum += _data[i];
+            }
+
+            return (byte)sum;
         }
 
         private void Emit(List<ZevisionFrame> frames, FrameError error)

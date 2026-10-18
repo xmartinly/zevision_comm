@@ -137,11 +137,7 @@ namespace Zevision.Communication
         /// </summary>
         public static byte ComputeChecksum(byte[] data, int offset, int count)
         {
-            if (data is null)
-            {
-                throw new ArgumentNullException(nameof(data));
-            }
-
+            CheckRange(data, offset, count);
             var sum = 0;
             for (var i = offset; i < offset + count; i++)
             {
@@ -149,6 +145,25 @@ namespace Zevision.Communication
             }
 
             return (byte)(sum & 0xFF);
+        }
+
+        /// <summary>检查 <paramref name="buffer"/> 中 [<paramref name="offset"/>, <paramref name="offset"/> + <paramref name="count"/>) 的范围。</summary>
+        internal static void CheckRange(byte[] buffer, int offset, int count)
+        {
+            if (buffer is null)
+            {
+                throw new ArgumentNullException(nameof(buffer));
+            }
+
+            if (offset < 0 || offset > buffer.Length)
+            {
+                throw new ArgumentOutOfRangeException(nameof(offset));
+            }
+
+            if (count < 0 || count > buffer.Length - offset)
+            {
+                throw new ArgumentOutOfRangeException(nameof(count));
+            }
         }
 
         private static bool IsDelimiter(byte b) => b == StartByte || b == StopByte || b == (byte)'<' || b == (byte)'>';
