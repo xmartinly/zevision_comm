@@ -1,104 +1,144 @@
-# Zevision.Core / Zevision.Storage 调用文档
+# Zevision 业务层与存储层编程手册
 
-Zevision 应用 (IMC300通讯测试) 的业务层和数据存储层,供维护本程序的开发者使用。界面层 (`Zevision.exe`) 只通过这里的接口工作。作者:martin.liang@inficon.com。
+| 项目 | 内容 |
+|---|---|
+| 文档标识 | ZEV-CPM-02 |
+| 文档版本 | 1.1 |
+| 适用软件 | `Zevision.Core` 1.1.0、`Zevision.Storage` 1.1.0（随 Zevision 1.1.0） |
+| 编制单位 | INFICON |
+| 日期 | 2026-10-19 |
 
-| 文件 | 内容 | 依赖 |
+## 目次
+
+1. [范围](#1-范围)
+2. [引用文件](#2-引用文件)
+3. [软件编程环境](#3-软件编程环境)
+4. [编程信息](#4-编程信息)
+5. [注解](#5-注解)
+6. 附录 A（资料性）API 参考
+
+## 1 范围
+
+### 1.1 标识
+
+本文档的标识为 ZEV-CPM-02，名称为《Zevision 业务层与存储层编程手册》，版本 1.1。适用的软件如下：
+
+- `Zevision.Core.dll` 1.1.0：业务层；
+- `Zevision.Storage.dll` 1.1.0：数据存储层。
+
+两个程序集随 Zevision（IMC300 通信测试）1.1.0 发布，版本号与应用相同，不单独发布，接口随应用版本变化。单独发布的通信库和指令库见 ZEV-CPM-01《Zevision 链接库编程手册》。
+
+### 1.2 系统概述
+
+Zevision 是 INFICON IMC300 膜厚控制仪的上位机软件，经 RS232 或 TCP 按 Zevision 协议与设备通信，用于发送协议指令，以及保存、恢复和修改仪器配置。界面层（`Zevision.exe`）只通过本手册所述的接口访问设备和数据。
+
+表 1  程序集
+
+| 程序集 | 内容 | 依赖 |
 |---|---|---|
-| `Zevision.Core.dll` | 业务逻辑:设备通讯服务,读取、保存、恢复、修改仪器配置,配置项规则,修改窗口的编辑会话,中英文文本,通讯配置模型;定义存储接口 | .NET Framework、`Zevision.Communication.dll`、`Zevision.Commands.dll` |
-| `Zevision.Storage.dll` | 数据存储:用文件实现 Core 的存储接口 (配置文件、`settings.json`、`error.txt`、通讯数据文件),读取 `Texts.json` | .NET Framework、`Zevision.Core.dll` |
+| `Zevision.Core.dll` | 业务逻辑：设备通信服务；仪器配置的读取、保存、恢复和修改；配置项规则；修改窗口的编辑会话；中英文文本；通信配置模型；存储接口的定义 | .NET Framework、`Zevision.Communication.dll`、`Zevision.Commands.dll` |
+| `Zevision.Storage.dll` | 数据存储：以文件实现业务层的存储接口（配置文件、`settings.json`、`error.txt`、通信数据文件）；读取 `Texts.json` | .NET Framework、`Zevision.Core.dll` |
 
-- 版本与应用相同 (**1.0.0**)。目标框架 .NET Framework 4.7.2,C# 9 (VS 2019)。
-- 这两个程序集不单独发布,接口随应用修改。单独发布的通讯库和指令库见 [LIBRARY.md](LIBRARY.md)。
-- 运行时需要程序旁边的 `Texts.json`:Core 和 Storage 的全部提示和错误文本都在其中。
-- 本文的示例都已对照 Release 版本编译运行 (只用公开 API);"→"后是实际输出。
-
-## 目录
-
-1. [概述](#1-概述)
-2. [组装与启动](#2-组装与启动)
-3. [通用约定](#3-通用约定)
-4. [设备通讯:IDeviceService](#4-设备通讯ideviceservice)
-5. [读取设备配置](#5-读取设备配置)
-6. [保存与恢复](#6-保存与恢复)
-7. [修改设备配置](#7-修改设备配置)
-8. [规则与 ID 工具](#8-规则与-id-工具)
-9. [修改窗口的编辑会话](#9-修改窗口的编辑会话)
-10. [中英文文本](#10-中英文文本)
-11. [通讯配置 (settings.json)](#11-通讯配置-settingsjson)
-12. [存储层](#12-存储层)
-13. [测试与替换实现](#13-测试与替换实现)
-14. [常见修改](#14-常见修改)
-15. [性能与内存](#15-性能与内存)
-16. [API 参考](#16-api-参考)
-
-## 1. 概述
-
-### 1.1 分层
+分层结构见图 1。
 
 ```
-Zevision.exe            界面:Views、ViewModels、App (组装根)
-   │ 只使用 Core 的接口;只有 App 创建 Storage 的实现
+Zevision.exe            界面：Views、ViewModels、App（组装根）
+   │ 只使用 Core 的接口；只有 App 创建 Storage 的实现
    ▼
-Zevision.Core.dll       业务逻辑;定义 IRecipeStore、IPreferencesStore、IErrorLog、ICommunicationRecorder(Factory)
+Zevision.Core.dll       业务逻辑；定义 IRecipeStore、IPreferencesStore、IErrorLog、ICommunicationRecorder(Factory)
    │          ▲
-   │          └──────── Zevision.Storage.dll   用文件实现上面的接口
+   │          └──────── Zevision.Storage.dll   以文件实现上述接口
    ▼
-Zevision.Commands.dll ─► Zevision.Communication.dll     指令集、协议与传输 (LIBRARY.md)
+Zevision.Commands.dll ─► Zevision.Communication.dll     指令集、协议与传输（ZEV-CPM-01）
 ```
 
-依赖只向下,单元测试 (`LibraryBoundaryTests`) 检查:
+图 1  分层结构
 
-- Core 只引用 .NET Framework 和两个库,不引用 WPF 和 Storage;元数据中没有文件类型 (`File`、`Directory`、`FileStream`…),即 Core 不读写文件。
-- Storage 只引用 .NET Framework 和 Core。
-- 界面层的 `ViewModels/`、`Views/` 不引用 `Zevision.Storage`,只有 `App.xaml.cs` 引用。
-- Core 和 Storage 的代码中没有中文字面量,文本都在 `Texts.json`。
+依赖只指向下层。单元测试 `LibraryBoundaryTests` 检查以下约束：
 
-### 1.2 设计原则
+- `Zevision.Core` 只引用 .NET Framework 和两个链接库，不引用 WPF 和 `Zevision.Storage`；其元数据中没有文件类型（`File`、`Directory`、`FileStream` 等），即业务层不读写文件。
+- `Zevision.Storage` 只引用 .NET Framework 和 `Zevision.Core`。
+- 界面层的 `ViewModels/`、`Views/` 不引用 `Zevision.Storage`，只有 `App.xaml.cs` 引用。
+- 业务层和存储层的代码中没有中文字面量，文本全部位于 `Texts.json`。
 
-- **预期内的失败返回 `Result`**:端口被占用、设备拒绝、超时、文件被修改等,`Error` 是可以直接显示的说明 (界面语言)。程序错误 (参数为 null、ID 格式错误) 抛异常。
-- **接口只用在需要替换实现的地方**:设备、存储、日志。纯计算 (配置项规则、恢复计划、ID 工具、值的校验) 是静态类,没有状态,直接调用、直接测试。
-- **修改设备前先确认**:设备型号 (G03) 与配置一致,且处于空闲状态 (C09 = `Ready`)。写入后用 `Q` 读回校验;遇到第一个错误就停止,不回滚。
-- **指令只由指令集生成**:`ZevisionCommandSet.Query/Update/Add/Build`,不手工拼接 `"Q" + id`。
-- **一个通讯入口**:所有收发经过 `IDeviceService`,同一时间只有一个请求在等待响应。
-- 异步方法都接受 `CancellationToken`;Core 和 Storage 内部一律 `ConfigureAwait(false)`。
+### 1.3 文档概述
 
-### 1.3 命名空间
+本文档依据 GB/T 8567-2006 中的计算机编程手册（CPM）编制，供维护 Zevision 的开发人员使用，不随链接库发布。对模板的剪裁如下：
+
+- 原模板中面向计算机指令系统的条目（指令、输入输出控制）改为面向程序集公开接口的“编程接口”（4.2）；
+- 增加“测试与替换实现”（4.5）、“常见修改”（4.6）和“性能与内存”（4.7）；
+- 全部公开类型和成员列于附录 A。
+
+示例代码只使用公开 API，已按 Release 版本编译运行；代码注释中“→”之后为实际输出。
+
+## 2 引用文件
+
+表 2  引用文件
+
+| 标识 | 名称 | 位置 |
+|---|---|---|
+| GB/T 8567-2006 | 计算机软件文档编制规范 | — |
+| GB/T 1.1-2020 | 标准化工作导则 第 1 部分：标准化文件的结构和起草规则 | — |
+| ZEV-CPM-01 | Zevision 链接库编程手册 | `docs/LIBRARY.md` |
+| ZEV-SDD-01 | Zevision 概要设计说明书 | `docs/概要设计说明书.md` |
+| ZEV-IDD-01 | IMC300 Zevision 通信协议规格书 | `docs/协议规格书.md` |
+| ZEV-STR-01 | Zevision 联调记录 | `docs/联调记录.md` |
+| — | IMC300 / Zevision 上位机软件开发规范 | `docs/开发文档.md` |
+| — | Zevision 协议译稿 | `docs/Zervison_Protocol.md`、`docs/INFICON_IMC300_Zevision通讯协议说明.md` |
+
+## 3 软件编程环境
+
+### 3.1 组成部件
+
+表 3  编程环境
+
+| 项目 | 内容 |
+|---|---|
+| 目标框架 | .NET Framework 4.7.2 |
+| 语言版本 | C# 9（Visual Studio 2019，MSBuild 16.11） |
+| 引用的链接库 | `Zevision.Communication.dll` 1.2.0、`Zevision.Commands.dll` 1.1.0（ZEV-CPM-01） |
+| 运行时文件 | `Texts.json`，位于程序目录，包含业务层和存储层的全部提示和错误文本 |
+| 单元测试 | `Zevision.Tests` |
+
+### 3.2 命名空间
+
+表 4  命名空间
 
 | 命名空间 | 主要类型 | 用途 |
 |---|---|---|
-| `Zevision.Core` | `Result`、`Result<T>`、`IErrorLog`、`ICommunicationRecorder`、`ICommunicationRecorderFactory` | 结果类型;错误日志和通讯数据记录的接口 |
-| `Zevision.Core.Devices` | `IDeviceService`、`ZevisionDeviceService`、`DeviceServiceExtensions`、`ManualCommandPolicy`、`FramingCheck` | 设备连接与收发 |
-| `Zevision.Core.Configuration` | `InstrumentConfigService` (`IInstrumentConfigReader`/`Writer`/`Service`)、`InstrumentSnapshot`、`InstrumentRecipe`、`RestorePlanner`、`RecipeRules`、`CrucibleRule`、`ObjectTypes`、`DeviceIds`、`ParameterValue`、`RecipeDocument`、`RecipeEditSession`、`IRecipeStore` | 仪器配置 |
-| `Zevision.Core.Localization` | `Lang`、`TextCatalog`、`CommandText`、`CommunicationText` | 中英文 |
-| `Zevision.Core.Settings` | `ConnectionPreferences`、`IPreferencesStore` | 通讯配置 |
+| `Zevision.Core` | `Result`、`Result<T>`、`IErrorLog`、`ICommunicationRecorder`、`ICommunicationRecorderFactory` | 结果类型；错误日志和通信数据记录的接口 |
+| `Zevision.Core.Devices` | `IDeviceService`、`ZevisionDeviceService`、`DeviceServiceExtensions`、`DeviceIdentity`、`FrameFormatDetector`、`FrameSettings`、`ReconnectPolicy`、`ManualCommandPolicy`、`FramingCheck` | 设备连接、握手与收发 |
+| `Zevision.Core.Configuration` | `InstrumentConfigService`（`IInstrumentConfigReader`/`Writer`/`Service`）、`InstrumentSnapshot`、`InstrumentRecipe`、`RestorePlanner`、`RecipeRules`、`CrucibleRule`、`ObjectTypes`、`DeviceIds`、`ParameterValue`、`RecipeDocument`、`RecipeEditSession`、`IRecipeStore` | 仪器配置 |
+| `Zevision.Core.Localization` | `Lang`、`TextCatalog`、`CommandText`、`CommunicationText` | 中英文文本 |
+| `Zevision.Core.Settings` | `ConnectionPreferences`、`IPreferencesStore` | 通信配置 |
 | `Zevision.Storage` | `AppFolders`、`TextFile`、`JsonFilePreferencesStore`、`RecipeFileStore`、`FileErrorLog`、`CommunicationLogFiles` | 文件实现 |
 
-## 2. 组装与启动
+### 3.3 组装与启动
 
-`App.OnStartup` 是唯一的组装位置 (composition root),不使用 DI 容器,全部是构造函数注入。顺序有要求:
+`App.OnStartup` 是唯一的组装位置（组装根），不使用依赖注入容器，全部采用构造函数注入。初始化应按以下顺序进行：
 
-1. **文本**:`TextFile.Load` → `TextCatalog.Initialize`,在任何 Core/Storage 文本被使用之前。读不到时不能继续运行 (提示只会显示键名);这时 `TextCatalog` 是空的,提示要用界面层自己的 `Lang.T`。
-2. **语言**:读取 `settings.json`,`Lang.Initialize(Lang.Detect(...))`。在创建日志和任何窗口之前确定,之后不再改变 (切换语言 = 重新启动程序)。
-3. **错误日志**:`FileErrorLog`,然后挂接全局异常处理。
-4. **服务**:设备服务、配置服务、存储,交给视图模型。
+1. 文本：`TextFile.Load` → `TextCatalog.Initialize`，在任何业务层或存储层文本被使用之前完成。读取失败时程序不能继续运行（提示只会显示键名）；此时 `TextCatalog` 为空，提示文本由界面层的 `Lang.T` 给出。
+2. 语言：读取 `settings.json`，调用 `Lang.Initialize(Lang.Detect(...))`。语言在创建日志和任何窗口之前确定，之后不再改变；切换语言即重新启动程序。
+3. 错误日志：创建 `FileErrorLog`，然后挂接全局异常处理程序。
+4. 服务：创建设备服务、配置服务和存储，交给视图模型。
 
 ```csharp
-// 1. 文本 (Texts.json 在程序旁边)
+// 1. 文本（Texts.json 位于程序目录）
 var texts = TextFile.Load(TextFile.DefaultPath);
 if (!texts.IsSuccess)
 {
-    // 提示 (不能用 TextCatalog) 后退出
+    // 提示（不能使用 TextCatalog）后退出
     return;
 }
 
 TextCatalog.Initialize(texts.Value);
 
-// 2. 语言:settings.json 的 language (auto / zh / en) 优先;读取失败时按系统
+// 2. 语言：settings.json 的 language（auto / zh / en）优先；读取失败时按系统设置
 var preferences = new JsonFilePreferencesStore(AppFolders.GetSettingsFilePath());
 var saved = preferences.Load();
 Lang.Initialize(Lang.Detect(CultureInfo.CurrentUICulture, CultureInfo.CurrentCulture, saved.IsSuccess ? saved.Value.Language : null));
 
-// 3. 错误日志:第二个参数是会话标题 (AppInfo 在界面层:版本、系统、CLR、位数),第一次写入前输出为 "==== 标题 ===="
+// 3. 错误日志：第二个参数为会话标题（AppInfo 属于界面层：版本、系统、CLR、位数），第一次写入前输出为 "==== 标题 ===="
 IErrorLog errorLog = new FileErrorLog(Path.Combine(AppFolders.GetLogsFolder(), "error.txt"), AppInfo.Description);
 
 // 4. 服务
@@ -108,66 +148,85 @@ IRecipeStore recipes = new RecipeFileStore();
 ICommunicationRecorderFactory recorders = new CommunicationLogFiles(errorLog);
 ```
 
-退出时 (`App.OnExit`) 依次保存通讯配置、释放视图模型、`device.Dispose()` (关闭连接)。每一步单独捕获异常并写入错误日志,一步失败不影响后面的步骤。
+退出时（`App.OnExit`）依次保存通信配置、释放视图模型、调用 `device.Dispose()`（关闭连接）。每一步单独捕获异常并写入错误日志，一步失败不影响后续步骤。
 
-## 3. 通用约定
+## 4 编程信息
 
-### 3.1 Result
+### 4.1 编程特征
+
+#### 4.1.1 设计原则
+
+- 预期内的失败返回 `Result`，如端口被占用、设备拒绝、超时、文件被修改。`Error` 为可显示的说明（界面语言）。程序错误（参数为 null、ID 格式错误）抛出异常。
+- 接口只用于需要替换实现之处：设备、存储、日志。纯计算（配置项规则、恢复计划、ID 工具、值的校验）由无状态的静态类实现，调用和测试无需构造服务对象。
+- 修改设备之前确认设备型号（G03）与配置一致，且设备处于空闲状态（C09 = `Ready`）。写入后用 `Q` 读回校验；遇到第一个错误即停止，不回滚。
+- 指令只由指令集生成（`ZevisionCommandSet.Query/Update/Add/Build`），不以 `"Q" + id` 的方式拼接。
+- 所有收发经过同一个 `IDeviceService`，同一时间只有一个请求等待响应。
+- 异步方法都接受 `CancellationToken`；业务层和存储层内部的 `await` 一律使用 `ConfigureAwait(false)`。
+
+#### 4.1.2 结果类型 Result
 
 ```csharp
 var loaded = recipes.Load(path);
 if (!loaded.IsSuccess)
 {
-    ShowError(loaded.Error);     // 失败时 Error 一定不为 null,可空分析也知道 (不需要 !)
+    ShowError(loaded.Error);     // 失败时 Error 不为 null，可空分析可以识别（无需 !）
     return;
 }
 
-var recipe = loaded.Value;       // 失败时访问 Value 抛 InvalidOperationException
+var recipe = loaded.Value;       // 失败时访问 Value 抛出 InvalidOperationException
 ```
 
-- `IsSuccess` 就是 `Error == null`;`default(Result)` 视为成功;`Fail(null)` 抛 `ArgumentNullException`。
-- `IsSuccess` 标有 `[MemberNotNullWhen(false, nameof(Error))]`,`if (!r.IsSuccess)` 分支中 `r.Error` 是非空的。
-- 这是 Core 自己的类型 (说明已本地化)。通讯库的 `ZevisionResult` (英文说明、带错误类型 `ZevisionErrorKind`) 只在 `ZevisionDeviceService` 内部使用,由 `CommunicationText.Describe` 转换为 `Result`。
-- 带更多信息的结果:`RestoreReport` (恢复、写入)、`ObjectCreation` (新建对象)。少数方法直接返回 `string?` (失败原因,成功为 null),如 `RecipeEditSession.Commit`。
+- `IsSuccess` 等价于 `Error == null`；`default(Result)` 视为成功；`Fail(null)` 抛出 `ArgumentNullException`。
+- `IsSuccess` 标有 `[MemberNotNullWhen(false, nameof(Error))]`，在 `if (!r.IsSuccess)` 分支中 `r.Error` 为非空。
+- `Result` 是业务层的类型，说明已本地化。通信库的 `ZevisionResult`（英文说明，带错误类型 `ZevisionErrorKind`）只在 `ZevisionDeviceService` 内部使用，由 `CommunicationText.Describe` 转换为 `Result`。
+- 带附加信息的结果：`RestoreReport`（恢复、写入）、`ObjectCreation`（新建对象）。少数方法返回 `string?`（失败原因，成功时为 null），如 `RecipeEditSession.Commit`。
 
-### 3.2 异常与取消
+#### 4.1.3 异常与取消
+
+表 5  异常与取消的处理
 
 | 情况 | 处理方式 |
 |---|---|
-| 参数为 null、ID 格式错误、指令集不支持的动作 | 抛 `ArgumentNullException` / `ArgumentException` (程序错误,调用方应修正代码) |
-| 通讯失败、设备拒绝、超时、文件读写失败、文件校验失败 | 返回失败的 `Result`,说明可以直接显示 |
-| 取消 | `ExecuteRestoreAsync`、`ApplyEditsAsync` 返回 `RestoreReport.Cancelled = true`;其他异步方法抛 `OperationCanceledException` |
-| 错误日志、通讯数据文件写入失败 | 不抛出 (只是记录用途,不能影响通讯) |
+| 参数为 null、ID 格式错误、指令集不支持的动作 | 抛出 `ArgumentNullException` / `ArgumentException`（程序错误，调用方应修正代码） |
+| 通信失败、设备拒绝、超时、文件读写失败、文件校验失败 | 返回失败的 `Result`，说明可用于显示 |
+| 取消 | `ExecuteRestoreAsync`、`ApplyEditsAsync` 返回 `RestoreReport.Cancelled = true`；其他异步方法抛出 `OperationCanceledException` |
+| 错误日志、通信数据文件写入失败 | 不抛出异常（仅用于记录，不影响通信） |
 
-取消不会撤销已经发送的指令:取消前设备上已经执行的修改保留。
+取消不撤销已发送的指令：取消前设备上已执行的修改保留。
 
-### 3.3 线程
+#### 4.1.4 线程
 
-- Core 和 Storage 的方法可以在任何线程调用,没有 UI 线程要求。内部的 `await` 用 `ConfigureAwait(false)`;调用方 (视图模型) 自己的 `await` 不加,完成后回到 UI 线程。
-- `IDeviceService` 的事件在后台线程触发,更新界面前要切到 UI 线程 (见 4.3)。
-- `IProgress<RestoreProgress>` 在后台线程报告;在 UI 线程创建的 `Progress<T>` 会自动切回 UI 线程。
-- 同一个 `IDeviceService` 上并发的 `SendAsync` 会自动排队。但保存、恢复、修改由多条指令组成,不要同时运行两个,否则指令会交错 (界面在操作期间禁用其他发送)。
-- 静态类 (`RecipeRules`、`ObjectTypes`、`DeviceIds`、`ParameterValue`、`RestorePlanner`、`ManualCommandPolicy`、`TextCatalog`、`Lang`) 线程安全。`RecipeDocument`、`RecipeEditSession`、`InstrumentRecipe` 不是线程安全的,只在一个线程上使用。
+- 业务层和存储层的方法可在任何线程调用，没有 UI 线程要求。内部的 `await` 使用 `ConfigureAwait(false)`；调用方（视图模型）自身的 `await` 不使用，完成后回到 UI 线程。
+- `IDeviceService` 的事件在后台线程触发，更新界面前应切换到 UI 线程（见 4.2.1.4）。
+- `IProgress<RestoreProgress>` 在后台线程报告；在 UI 线程创建的 `Progress<T>` 自动切换回 UI 线程。
+- 同一个 `IDeviceService` 上并发的 `SendAsync` 自动排队。保存、恢复、修改由多条指令组成，不应同时运行两个，否则指令会交错；界面在操作期间禁用其他发送。
+- 静态类（`RecipeRules`、`ObjectTypes`、`DeviceIds`、`ParameterValue`、`RestorePlanner`、`ManualCommandPolicy`、`TextCatalog`、`Lang`）线程安全。`RecipeDocument`、`RecipeEditSession`、`InstrumentRecipe` 不是线程安全的，只应在一个线程上使用。
 
-### 3.4 文本的语言
+#### 4.1.5 文本的语言
 
-返回的说明都按 `Lang.Current` (界面语言) 给出。测试中用 `Lang.Override(UiLanguage.English)` 临时切换,它只作用于当前异步流,不影响并行的其他测试。
+返回的说明按 `Lang.Current`（界面语言）给出。测试中用 `Lang.Override(UiLanguage.English)` 临时切换语言，其作用范围限于当前异步流，不影响并行的其他测试。
 
-## 4. 设备通讯:IDeviceService
+### 4.2 编程接口
 
-`ZevisionDeviceService` 实现 `IDeviceService`,包装通讯库的 `ZevisionClient` (见 LIBRARY.md §5),增加了:
+#### 4.2.1 设备通信接口 IDeviceService
 
-- 每次 `ConnectAsync` 按当时的参数新建一个 `ZevisionClient`:连接期间参数不变,换参数重连不需要重建服务;
-- 结果说明按界面语言给出;
-- 不显示的发送 (`SendHiddenAsync`);
-- 帧格式不一致时的提示;
-- 把读取循环和事件处理程序的意外异常写入 `IErrorLog`。
+##### 4.2.1.1 功能
 
-### 4.1 连接与断开
+`ZevisionDeviceService` 实现 `IDeviceService`，封装通信库的 `ZevisionClient`（见 ZEV-CPM-01 中 `ZevisionClient` 的连接与收发部分），并增加以下功能：
+
+- 每次 `ConnectAsync` 按当时的参数新建一个 `ZevisionClient`：连接期间参数不变，更换参数重新连接时无需重建服务；
+- 结果说明按界面语言给出；
+- 握手（`HandshakeAsync`，见 4.2.1.7）：按设备的回答确定帧格式并改用该格式，读取型号；
+- 不显示的发送（`SendHiddenAsync`）；
+- 帧格式不一致时的提示；
+- 转发重发事件（`Retrying`；重发本身由通信库按 `ConnectionOptions.RetryCount` 完成）；
+- 把读取循环和事件处理程序的意外异常写入 `IErrorLog`（心跳无应答引起的中断不写入）。
+
+##### 4.2.1.2 连接与断开
 
 ```csharp
 var options = new ConnectionOptions(
-    new SerialSettings("COM3", 115200),          // TCP:new TcpSettings("192.168.1.10", TcpSettings.DefaultPort)
+    new SerialSettings("COM3", 115200),          // TCP：new TcpSettings("192.168.1.10", TcpSettings.DefaultPort)
     new FrameOptions(checksumEnabled: true, lengthEnabled: true),
     TimeSpan.FromSeconds(1));                     // 响应空闲超时
 
@@ -178,104 +237,151 @@ if (!connected.IsSuccess)
 }
 
 // …
-await device.DisconnectAsync();                   // 未连接时直接返回;不触发 ConnectionLost
+await device.DisconnectAsync();                   // 未连接时立即返回；不触发 ConnectionLost
 ```
 
-- 已连接或正在连接时再调用 `ConnectAsync` → 失败 "已经连接。"。
-- 连接中断 (拔线、TCP 断开) 后直接再次 `ConnectAsync`:上一个连接的客户端被释放,不再转发它的事件。
-- `Dispose()` 关闭连接,之后不再使用这个服务。
-- 帧格式 (`FrameOptions`) 必须与设备一致:RS232 为 G1304 (校验和) / G1305 (长度),TCP 为 G1407 / G1408。
+- 已连接或正在连接时再次调用 `ConnectAsync`，返回失败“已经连接。”。
+- 连接中断（拔线、TCP 断开）后可再次调用 `ConnectAsync`：上一个连接的客户端被释放，其事件不再转发。
+- `Dispose()` 关闭连接，之后不再使用该服务。
+- 帧格式（`FrameOptions`）应与设备一致：RS232 为 G1304（校验和）/ G1305（长度），TCP 为 G1407 / G1408。连接后调用 `HandshakeAsync` 可按设备的实际设置自动改正（见 4.2.1.7）。
+- 重发和心跳由 `ConnectionOptions` 决定（`RetryCount`、`HeartbeatInterval`、`HeartbeatMissLimit`，见 ZEV-CPM-01 中的会话功能部分）。启用握手时，应用设置为重发 2 次、心跳间隔 5 s、连续 3 次无应答判定连接中断（`ConnectionSettingsViewModel.HandshakeRetryCount`、`HandshakeHeartbeatInterval`）。
 
-### 4.2 发送
+##### 4.2.1.3 发送
 
 ```csharp
-var reply = await device.SendAsync(ZevisionCommandSet.Query("M0103"), cancellationToken);   // 扩展方法,超时用连接设置
+var reply = await device.SendAsync(ZevisionCommandSet.Query("M0103"), cancellationToken);   // 扩展方法，超时取连接设置
 if (!reply.IsSuccess)
 {
-    ShowError(reply.Error);                       // 通讯失败:未连接、超时、帧无效…
+    ShowError(reply.Error);                       // 通信失败：未连接、超时、帧无效等
     return;
 }
 
 var response = reply.Value.Responses[0];
 if (!response.IsSuccess)
 {
-    ShowError(response.ErrorCode.Localized());    // 设备拒绝 (-A、-B、-D…) 不是通讯失败,如 "非法格式"
+    ShowError(response.ErrorCode.Localized());    // 设备拒绝（-A、-B、-D 等）不属于通信失败，如 "非法格式"
     return;
 }
 
 var density = response.Data;                      // "2.700"
 ```
 
+表 6  发送方法
+
 | 方法 | 用途 |
 |---|---|
-| `SendAsync(command, minimumResponseTimeout, ct)` | 发送并等待响应,显示在数据显示区 (触发 `FrameSent` / `FrameReceived`) |
-| `SendAsync(command, ct)` (扩展方法) | 同上,`minimumResponseTimeout = TimeSpan.Zero` (只用连接设置的超时) |
-| `SendHiddenAsync(command, minimumResponseTimeout, ct)` | 同上,但不显示 (见 4.3);程序内部读取配置的帮助指令 (`?`、`?M`) 用它 |
+| `SendAsync(command, minimumResponseTimeout, ct)` | 发送并等待响应，收发显示在数据显示区（触发 `FrameSent` / `FrameReceived`） |
+| `SendAsync(command, ct)`（扩展方法） | 同上，`minimumResponseTimeout = TimeSpan.Zero`（只使用连接设置的超时） |
+| `SendHiddenAsync(command, minimumResponseTimeout, ct)` | 同上，但不显示（见 4.2.1.4）；程序内部读取配置的帮助指令（`?`、`?M`）使用该方法 |
 
-- 一帧可以包含多条指令 (`QG03;QC09`),每条的响应都在 `Responses` 中,按回显对应 (`ZevisionResponseParser.EchoOf`)。
-- 超时是空闲超时:从发送或最后收到的字节算起,大响应不会因为总时间长而超时。响应前停顿较长的指令传 `minimumResponseTimeout`:帮助指令用 `InstrumentConfigReader.SlowReplyTimeout` (2 秒)。
-- 失败的说明已本地化。超时、帧无效、无法解析时,如果这次发送期间收到过与帧格式设置不一致的帧 (4.4),说明后附上检查设置项的提示。
-- 未连接时 → 失败 "未连接。" (不抛出)。
+- 一帧可包含多条指令（`QG03;QC09`），每条的响应都在 `Responses` 中，按回显对应（`ZevisionResponseParser.EchoOf`）。
+- 超时为空闲超时：从发送或最后收到的字节起计时，大响应不因总时间长而超时。响应前停顿较长的指令应传入 `minimumResponseTimeout`：帮助指令使用 `InstrumentConfigReader.SlowReplyTimeout`（2 s）。
+- 失败的说明已本地化。超时、帧无效、无法解析时，若本次发送期间收到过与帧格式设置不一致的帧（见 4.2.1.5），说明之后附加检查设置项的提示。
+- 未连接时返回失败“未连接。”，不抛出异常。
 
-### 4.3 事件
+##### 4.2.1.4 事件
 
-| 事件 | 触发 | 说明 |
+表 7  IDeviceService 的事件
+
+| 事件 | 触发条件 | 说明 |
 |---|---|---|
 | `FrameSent` | 帧发送前 | 后台线程 |
-| `FrameReceived` | 收到一帧 (含错误帧、帧外数据) | 后台线程,按收到的顺序依次触发 |
-| `ConnectionLost` | 读取意外结束 (拔线、TCP 断开、读取出错) | 后台线程;主动 `DisconnectAsync` 不触发 |
+| `FrameReceived` | 收到一帧（含错误帧、帧外数据） | 后台线程，按收到的顺序依次触发 |
+| `ConnectionLost` | 读取意外结束（拔线、TCP 断开、读取出错）或心跳无应答（`Reason = HeartbeatTimeout`） | 后台线程；主动调用 `DisconnectAsync` 不触发。说明由 `CommunicationText.DescribeConnectionLost(e, missLimit)` 生成 |
+| `Retrying` | 一次发送传输出错、即将重发 | 发送方的线程；`SendHiddenAsync` 和握手的发送不触发。说明由 `CommunicationText.DescribeRetry(e)` 生成 |
+| `CommandsFailed` | 一次发送结束，其中有指令没有得到成功响应 | 发送方的线程；`Count` 为失败的指令数，用于数据显示区的错误指令数（ERR）。设备的否定响应（含不回显的 `-C`）计该指令；发出后没有有效响应（超时、写入失败、响应帧无效或无法解析）计帧中全部指令；重发后成功的、未发出的、等待时连接断开的不计。`SendHiddenAsync` 和握手的发送不触发；处理程序的异常写入 `error.txt`，不影响发送结果 |
 
 ```csharp
 var ui = SynchronizationContext.Current;                       // 在 UI 线程上取得
 device.FrameReceived += (s, e) =>
 {
-    var lines = FormatForDisplay(e.Frame);                     // 格式化在后台线程做
-    ui.Post(_ => log.AddRange(lines), null);                   // 再切到 UI 线程更新界面
+    var lines = FormatForDisplay(e.Frame);                     // 在后台线程格式化
+    ui.Post(_ => log.AddRange(lines), null);                   // 切换到 UI 线程更新界面
 };
 device.ConnectionLost += (s, e) => ui.Post(_ => OnConnectionLost(e.Exception), null);
 ```
 
-- 事件处理程序抛出的异常不会中断读取循环,写入 error.txt。读取循环本身的意外异常 (不是拔线等 I/O 异常) 也写入 error.txt,并触发 `ConnectionLost`。
-- `SendHiddenAsync` 的收发不触发事件,因此也不保存到通讯数据文件、不计入收发计数:不触发 `FrameSent`;它的响应、超时时报告的不完整数据,以及之后收到的同回显帧 (如取消读取 `?` 后设备还在发送的剩余数据) 都不触发 `FrameReceived`,直到同一指令再用 `SendAsync` 发送。
+- 事件处理程序抛出的异常不中断读取循环，并写入 `error.txt`。读取循环本身的意外异常（拔线等 I/O 异常除外）同样写入 `error.txt`，并触发 `ConnectionLost`。
+- `SendHiddenAsync` 的收发不触发事件，因此不保存到通信数据文件，也不计入收发计数：不触发 `FrameSent`；其响应、超时时报告的不完整数据，以及之后收到的回显相同的帧（如取消读取 `?` 后设备仍在发送的剩余数据）都不触发 `FrameReceived`，直至同一指令再次以 `SendAsync` 发送。
 
-### 4.4 帧格式不一致 (FramingCheck)
+##### 4.2.1.5 帧格式不一致检查（FramingCheck）
 
-`FramingCheck.Check(frame, options)` 判断收到的帧是否说明设备的长度设置与程序不同:
+`FramingCheck.Check(frame, options)` 判断收到的帧是否表明设备的长度设置与程序不同，结果见表 8。
+
+表 8  FramingCheck 的结果
 
 | 结果 | 情况 |
 |---|---|
-| `ReplyHasLength` | 程序未启用长度,设备的响应带两个长度字节 |
-| `ReplyWithoutLength` | 程序启用了长度,设备的响应是 `{文本}` |
-| `None` | 一致,或无法判断 |
+| `ReplyHasLength` | 程序未启用长度，设备的响应带两个长度字节 |
+| `ReplyWithoutLength` | 程序启用了长度，设备的响应为 `{文本}` |
+| `None` | 一致，或无法判断 |
 
-`ZevisionDeviceService` 对每个收到的帧做这个检查;发送失败时把 `CommunicationText.FramingHint(mismatch, endpoint)` 附在说明后面。`FramingCheck.SettingIds(endpoint)` 给出要检查的设置项:RS232 → `(G1304, G1305)`,TCP → `(G1407, G1408)`。
+`ZevisionDeviceService` 对每个收到的帧（与当前帧格式比较）进行该检查；发送失败时把 `CommunicationText.FramingHint(mismatch, endpoint)` 附加在说明之后。`FrameSettings.Ids(endpoint)` 给出应检查的设置项：RS232 为 `(G1304, G1305)`，TCP 为 `(G1407, G1408)`。启用握手时，连接时已按设备的设置改正帧格式，该提示主要用于关闭握手的调试连接。
 
-### 4.5 手动输入的指令 (ManualCommandPolicy)
+##### 4.2.1.6 手动输入的指令（ManualCommandPolicy）
 
 ```csharp
-var text = ManualCommandPolicy.ToUpperCommands("qg01;um0101:Al");   // → "QG01;UM0101:Al" (数据部分不改)
-var commands = ManualCommandPolicy.Split(" QG01；QG02\n\nQG03 ");    // → QG01 | QG02 | QG03 (; ； 换行都是分隔符)
+var text = ManualCommandPolicy.ToUpperCommands("qg01;um0101:Al");   // → "QG01;UM0101:Al"（数据部分不变）
+var commands = ManualCommandPolicy.Split(" QG01；QG02\n\nQG03 ");    // → QG01 | QG02 | QG03（;、；和换行都是分隔符）
 var frame = string.Join(";", commands);
-var timeout = ManualCommandPolicy.MinimumResponseTimeout(frame);    // 含 ? 时 2 秒,否则 TimeSpan.Zero
+var timeout = ManualCommandPolicy.MinimumResponseTimeout(frame);    // 含 ? 时为 2 s，否则为 TimeSpan.Zero
 if (ManualCommandPolicy.ContainsFullHelpCommand(frame))
 {
-    // 完整的 ? 约 116 KB、10 秒,先提示用户 (?M 等组帮助不算)
+    // 完整的 ? 约 116 KB、10 s，发送前提示操作者（?M 等组帮助除外）
 }
 
 var reply = await device.SendAsync(frame, timeout, cancellationToken);
 ```
 
-设备只认大写命令 (小写回 `-A`);数据可能是名称,保持原样。
+设备只接受大写命令（小写命令回答 `-A`）；数据部分可能是名称，保持原样。
 
-## 5. 读取设备配置
+##### 4.2.1.7 握手（HandshakeAsync）
 
-`InstrumentConfigService` (构造参数为 `IDeviceService`) 同时实现读取 (`IInstrumentConfigReader`) 和修改 (`IInstrumentConfigWriter`)。只需要读取的类 (如修改窗口的"信息"页) 依赖 `IInstrumentConfigReader`。
+```csharp
+var connected = await device.ConnectAsync(options, ct);
+var identity = await device.HandshakeAsync(options.Frame, ct);   // 先尝试界面上的帧格式
+if (!identity.IsSuccess)
+{
+    await device.DisconnectAsync();
+    ShowError(identity.Error);              // 如 "设备没有应答 H01 (…)。请检查端口、波特率或 IP 地址…"
+    return;
+}
 
-| 方法 | 发送的指令 | 耗时 (115200 bps) | 结果 |
+var frame = identity.Value.Frame;           // 设备实际使用的帧格式，连接已改用该格式
+var hello = identity.Value.Hello;           // "Zevision IMC300 1.8.11.202606101229"
+foreach (var warning in identity.Value.Warnings) { Log(warning); }   // 型号不是 IMC300、设置与实际不一致
+```
+
+握手由内部类 `DeviceHandshake` 执行，步骤如下（设备行为见 ZEV-STR-01 中 2026-10-19 的记录）：
+
+1. 以 `preferred` 发送 `H01`（不重发）。回答为 `H01+:…` 时帧格式正确。
+2. 否则等待 300 ms（设备对格式不符的输入最迟约 230 ms 回答 `-T`），用 `FrameFormatDetector.Detect` 从此期间收到的字节识别设备的帧格式，改用该格式后再次发送 `H01`；无法识别时依次尝试其余格式（最多 4 次）。第一次未收到任何字节时表明设备不在线（设备对任何输入都会回答），握手失败。
+3. 以一帧查询 `QG03;QG1304;QG1305`（TCP 为 G1407/G1408）。读不到 G03 时握手失败；型号不是 `DeviceIdentity.ExpectedModel`（IMC300），或设置与实际使用的帧格式不一致时，作为 `Warnings` 返回。
+
+- 握手期间的收发不触发 `FrameSent`/`FrameReceived`（不显示、不保存、不计数）；收到的字节另行记录（最多 4 KB），用于识别帧格式。
+- 耗时：帧格式一致时为两帧（约 50 ms）；不一致时增加一次探测和 300 ms 等待（实测，RS232 约 460 ms，TCP 约 380 ms）。
+- 设备的帧格式设置被修改后（如手动发送的 `UG1304:1` 被接受），以 `FrameSettings.AfterUpdates(endpoint, current, commands, responses)` 得到新格式，再以新格式为 `preferred` 调用 `HandshakeAsync`。设备对该 `U` 命令仍按旧格式回答，从下一帧起只接受新格式。
+
+表 9  握手相关类型
+
+| 类型 | 作用 |
+|---|---|
+| `DeviceIdentity` | 握手结果：`Hello`、`Model`、`Frame`、`Warnings`；`ExpectedModel = "IMC300"` |
+| `FrameFormatDetector` | `Detect(bytes)`：依次以“长度+校验和”“长度”“校验和”“无”解码，返回第一个能解出有效响应的格式；`All`：四种格式 |
+| `FrameSettings` | `Ids(endpoint)`：帧格式设置项的 ID；`AfterUpdates(…)`：一帧指令被接受后的新帧格式（未改变时为 null） |
+| `ReconnectPolicy` | `DelayBefore(attempt)`：自动重连前的等待，依次为 1 s、2 s、4 s、8 s、16 s、32 s，之后为 60 s（`MaxDelay`） |
+
+#### 4.2.2 设备配置读取接口
+
+`InstrumentConfigService`（构造参数为 `IDeviceService`）同时实现读取（`IInstrumentConfigReader`）和修改（`IInstrumentConfigWriter`）。仅读取配置的类（如修改窗口的“信息”页）依赖 `IInstrumentConfigReader`。读取方法见表 10。
+
+表 10  设备配置读取方法
+
+| 方法 | 发送的指令 | 耗时（115200 bit/s） | 结果 |
 |---|---|---|---|
-| `ReadSnapshotAsync(ct)` | `?` (不显示) | 约 10 秒,116 KB (实测) | `InstrumentSnapshot`:全部项及当前值 |
-| `ReadGroupAsync(group, ct)` | `?M` 等组帮助 (不显示) | 材料约 0.5 秒 (实测);膜系最大,按大小估算约 5 秒 | 该组可保存的项 (挑选规则同 `ToRecipe`) |
-| `QueryAsync(ids, ct)` | `Q` 指令,每帧 20 条 (`QueryBatchSize`) | 很短 | 每项的值或设备拒绝的原因 |
+| `ReadSnapshotAsync(ct)` | `?`（不显示） | 约 10 s，116 KB（实测） | `InstrumentSnapshot`：全部项及当前值 |
+| `ReadGroupAsync(group, ct)` | `?M` 等组帮助（不显示） | 材料约 0.5 s（实测）；膜系最大，按数据量估算约 5 s | 该组可保存的项（挑选规则与 `ToRecipe` 相同） |
+| `QueryAsync(ids, ct)` | `Q` 指令，每帧 20 条（`QueryBatchSize`） | 每帧一次往返 | 每项的值或设备拒绝的原因 |
 
 ```csharp
 var snapshot = await config.ReadSnapshotAsync(cancellationToken);
@@ -287,7 +393,7 @@ if (!snapshot.IsSuccess)
 
 var device = snapshot.Value;
 var line = $"{device.DeviceName} {device.FirmwareVersion} {device.CurrentState}";   // "IMC300 1.8.11.202606101229 Ready"
-var density = device.GetValue("M0103");            // "2.700";设备上没有该项时为 null
+var density = device.GetValue("M0103");            // "2.700"；设备上没有该项时为 null
 
 var values = await config.QueryAsync(new[] { "M0101", "M0103", "M0901" }, cancellationToken);
 if (values.IsSuccess)
@@ -297,44 +403,44 @@ if (values.IsSuccess)
         Console.WriteLine(value.Error == null ? $"{value.Id} = {value.Value}" : $"{value.Id}: {value.Error}");
     }
 }
-// → M0101 = Al / M0103 = 2.700 / M0901: 非法格式      (单项被拒绝不影响其他项)
+// → M0101 = Al / M0103 = 2.700 / M0901: 非法格式      （单项被拒绝不影响其他项）
 ```
 
-- `InstrumentSnapshot` 的常量:`DeviceNameId` = `G03`、`StateId` = `C09`、`ReadyState` = `Ready`。属性:`DeviceName` (G03)、`ModelNumber` (G05)、`SerialNumber` (G06)、`FirmwareVersion` (G08)、`CurrentState` (C09)、`Entries` (保持设备给出的顺序)。`GetValue` / `GetDescription` 按 ID 查找,没有时为 null;ID 重复时取第一次出现的。
-- `ReadGroupAsync`:响应中没有该组的数量项 (`MFE`、`FFE`、`P02FE`…) 时返回失败,不会把解析失败当成"该组为空"。
-- `QueryAsync`:通讯失败时整体失败;单项被拒绝时该项 `Value` 为 null、`Error` 为原因 (如 "非法格式")。
+- `InstrumentSnapshot` 的常量：`DeviceNameId` = `G03`、`StateId` = `C09`、`ReadyState` = `Ready`。属性：`DeviceName`（G03）、`ModelNumber`（G05）、`SerialNumber`（G06）、`FirmwareVersion`（G08）、`CurrentState`（C09）、`Entries`（保持设备给出的顺序）。`GetValue` / `GetDescription` 按 ID 查找，没有时为 null；ID 重复时取第一次出现的项。
+- `ReadGroupAsync`：响应中没有该组的数量项（`MFE`、`FFE`、`P02FE` 等）时返回失败，不把解析失败视为“该组为空”。
+- `QueryAsync`：通信失败时整体失败；单项被拒绝时该项的 `Value` 为 null，`Error` 为原因（如“非法格式”）。
 
-## 6. 保存与恢复
+#### 4.2.3 保存与恢复
 
-### 6.1 保存
+##### 4.2.3.1 保存
 
 ```csharp
-var snapshot = await config.ReadSnapshotAsync(cancellationToken);      // 约 10 秒
+var snapshot = await config.ReadSnapshotAsync(cancellationToken);      // 约 10 s
 if (!snapshot.IsSuccess) { ShowError(snapshot.Error); return; }
 
-var recipe = snapshot.Value.ToRecipe(DateTimeOffset.Now);             // 按 RecipeRules 挑出可恢复的项
-var saved = recipes.Save(recipe, path);                                 // 计算 MD5;先写临时文件再替换
+var recipe = snapshot.Value.ToRecipe(DateTimeOffset.Now);             // 按 RecipeRules 挑选可恢复的项
+var saved = recipes.Save(recipe, path);                                 // 计算 MD5；先写临时文件再替换
 if (!saved.IsSuccess) { ShowError(saved.Error); }
 ```
 
-实机:帮助表 1525 行 → 配置文件 940 项,约 92 KB。
+实机数据：帮助表 1525 行，生成的配置文件 940 项，约 92 KB。
 
-### 6.2 恢复
+##### 4.2.3.2 恢复
 
 ```csharp
 var loaded = recipes.Load(path);                                         // 校验格式版本、MD5、字段、ID
-if (!loaded.IsSuccess) { ShowError(loaded.Error); return; }              // 如 "…MD5 校验失败,文件在保存后被修改过或已损坏…"
+if (!loaded.IsSuccess) { ShowError(loaded.Error); return; }              // 如 "…MD5 校验失败，文件在保存后被修改过或已损坏…"
 
 var snapshot = await config.ReadSnapshotAsync(cancellationToken);
 if (!snapshot.IsSuccess) { ShowError(snapshot.Error); return; }
 
-var planned = RestorePlanner.Plan(loaded.Value, snapshot.Value);        // 纯计算,不通讯
-if (!planned.IsSuccess) { ShowError(planned.Error); return; }           // 型号不符、设备不在 Ready
+var planned = RestorePlanner.Plan(loaded.Value, snapshot.Value);        // 纯计算，不通信
+if (!planned.IsSuccess) { ShowError(planned.Error); return; }           // 型号不符、设备不在 Ready 状态
 
 var plan = planned.Value;
 if (plan.Creates.Count == 0 && plan.Writes.Count == 0)
 {
-    return;                                                              // 设备与文件一致 (plan.UnchangedCount 项)
+    return;                                                              // 设备与文件一致（plan.UnchangedCount 项）
 }
 
 if (!Confirm(plan))                                                      // 显示 Writes、Creates、Skipped、Warnings
@@ -345,65 +451,69 @@ if (!Confirm(plan))                                                      // 显�
 var report = await config.ExecuteRestoreAsync(loaded.Value, plan, progress, cancellationToken);
 ```
 
-界面中读取和执行各有 60 秒时限 (`OperationLimits.PhaseTimeLimit`,界面层),用户阅读确认框的时间不计入。
+界面层为读取和执行两个阶段各设 60 s 时限（`OperationLimits.PhaseTimeLimit`），操作者阅读确认框的时间不计入。
 
-### 6.3 恢复计划:RestorePlanner.Plan
+##### 4.2.3.3 恢复计划（RestorePlanner.Plan）
 
-不与设备通讯,比较文件与快照:
+`RestorePlanner.Plan` 不与设备通信，比较文件与快照：
 
-1. 设备未识别 (没有 G03)、型号不同 (G03;两边都有 G05 时也比较 G05)、状态不是 `Ready` → 失败。
-2. 固件版本不同 → `Warnings` (不阻止恢复)。
-3. 文件中有、设备上没有的项:
-   - 所属的顶层对象 (材料、膜系、膜层、工艺) 不存在 → 在 `Creates` 中按原编号创建 (`AM03`),顺序为 材料 → 膜系 → 膜层 → 工艺;
-   - 子列表的条目不存在 (如膜系的第 2 条预熔 `F010302`,或工艺的膜层条目 `P02010701`) → 在 `Creates` 中追加到列表末尾 (`AF010300`)。要求设备有 `<列表>00` 项,且现有条目从 01 连续编号;
-   - 都不能创建 → `Skipped`。
+1. 设备未识别（没有 G03）、型号不同（比较 G03；两边都有 G05 时也比较 G05）或状态不是 `Ready` 时，返回失败。
+2. 固件版本不同时，加入 `Warnings`（不阻止恢复）。
+3. 文件中有而设备上没有的项：
+   - 所属的顶层对象（材料、膜系、膜层、工艺）不存在时，在 `Creates` 中按原编号创建（`AM03`），顺序为材料、膜系、膜层、工艺；
+   - 子列表的条目不存在时（如膜系的第 2 条预熔 `F010302`，或工艺的膜层条目 `P02010701`），在 `Creates` 中追加到列表末尾（`AF010300`）。要求设备有 `<列表>00` 项，且现有条目从 01 起连续编号；
+   - 无法创建时，加入 `Skipped`。
 
-   这些项不在 `Writes` 中:新对象带的是设备默认值,要等创建后重新读取才知道该写哪些。
-4. 与设备当前值相同 → 计入 `UnchangedCount`。
-5. 不同 → `Writes`,按 `RecipeRules.GroupRank` 排序 (N S I O T G M F L P),组内保持文件中的顺序。
-6. 跳过 (`Skipped`):文件中重复的 ID;不可恢复的项 (8.1);值含协议字符 (`;`、`{`、`}` 或非 ASCII);引用的对象 (如 `F0302 = 3` → `M03`) 既不在设备上、也不会被创建 (设备必然回 `-B`);膜系的坩埚号超出所选输出源的坩埚数量 (按恢复后的输出源和坩埚数量判断,见 8.5)。
+   上述项不在 `Writes` 中：新对象带设备默认值，创建后重新读取才能确定应写入的项。
+4. 与设备当前值相同的项计入 `UnchangedCount`。
+5. 值不同的项加入 `Writes`，按 `RecipeRules.GroupRank` 排序（N S I O T G M F L P），组内保持文件中的顺序。
+6. 以下项加入 `Skipped`：文件中重复的 ID；不可恢复的项（见 4.2.5.1）；值含协议字符（`;`、`{`、`}` 或非 ASCII 字符）的项；引用的对象（如 `F0302 = 3` 引用 `M03`）既不在设备上、也不会被创建的项（设备将回答 `-B`）；膜系的坩埚号超出所选输出源坩埚数量的项（按恢复后的输出源和坩埚数量判断，见 4.2.5.5）。
 
-`RestoreSkip` 带 ID、文件中的值、说明和原因,`ToString()` 为单行文本,如 `F01030301 Start Ramp/Rise time = 0:00:30 (原因)`。
+`RestoreSkip` 包含 ID、文件中的值、说明和原因，`ToString()` 为单行文本，如 `F01030301 Start Ramp/Rise time = 0:00:30 (原因)`。
 
-### 6.4 执行恢复:ExecuteRestoreAsync
+##### 4.2.3.4 执行恢复（ExecuteRestoreAsync）
 
-1. 再次确认型号和 `Ready`:计划是在确认框之前做的,用户确认期间设备可能已开始工艺。不满足时不写任何项。
-2. 写入系统设置 (`RecipeRules.IsSystemSetting`:N S I O T G)。
-3. 有 `Creates` 时:发送创建指令 → 重新读取 `?` → 重新计划,循环直到不再需要创建,最多 4 轮 (嵌套的列表要等上级创建后才出现)。创建的对象没有出现在预期编号上时停止。
-4. 写入其余的项:对象的设置,以及创建后才出现的系统项 (如协议文档中输出源的坩埚材料 `S**09**`,追加后才出现)。第 2 步写过的项不重复写。
-5. 用 `Q` 逐项读回,与写入的值比较 (`ParameterValue.AreEquivalent`)。
+1. 再次确认型号和 `Ready` 状态：恢复计划在确认框之前生成，操作者确认期间设备可能已开始工艺。条件不满足时不写入任何项。
+2. 写入系统设置（`RecipeRules.IsSystemSetting`：N S I O T G）。
+3. 有 `Creates` 时：发送创建指令，重新读取 `?`，重新计划；循环至不再需要创建，最多 4 轮（嵌套的列表在上级创建后才出现）。创建的对象未出现在预期编号上时停止。
+4. 写入其余的项：对象的设置，以及创建后才出现的系统项（如协议译稿中输出源的坩埚材料 `S**09**`，追加后才出现）。第 2 步已写入的项不重复写入。
+5. 用 `Q` 逐项读回，与写入的值比较（`ParameterValue.AreEquivalent`）。
 
-- 遇到第一个设备拒绝就停止,不回滚。设备上比文件多出的对象或条目不删除。
-- 取消时返回 `Cancelled = true` (不抛出),已写入的项保留在设备上。
-- 进度 `RestoreProgress(Stage, Completed, Total)`:`Stage` 依次为"写入系统设置"、"创建" ("创建 (第 2 轮)"…)、"重新读取设备"、"写入"、"校验" (`ApplyEditsAsync` 先有"检查设备");`Total = 0` 表示进度未知。例:只改一项材料时依次报告 `写入 1/1`、`校验 1/1`。
+- 遇到第一个设备拒绝即停止，不回滚。设备上比文件多出的对象或条目不删除。
+- 取消时返回 `Cancelled = true`（不抛出异常），已写入的项保留在设备上。
+- 进度为 `RestoreProgress(Stage, Completed, Total)`：`Stage` 依次为 `写入系统设置`、`创建`（`创建 (第 2 轮)` 等）、`重新读取设备`、`写入`、`校验`（`ApplyEditsAsync` 之前另有 `检查设备`）；`Total = 0` 表示进度未知。例如只修改一项材料时，依次报告 `写入 1/1`、`校验 1/1`。
 
-### 6.5 RestoreReport
+##### 4.2.3.5 恢复报告（RestoreReport）
+
+表 11  RestoreReport 的属性
 
 | 属性 | 含义 |
 |---|---|
-| `IsSuccess` | 没有错误、没有取消,且读回全部一致 |
+| `IsSuccess` | 没有错误、没有取消，且读回全部一致 |
 | `Error`、`FailedId` | 停止的原因和项 |
-| `FailedDuringCreate` | 失败发生在创建阶段 (含其后的重新读取、重新计划),而不是写入阶段 |
+| `FailedDuringCreate` | 失败发生在创建阶段（含其后的重新读取、重新计划），而不是写入阶段 |
 | `Cancelled` | 被取消 |
-| `CreatedCount`、`WrittenCount`、`PlannedWriteCount` | 创建的对象数、写入的项数、计划写入的项数 (含重新计划的结果) |
-| `VerifyMismatches` | 读回与写入值不一致的项 (已格式化的文本) |
-| `AdditionalSkipped` | 创建后重新计划时新出现的跳过项 (如新对象子列表的条数与文件不同),应作为错误提示 |
+| `CreatedCount`、`WrittenCount`、`PlannedWriteCount` | 创建的对象数、写入的项数、计划写入的项数（含重新计划的结果） |
+| `VerifyMismatches` | 读回值与写入值不一致的项（已格式化的文本） |
+| `AdditionalSkipped` | 创建后重新计划时新出现的跳过项（如新对象子列表的条数与文件不同），应作为错误提示 |
 
-## 7. 修改设备配置
+#### 4.2.4 修改设备配置接口
 
-`IInstrumentConfigWriter` 的每个方法都带 `deviceName` (配置所属的设备,与 G03 比较),开始时用一帧 `QG03;QC09` 确认型号和 `Ready`,不满足时不发送任何修改指令。
+`IInstrumentConfigWriter` 的每个方法都带 `deviceName`（配置所属的设备，与 G03 比较），开始时用一帧 `QG03;QC09` 确认型号和 `Ready` 状态，不满足时不发送任何修改指令。方法见表 12。
 
-| 方法 | 发送的指令 (例) | 结果 |
+表 12  IInstrumentConfigWriter 的方法
+
+| 方法 | 发送的指令（示例） | 结果 |
 |---|---|---|
-| `ApplyEditsAsync(recipe, edits, progress, ct)` | 检查每项 → `QG03;QC09` → `UM0103:2.710`… → `QM0103`… | `RestoreReport` |
-| `CreateObjectAsync(type, id, defaultValue, deviceName, ct)` | `AF02`,再设默认引用 `UF0202:1` → `QF0202` | `ObjectCreation(Error, DefaultsError)` |
+| `ApplyEditsAsync(recipe, edits, progress, ct)` | 检查每项 → `QG03;QC09` → `UM0103:2.710` 等 → `QM0103` 等 | `RestoreReport` |
+| `CreateObjectAsync(type, id, defaultValue, deviceName, ct)` | `AF02`，再设置默认引用 `UF0202:1` → `QF0202` | `ObjectCreation(Error, DefaultsError)` |
 | `DeleteObjectAsync(id, deviceName, ct)` | `DM03` | `Result` |
-| `AppendListItemAsync(listId, value, deviceName, ct)` | `AP02010700` → `QP020107FE`;`value` 不为 null 时 `UP0201070n:值` → `QP0201070n` | 新条目的 ID |
-| `RemoveLastListItemAsync(listId, deviceName, ct)` | `QF0103FE` → `DF010300` → `QF0103FE` (须少一条) | 被删除的条目 ID |
+| `AppendListItemAsync(listId, value, deviceName, ct)` | `AP02010700` → `QP020107FE`；`value` 不为 null 时 `UP0201070n:值` → `QP0201070n` | 新条目的 ID |
+| `RemoveLastListItemAsync(listId, deviceName, ct)` | `QF0103FE` → `DF010300` → `QF0103FE`（条数应减少一条） | 被删除的条目 ID |
 
 ```csharp
 var definition = ZevisionCommandSet.Find("M0103");
-var value = ParameterValue.Normalize(definition, "2.71", "2.700");          // → "2.710" (与设备的小数位数一致)
+var value = ParameterValue.Normalize(definition, "2.71", "2.700");          // → "2.710"（与设备的小数位数一致）
 var edits = new[] { new RecipeEntry { Id = "M0103", Value = value, Description = "Density" } };
 
 var report = await config.ApplyEditsAsync(recipe, edits, progress: null, cancellationToken);
@@ -411,224 +521,200 @@ if (!report.IsSuccess)
 {
     ShowError(report.Cancelled ? "已取消" : report.Error ?? string.Join(Environment.NewLine, report.VerifyMismatches));
 }
-// 设备不在 Ready 时 → "设备当前状态为 Running,只有在 Ready (空闲) 状态下才能修改配置。"
+// 设备不在 Ready 状态时 → "设备当前状态为 Running，只有在 Ready (空闲) 状态下才能修改配置。"
 ```
 
-- `ApplyEditsAsync`:先检查每一项可以写 (`RecipeRules.IsRestorable`)、不含协议字符,膜系的坩埚号不超过所选输出源的坩埚数量 (同时修改的输出源和坩埚数量按新值,见 8.5),任何一项不合格都不发送;按恢复的顺序写入,逐项读回。不创建对象:设备上不存在的项会被设备拒绝。
-- `CreateObjectAsync` 的默认引用按 `type.NewDefault` (8.2):膜系写材料项 `F..02`;膜层先追加膜系列表一项 (`AL..0200`) 再写其膜系 (`L..02nn01`);工艺追加膜层列表一项并写入 (`AP02..0700` → `UP02..07nn`)。`defaultValue` 为 null 时只创建。对象创建成功但默认引用失败时 `Error` 为 null、`DefaultsError` 为原因 (对象保留在设备上)。
-- 只有 `M**`、`F**`、`L**`、`P02**` 可以按编号新建/删除 (指令集检查,其他 ID 抛 `ArgumentException`)。按编号删除 (`DM03`) 协议文档没有说明;按编号新建已在实机确认 M、F,L、P 是推断的。
-- 修改后调用方应重新读取该组 (`ReadGroupAsync`) 确认结果,编辑会话就是这样做的 (9.3)。
+- `ApplyEditsAsync`：先检查每一项均可写入（`RecipeRules.IsRestorable`）、不含协议字符，且膜系的坩埚号不超过所选输出源的坩埚数量（同时修改的输出源和坩埚数量按新值计算，见 4.2.5.5）；任何一项不合格时不发送任何指令。按恢复的顺序写入，逐项读回。不创建对象：设备上不存在的项由设备拒绝。
+- `CreateObjectAsync` 按 `type.NewDefault`（见 4.2.5.2）设置默认引用：膜系写入材料项 `F..02`；膜层先追加膜系列表一项（`AL..0200`），再写入其膜系（`L..02nn01`）；工艺追加膜层列表一项并写入（`AP02..0700` → `UP02..07nn`）。`defaultValue` 为 null 时只创建对象。对象创建成功但默认引用设置失败时，`Error` 为 null，`DefaultsError` 为原因（对象保留在设备上）。
+- 只有 `M**`、`F**`、`L**`、`P02**` 可按编号新建和删除（由指令集检查，其他 ID 抛出 `ArgumentException`）。协议译稿未说明按编号删除（`DM03`）；按编号新建已在实机上确认材料和膜系，膜层和工艺为推断。
+- 修改后调用方应重新读取该组（`ReadGroupAsync`）确认结果；编辑会话按此方式处理（见 4.3）。
 
-## 8. 规则与 ID 工具
+#### 4.2.5 规则与 ID 工具
 
-纯函数,静态类,没有状态,线程安全。
+本节的类型为静态类，由纯函数组成，无状态，线程安全。
 
-### 8.1 RecipeRules:哪些项保存和恢复
+##### 4.2.5.1 RecipeRules：保存和恢复的范围
 
-`IsRestorable(id, value, out reason)` 依次检查:
+`IsRestorable(id, value, out reason)` 依次检查：
 
-1. 值为空 → 否 (分组标题、动作命令)。
-2. 组白名单:M F L P N S T I O,以及系统组中的 G0E (显示)、G0F (声音)、G12 (图表)。通讯 (G13、G14)、时间 (G0A)、复位 (G0D)、锁定 (G11)、工艺控制 (C) 都不保存。
-3. ID 格式 (`DeviceIds.IsWellFormed`)。
-4. 排除规则:列表计数 (`…FE`);传感器的运行状态;源的当前输出、开关挡板、切换坩埚 (物理动作);输入输出的分配和当前状态 (写输出状态会直接动作继电器);工艺运行次数;最后使用的晶振。
-5. 指令集中定义为只读的项 (如 `N**08`、`N**1F`)。
+1. 值为空的项（分组标题、动作命令）不保存。
+2. 组白名单：M F L P N S T I O，以及系统组中的 G0E（显示）、G0F（声音）、G12（图表）。通信（G13、G14）、时间（G0A）、复位（G0D）、锁定（G11）和工艺控制（C）不保存。
+3. ID 格式（`DeviceIds.IsWellFormed`）。
+4. 排除规则：列表计数（`…FE`）；传感器的运行状态；输出源的当前输出、开关挡板、切换坩埚（物理动作）；输入输出的分配和当前状态（写入输出状态会使继电器动作）；工艺运行次数；最后使用的晶振。
+5. 指令集中定义为只读的项（如 `N**08`、`N**1F`）。
 
-规则依据 IMC300 固件 1.8.11 的帮助表推断,没有逐项在实机上验证。恢复时设备拒绝某项会停止并报告 ID,据此调整这里的规则即可。
+上述规则依据 IMC300 固件 1.8.11 的帮助表推断，未逐项在实机上验证。恢复时设备拒绝某项会停止并报告其 ID，可据此调整本节的规则。
+
+表 13  RecipeRules 的方法
 
 | 方法 | 用途 |
 |---|---|
-| `IsRestorable(id, value, out reason)` | 上面的规则 |
-| `SelectRestorable(entries)` | 从帮助表中挑选 (ID 重复时取第一次出现的);`ToRecipe` 和 `ReadGroupAsync` 都用它 |
-| `IsSystemSetting(id)` | N S I O T G 组:恢复时最先写入 |
-| `GroupRank(id)` | 恢复顺序的排序键:N S I O T G M F L P,其他组排最后 |
-| `TryGetReference(id, value, out targetId, out kind)` | 恢复计划使用的引用:`F??02` → 材料,`L??02??01` → 膜系 |
-| `FindReferencesTo(entries, objectId)` | 删除前检查:上面两条,再加上 `P02??07??` → 膜层、`P01` 和 `P02??0A` → 工艺、`S??09??` → 材料 |
+| `IsRestorable(id, value, out reason)` | 上述规则 |
+| `SelectRestorable(entries)` | 从帮助表中挑选可保存的项（ID 重复时取第一次出现的项）；`ToRecipe` 和 `ReadGroupAsync` 均使用该方法 |
+| `IsSystemSetting(id)` | N S I O T G 组：恢复时最先写入 |
+| `GroupRank(id)` | 恢复顺序的排序键：N S I O T G M F L P，其他组排在最后 |
+| `TryGetReference(id, value, out targetId, out kind)` | 恢复计划使用的引用：`F??02` → 材料，`L??02??01` → 膜系 |
+| `FindReferencesTo(entries, objectId)` | 删除前的检查：上述两条，另加 `P02??07??` → 膜层、`P01` 和 `P02??0A` → 工艺、`S??09??` → 材料 |
 
 ```csharp
 RecipeRules.IsRestorable("M0103", "2.700", out _);              // → true
-RecipeRules.IsRestorable("G1303", "115200", out var reason);    // → false,"不在保存范围内的组 (工艺控制、系统、通讯、Hello 等)"
-RecipeRules.IsRestorable("MFE", "3", out reason);               // → false,"列表计数"
-RecipeRules.IsRestorable("S0106", "0", out reason);             // → false,"开/关挡板 (物理动作)"
-RecipeRules.IsRestorable("N0108", "4", out reason);             // → false,"只读项 (协议只允许查询)"
-RecipeRules.TryGetReference("F0302", "3", out var target, out var kind);   // → true,"M03","材料";值 0 (未选择) → false
+RecipeRules.IsRestorable("G1303", "115200", out var reason);    // → false，"不在保存范围内的组 (工艺控制、系统、通讯、Hello 等)"
+RecipeRules.IsRestorable("MFE", "3", out reason);               // → false，"列表计数"
+RecipeRules.IsRestorable("S0106", "0", out reason);             // → false，"开/关挡板 (物理动作)"
+RecipeRules.IsRestorable("N0108", "4", out reason);             // → false，"只读项 (协议只允许查询)"
+RecipeRules.TryGetReference("F0302", "3", out var target, out var kind);   // → true，"M03"，"材料"；值 0（未选择）→ false
 RecipeRules.FindReferencesTo(entries, "M03");                   // entries 含 F0102=3、F0202=1、S010901=3 → F0102、S010901
 new[] { "P0101", "M0101", "G0E01", "N0101", "X01" }.OrderBy(RecipeRules.GroupRank);   // → N0101 G0E01 M0101 P0101 X01
 ```
 
-删除检查比恢复计划多用几条规则,是因为实机上工艺的膜层列表有指向不存在膜层的值 (31/32/33,而只有 L01–L09):恢复计划若用它,会跳过这些写入;删除检查只比较是否等于要删除的对象,不受影响。坩埚材料 `S??09??` (协议文档) 属于系统设置,在创建材料之前写入,恢复计划不使用;固件 1.8.11 的设备上也没有这个列表 (保存的配置和抓包中都没有)。
+删除检查比恢复计划多使用几条规则，原因是实机上工艺的膜层列表存在指向不存在膜层的值（31/32/33，而设备上只有 L01–L09）：恢复计划若使用这些规则，将跳过这些写入；删除检查只比较值是否等于要删除的对象，不受影响。坩埚材料 `S??09??`（协议译稿）属于系统设置，在创建材料之前写入，恢复计划不使用；固件 1.8.11 的设备上也没有该列表（保存的配置和抓包中均未出现）。
 
-### 8.2 ObjectTypes:可以新建/删除的对象
+##### 4.2.5.2 ObjectTypes：可新建和删除的对象
 
-| 类型 | 组 | 对象 ID | 可增删的子列表 (`Lists`) | 新建后的默认引用 (`NewDefault`) |
+表 14  可新建和删除的对象类型
+
+| 类型 | 组 | 对象 ID | 可增删的子列表（`Lists`） | 新建后的默认引用（`NewDefault`） |
 |---|---|---|---|---|
-| `ObjectTypes.Material` | M | `M01`… | 无 | 无 |
-| `ObjectTypes.Film` | F | `F01`… | `03` 预熔、`05` 后处理 (分组标题中的 + / −) | `F..02` (材料) = 第一个材料 |
-| `ObjectTypes.Layer` | L | `L01`… | `02` 膜系列表 (为空时显示添加行) | 追加 `L..02` 一项,其 `01` (膜系) = 第一个膜系 |
-| `ObjectTypes.Process` | P | `P0201`… (`P01` 是活动工艺,不是对象) | `07` 膜层列表 (每项可删除) | 追加 `P02..07` 一项 = 第一个膜层 |
+| `ObjectTypes.Material` | M | `M01` 等 | 无 | 无 |
+| `ObjectTypes.Film` | F | `F01` 等 | `03` 预熔、`05` 后处理（分组标题中的 + / −） | `F..02`（材料）= 第一个材料 |
+| `ObjectTypes.Layer` | L | `L01` 等 | `02` 膜系列表（为空时显示添加行） | 追加 `L..02` 一项，其 `01`（膜系）= 第一个膜系 |
+| `ObjectTypes.Process` | P | `P0201` 等（`P01` 是活动工艺，不是对象） | `07` 膜层列表（每项可删除） | 追加 `P02..07` 一项 = 第一个膜层 |
 
-层级 (用户确认):工艺包含膜层,膜层包含膜系,膜系包含材料。`ObjectTypes.All` 按被引用的在前排列 (材料 → 膜系 → 膜层 → 工艺)。修改窗口、恢复计划和引用检查都按这张表处理对象,不各自判断组字母。
+对象的层级为：工艺包含膜层，膜层包含膜系，膜系包含材料。`ObjectTypes.All` 按被引用者在前的顺序排列（材料、膜系、膜层、工艺）。修改窗口、恢复计划和引用检查均按该表处理对象，不各自判断组字母。
 
 ```csharp
-ObjectTypes.Find('M');                                    // → Material;不能新建的组 (如 'G') → null
-ObjectTypes.TryGetObject("F01030101", out var type, out var objectId);   // → true,Film,"F01"
-ObjectTypes.TryGetObject("P020107", out type, out objectId);            // → true,Process,"P0201"
-ObjectTypes.OfObjectId("P0201");                          // → Process;"P01" → null
-ObjectTypes.GroupKey("F01030101");                        // → "F01" (修改窗口中的分组)
+ObjectTypes.Find('M');                                    // → Material；不能新建的组（如 'G'）→ null
+ObjectTypes.TryGetObject("F01030101", out var type, out var objectId);   // → true，Film，"F01"
+ObjectTypes.TryGetObject("P020107", out type, out objectId);            // → true，Process，"P0201"
+ObjectTypes.OfObjectId("P0201");                          // → Process；"P01" → null
+ObjectTypes.GroupKey("F01030101");                        // → "F01"（修改窗口中的分组）
 ObjectTypes.GroupKey("P020101");                          // → "P0201"
-ObjectTypes.GroupKey("G0E02");                            // → "G0E" (非对象组:组字母 + 第一级编号)
-ObjectTypes.Material.NextFreeId(new HashSet<string> { "M01", "M03" });  // → "M02";用完 (01–FD) 时为 null
-ObjectTypes.Film.ListPattern(ObjectTypes.Film.Lists[0]);  // → "F**03" (在指令集中查列表名称)
-ObjectTypes.Film.Kind;                                    // → "膜系" / "Film" (界面语言)
+ObjectTypes.GroupKey("G0E02");                            // → "G0E"（非对象组：组字母 + 第一级编号）
+ObjectTypes.Material.NextFreeId(new HashSet<string> { "M01", "M03" });  // → "M02"；编号用尽（01–FD）时为 null
+ObjectTypes.Film.ListPattern(ObjectTypes.Film.Lists[0]);  // → "F**03"（用于在指令集中查找列表名称）
+ObjectTypes.Film.Kind;                                    // → "膜系" / "Film"（界面语言）
 ```
 
-### 8.3 DeviceIds:ID 的组成
+##### 4.2.5.3 DeviceIds：ID 的组成
 
-ID = 组字母 + 若干级两位十六进制编号。列表条目编号为 01–FD;`00` 是"在末尾追加 / 删除最后一项"的指令项,`FE` 是条数项。程序中拼接和拆分 ID 都用这些方法,不手写后缀。
+ID 由组字母和若干级两位十六进制编号组成。列表条目编号为 01–FD；`00` 是“在末尾追加 / 删除最后一项”的指令项，`FE` 是条数项。程序中拼接和拆分 ID 应使用以下方法，不应手写后缀。
 
 ```csharp
 DeviceIds.Item("F0103", 2);        // → "F010302"  列表的第 2 项
-DeviceIds.CountOf("F0103");        // → "F0103FE"  条数项;组的对象数:CountOf("M") → "MFE"
+DeviceIds.CountOf("F0103");        // → "F0103FE"  条数项；组的对象数：CountOf("M") → "MFE"
 DeviceIds.AppendSlotOf("F0103");   // → "F010300"  A 追加 / D 删除最后一项
 DeviceIds.NameOf("M03");           // → "M0301"    对象的名称项
 DeviceIds.LastNumber("M0A");       // → 10
-DeviceIds.IsItemNumber("0A");      // → true;"00"、"FE" → false
+DeviceIds.IsItemNumber("0A");      // → true；"00"、"FE" → false
 DeviceIds.IsCount("F0103FE");      // → true
-DeviceIds.TryParseCount("12", out var count);   // → true,12 (设备返回的十进制条数)
-DeviceIds.IsWellFormed("F0103");   // → true;"F013" (不是两位一级)、"m01" (小写) → false
+DeviceIds.TryParseCount("12", out var count);   // → true，12（设备返回的十进制条数）
+DeviceIds.IsWellFormed("F0103");   // → true；"F013"（不是两位一级）、"m01"（小写）→ false
 ```
 
-### 8.4 ParameterValue:值的校验、规整和比较
+##### 4.2.5.4 ParameterValue：值的校验、规整和比较
 
-数字一律按 `InvariantCulture` (小数点为 `.`)。
+数字一律按 `InvariantCulture` 处理（小数点为 `.`）。
 
 ```csharp
-var density = ZevisionCommandSet.Find("M0103");          // 密度 (g/cm³),范围 0.100 ~ 100.000 g/cm³
-ParameterValue.Validate(density, "2.7");                 // → null (合法)
+var density = ZevisionCommandSet.Find("M0103");          // 密度 (g/cm³)，范围 0.100 ~ 100.000 g/cm³
+ParameterValue.Validate(density, "2.7");                 // → null（合法）
 ParameterValue.Validate(density, "abc");                 // → "应为数字 (小数点用 .)"
 ParameterValue.Validate(density, "500");                 // → "超出范围 0.100 ~ 100.000 g/cm³"
-ParameterValue.Validate(null, "a;b");                    // → "不能包含 ; { }" (文档未列出的项只检查协议字符)
-ParameterValue.Normalize(density, " 2.7 ", "5.890");     // → "2.700" (按原值的小数位数)
-ParameterValue.AreEquivalent("5.890", "5.89");           // → true (数值相等)
-ParameterValue.AreEquivalent("0:00:05", "00:00:05");     // → true (秒数相等)
-ParameterValue.AreEquivalent("Al", "al");                // → false (文本区分大小写)
-ParameterValue.TryParseTime("1:30", out var seconds);    // → true,90 (小时为 0 时可写 M:SS)
+ParameterValue.Validate(null, "a;b");                    // → "不能包含 ; { }"（文档未列出的项只检查协议字符）
+ParameterValue.Normalize(density, " 2.7 ", "5.890");     // → "2.700"（按原值的小数位数）
+ParameterValue.AreEquivalent("5.890", "5.89");           // → true（数值相等）
+ParameterValue.AreEquivalent("0:00:05", "00:00:05");     // → true（秒数相等）
+ParameterValue.AreEquivalent("Al", "al");                // → false（文本区分大小写）
+ParameterValue.TryParseTime("1:30", out var seconds);    // → true，90（小时为 0 时可写作 M:SS）
 ParameterValue.FormatTime(7205);                         // → "2:00:05"
 ```
 
-- 类型和范围来自指令集 (`CommandDefinition`):数字、时间 (`H:MM:SS`,小时 ≤ 8760,部分项有自己的上下限)、选项、引用、文本。
-- 设备上的值可能超出文档的范围:界面只在值被修改后才检查类型和范围,协议字符总是检查。
-- 写入前用 `Normalize` 规整:设备按固定小数位保存,读回校验才能一致。
+- 类型和范围来自指令集（`CommandDefinition`）：数字、时间（`H:MM:SS`，小时不大于 8760，部分项有各自的上下限）、选项、引用、文本。
+- 设备上的值可能超出文档给出的范围：界面只在值被修改后检查类型和范围，协议字符始终检查。
+- 写入前应以 `Normalize` 规整：设备按固定小数位保存，规整后读回校验才能一致。
 
-### 8.5 CrucibleRule:膜系的坩埚号
+##### 4.2.5.5 CrucibleRule：膜系的坩埚号
 
-膜系的坩埚号 `F**0902` 的取值为 0 = 任意 (Any),或 1 ~ 膜系所选输出源 (`F**0901`) 的坩埚数量 (`S**07`)。设备上的选项就是 Any、1 ~ 最大数量 (用户确认);协议文档写的 "0 = disabled" 与设备不符。输出源未选择、不存在,或坩埚数量未知或为 0 时,最大坩埚号按 `DefaultCount` (1) 计。
+膜系的坩埚号 `F**0902` 取值为 0（任意，Any），或 1 至膜系所选输出源（`F**0901`）的坩埚数量（`S**07`）。设备提供的选项为 Any 和 1 ~ 最大数量；协议译稿中的“0 = disabled”与设备不符。输出源未选择或不存在，或坩埚数量未知或为 0 时，最大坩埚号按 `DefaultCount`（1）计。
 
 ```csharp
-// 实机:S01 有 6 个坩埚,S02 有 8 个;膜系 F01 选输出源 1
+// 实机：S01 有 6 个坩埚，S02 有 8 个；膜系 F01 选择输出源 1
 Func<string, string?> valueOf = id => values.TryGetValue(id, out var v) ? v : null;
-CrucibleRule.IsCrucible("F010902");                  // → true;"F010901" (输出源) → false
-CrucibleRule.MaxFor("F010902", valueOf);             // → 6;F01 未选择输出源 (F010901 = 0) 时 → 1
-CrucibleRule.Check("F010902", "6", valueOf);         // → null (可以);"0" (任意) 总是可以
+CrucibleRule.IsCrucible("F010902");                  // → true；"F010901"（输出源）→ false
+CrucibleRule.MaxFor("F010902", valueOf);             // → 6；F01 未选择输出源（F010901 = 0）时 → 1
+CrucibleRule.Check("F010902", "6", valueOf);         // → null（允许）；"0"（任意）始终允许
 CrucibleRule.Check("F010902", "7", valueOf);         // → "坩埚 7 超出输出源 S01 的坩埚数量 (6)"
 ```
 
-| 使用处 | `valueOf` 取的值 | 超出时 |
+表 15  CrucibleRule 的使用位置
+
+| 使用位置 | `valueOf` 取值来源 | 超出时 |
 |---|---|---|
-| 修改窗口的下拉框 (界面层 `ParameterOptions`) | 页面中的配置 | 选项为 `0 - 任意`、1 ~ `MaxFor`;超出的当前值保留并标为"(未知)" |
-| `ApplyEditsAsync` 写入前 | 修改的新值,其他取配置 | 不发送任何指令,`Error` = "F010902 不能修改: 坩埚 7 超出…" |
-| `RestorePlanner.Plan` | 文件中的值 (恢复后),文件中没有的取设备 | 放入 `Skipped`,原因同上 |
+| 修改窗口的下拉框（界面层 `ParameterOptions`） | 页面中的配置 | 选项为 `0 - 任意`、1 ~ `MaxFor`；超出的当前值保留并标为 `(未知)` |
+| `ApplyEditsAsync` 写入前 | 修改的新值，其余取配置 | 不发送任何指令，`Error` 为 `F010902 不能修改: 坩埚 7 超出…` |
+| `RestorePlanner.Plan` | 文件中的值（恢复后），文件中没有的取设备的值 | 加入 `Skipped`，原因同上 |
 
-只在坩埚数量已知时检查;0 和不是数字的值不检查 (后者由 `ParameterValue` 校验)。
+只在坩埚数量已知时检查；0 和非数字的值不检查（非数字由 `ParameterValue` 校验）。
 
-## 9. 修改窗口的编辑会话
+#### 4.2.6 修改窗口的编辑会话
 
-### 9.1 RecipeDocument
+##### 4.2.6.1 RecipeDocument
 
-修改窗口中正在编辑的配置 (`InstrumentRecipe`) 及对它的操作。不与设备通讯,不读写文件,可以单独测试。
+`RecipeDocument` 表示修改窗口中正在编辑的配置（`InstrumentRecipe`）及对其的操作。该类型不与设备通信，不读写文件，可单独测试。方法见表 16。
+
+表 16  RecipeDocument 的方法
 
 | 方法 | 用途 |
 |---|---|
-| `ObjectIds(group)` / `ObjectIdsIn(entries, group)` | 现有的对象 ID,如 `M01`、`P0201` |
-| `ObjectName(objectId)` | 对象的名称 (第 01 项),没有时为 null |
-| `ListItemCount(listId)` | 列表的条数 (不含 00 和 FE 项) |
-| `ReplaceGroup(group, entries)` | 用重新读取的数据替换该组 (保持原来的位置) |
-| `AddObject(objectId, source)` / `RemoveObject(objectId)` | 加入 (从重新读取的组复制) 或删除对象的全部项 |
+| `ObjectIds(group)` / `ObjectIdsIn(entries, group)` | 现有的对象 ID，如 `M01`、`P0201` |
+| `ObjectName(objectId)` | 对象的名称（第 01 项），没有时为 null |
+| `ListItemCount(listId)` | 列表的条数（不含 00 和 FE 项） |
+| `ReplaceGroup(group, entries)` | 用重新读取的数据替换该组（保持原位置） |
+| `AddObject(objectId, source)` / `RemoveObject(objectId)` | 加入（从重新读取的组中复制）或删除对象的全部项 |
 | `AddListItem(listId, itemId, source)` / `RemoveListItem(itemId)` | 加入或删除列表条目及其子项 |
 | `SetValues(values)` | 按 ID 修改值 |
-| `Clone()` | 复制整份配置,修改副本不影响原文档 |
-| `CompareObjectChange(action, objectId, before, after)` | 核对新建/删除的结果:返回 `(missing, extra)`,都为空表示只有预期的变化 |
+| `Clone()` | 复制整份配置，修改副本不影响原文档 |
+| `CompareObjectChange(action, objectId, before, after)` | 核对新建或删除的结果：返回 `(missing, extra)`，两者都为空表示只有预期的变化 |
 
-### 9.2 RecipeEditSession:两种数据来源
+##### 4.2.6.2 RecipeEditSession：两种数据来源
 
-`RecipeEditSession.Open(recipe, path, config, recipes)` 按 `path` 选择:
+`RecipeEditSession.Open(recipe, path, config, recipes)` 按 `path` 选择数据来源，差异见表 17。
 
-| | 实机数据 (`path = null`) | 保存的配置 (`path` 为文件) |
+表 17  两种数据来源的差异
+
+| 项目 | 实机数据（`path = null`） | 保存的配置（`path` 为文件） |
 |---|---|---|
-| 页面内容 | 刚读取的设备数据 (`InstrumentSnapshot.ToRecipe`) | 文件内容 (已通过 `IRecipeStore.Load` 校验) |
-| `ReadDeviceGroupAsync` (新建/删除前) | 页面中的该组 (不通讯) | 读取设备上的该组 (`?M`…) |
-| `UsedObjectIds` (新建时避开的编号) | 设备上的编号 | 设备和文件中的编号 |
-| `RereadGroupAsync` (修改后) | 读取并替换页面中的该组 | 读取,页面不变 (页面是文件) |
-| `ApplyObjectChange` / `ApplyListAppend` / `ApplyListRemove` | 不做什么 (已由重新读取更新) | 把变化写进文件并立即保存 |
-| `CheckListCountAsync` (列表增删前) | 不检查 | 设备与文件的条数必须相同,否则编号对不上 |
-| `Commit(change)` | 直接修改页面 | 先改副本并保存文件,成功后才修改页面 |
+| 页面内容 | 刚读取的设备数据（`InstrumentSnapshot.ToRecipe`） | 文件内容（已通过 `IRecipeStore.Load` 校验） |
+| `ReadDeviceGroupAsync`（新建、删除前） | 页面中的该组（不通信） | 读取设备上的该组（`?M` 等） |
+| `UsedObjectIds`（新建时避开的编号） | 设备上的编号 | 设备和文件中的编号 |
+| `RereadGroupAsync`（修改后） | 读取并替换页面中的该组 | 读取，页面不变（页面即文件） |
+| `ApplyObjectChange` / `ApplyListAppend` / `ApplyListRemove` | 不处理（已由重新读取更新） | 把变化写入文件并立即保存 |
+| `CheckListCountAsync`（列表增删前） | 不检查 | 设备与文件的条数应相同，否则条目编号与文件不对应 |
+| `Commit(change)` | 修改页面 | 先修改副本并保存文件，成功后才修改页面 |
 
-设备操作 (`CreateObjectAsync`、`DeleteObjectAsync`、`AppendListItemAsync`、`RemoveLastListItemAsync`、`ApplyEditsAsync`) 都转给 `IInstrumentConfigService`,设备名取自配置。`CreateObjectAsync` 自动带上默认引用:`DefaultReferenceId(type)` 是被引用组中编号最小的对象 (如 `M01`),写入的值是它的十进制编号。
+设备操作（`CreateObjectAsync`、`DeleteObjectAsync`、`AppendListItemAsync`、`RemoveLastListItemAsync`、`ApplyEditsAsync`）均转交 `IInstrumentConfigService`，设备名取自配置。`CreateObjectAsync` 自动带默认引用：`DefaultReferenceId(type)` 为被引用组中编号最小的对象（如 `M01`），写入的值为其十进制编号。
 
-`Commit` 是写时复制:保存失败时页面仍与文件一致,不需要回滚代码;但设备可能已经改了,错误说明会提到这一点。
+`Commit` 采用写时复制：保存失败时页面仍与文件一致，无需回滚代码；但设备可能已被修改，错误说明中会指出这一点。
 
-### 9.3 典型流程
+#### 4.2.7 中英文文本
 
-新建对象 (修改窗口的"新建"):
-
-```csharp
-var session = RecipeEditSession.Open(recipe, path, config, recipes);
-var type = ObjectTypes.Film;
-
-var group = await session.ReadDeviceGroupAsync(type.Group, ct);            // 设备上现有的对象
-if (!group.IsSuccess) { ShowError(group.Error); return; }
-var before = RecipeDocument.ObjectIdsIn(group.Value, type.Group);
-var id = type.NextFreeId(session.UsedObjectIds(type.Group, before));     // 如 "F02"
-
-var created = await session.CreateObjectAsync(type, id, ct);             // AF02,并把第一个材料写入 F0202
-var after = await session.RereadGroupAsync(type.Group, ct);              // 无论成功与否都重新读取:设备状态以读取为准
-if (!after.IsSuccess) { ShowError(after.Error); return; }
-
-var error = created.Error;
-if (error == null)
-{
-    var (missing, extra) = RecipeDocument.CompareObjectChange(
-        CommandActions.Add, id, before, RecipeDocument.ObjectIdsIn(after.Value, type.Group));
-    // missing / extra 不为空:设备的变化与预期不同,提示
-    error = session.ApplyObjectChange(CommandActions.Add, id, after.Value);   // 保存的配置:写进文件;失败为原因
-}
-// 重新生成页面;created.DefaultsError 不为 null 时提示默认引用没有设置成功
-```
-
-- 删除:先 `RecipeRules.FindReferencesTo(session.Document.Entries, id)`,有引用时拒绝并列出引用的项;然后 `DeleteObjectAsync` → `RereadGroupAsync` → 核对 → `ApplyObjectChange(CommandActions.Delete, …)`。保存的配置中删除设备上没有的对象时只改文件,不发指令。
-- 列表追加:`CheckListCountAsync` → `AppendListItemAsync(listId, value)` (预熔、后处理一项有多个设置,`value` 传 null 使用设备默认值;工艺的膜层传膜层编号) → `RereadGroupAsync` → `ApplyListAppend`。
-- 删除列表中间的一项:设备只能删除最后一项,先用 `ApplyEditsAsync` 把后面的项前移一位,再 `RemoveLastListItemAsync`,最后 `ApplyListRemove(removedId, shifted)`。
-- 保存修改的值:`ApplyEditsAsync(edits, progress, ct)`,全部成功后 `Commit(d => d.SetValues(values))`。失败时页面和文件都不变。
-- 新建、删除、列表增删之前,页面上不能有勾选 (未保存) 的项:页面重新生成会丢弃它们。
-
-## 10. 中英文文本
-
-### 10.1 Lang
+##### 4.2.7.1 Lang
 
 ```csharp
 Lang.Initialize(Lang.Detect(CultureInfo.CurrentUICulture, CultureInfo.CurrentCulture, setting));
 Lang.Detect(new CultureInfo("en-US"), new CultureInfo("en-US"), "auto");   // → English
-Lang.Detect(new CultureInfo("en-US"), new CultureInfo("zh-CN"), null);     // → Chinese (区域格式为中国)
+Lang.Detect(new CultureInfo("en-US"), new CultureInfo("zh-CN"), null);     // → Chinese（区域格式为中国）
 var text = Lang.T("已连接", "Connected");                                  // 界面层成对给出的文本
 using (Lang.Override(UiLanguage.English)) { /* 测试英文 */ }
 ```
 
-- 规则:`setting` 为 `zh` / `en` 时按设置;否则系统显示语言是中文、或区域格式是中国 (CN) 时用中文,其他用英文。
-- 未调用 `Initialize` 时为中文 (现有测试依赖这一点)。
-- 语言在启动时确定一次。切换语言是重新启动程序,不在运行中重新翻译。
+- 规则：`setting` 为 `zh` / `en` 时按设置；否则系统显示语言为中文，或区域格式为中国（CN）时使用中文，其他情况使用英文。
+- 未调用 `Initialize` 时为中文（现有测试依赖这一点）。
+- 语言在启动时确定一次。切换语言即重新启动程序，运行中不重新翻译。
 
-### 10.2 TextCatalog 与 Texts.json
+##### 4.2.7.2 TextCatalog 与 Texts.json
 
-Core 和 Storage 的提示和错误文本放在翻译文件 `Texts.json` (源文件 `Zevision.Core/Localization/Texts.json`,编译时复制到每个引用 Core 的项目的输出目录):
+业务层和存储层的提示和错误文本位于翻译文件 `Texts.json`（源文件 `Zevision.Core/Localization/Texts.json`，编译时复制到每个引用 `Zevision.Core` 的项目的输出目录）：
 
 ```json
 {
@@ -637,7 +723,7 @@ Core 和 Storage 的提示和错误文本放在翻译文件 `Texts.json` (源文
 }
 ```
 
-调用处用类型化的访问器 (`Zevision.Core/Texts.cs`、`Zevision.Storage/Texts.cs`,都是 `internal`),键就是成员名:
+调用处使用类型化的访问器（`Zevision.Core/Texts.cs`、`Zevision.Storage/Texts.cs`，均为 `internal`），键即成员名：
 
 ```csharp
 internal static class Texts
@@ -651,79 +737,87 @@ internal static class Texts
 return Result.Fail(Texts.DeviceModelMismatch(recipe.DeviceName, name));
 ```
 
-- 有参数的文本是 `string.Format` 格式 (`{0}`、`{0:0}`,字面的大括号写成 `{{ }}`,按当前区域设置格式化);没有参数的原样使用。
-- 新增文本:在 JSON 中加一条 (zh 和 en 都要有),在对应的 `Texts.cs` 中加一个成员。
-- `TextCatalogTests` 检查:键与访问器一一对应 (Core 和 Storage 之间不重复)、中英文都有、英文中没有中文、占位符与参数个数一致、每个访问器在两种语言下都能生成。
-- 运行时缺键或格式错误时返回键名或原始模板,不抛出 (测试保证不会发生)。
-- 文件为 UTF-8 (带不带 BOM 都可以)。
+- 有参数的文本为 `string.Format` 格式（`{0}`、`{0:0}`，字面的大括号写作 `{{ }}`，按当前区域设置格式化）；没有参数的文本按原样使用。
+- 新增文本时，应在 JSON 中增加一条（zh 和 en 均不可缺少），并在对应的 `Texts.cs` 中增加一个成员。
+- `TextCatalogTests` 检查：键与访问器一一对应（`Zevision.Core` 与 `Zevision.Storage` 之间不重复）、中英文都存在、英文中没有中文、占位符与参数个数一致、每个访问器在两种语言下都能生成文本。
+- 运行时缺少键或格式错误时，返回键名或原始模板，不抛出异常（由测试保证不出现此情况）。
+- 文件编码为 UTF-8，可带或不带 BOM。
 
-### 10.3 CommandText 与 CommunicationText
+##### 4.2.7.3 CommandText 与 CommunicationText
 
-两个库本身不依赖界面语言:指令库同时给出中英文 (`TextLanguage` 参数),通讯库只给英文和错误类型。这两个适配器按 `Lang.Current` 选择:
+两个链接库本身不依赖界面语言：指令库同时给出中英文（`TextLanguage` 参数），通信库只给出英文和错误类型。以下两个适配器按 `Lang.Current` 选择语言：
 
 ```csharp
 var density = ZevisionCommandSet.Find("M0103");
-CommandText.Label(density);                                  // → "密度 (g/cm³)";英文 → "Density (g/cm^3)"
+CommandText.Label(density);                                  // → "密度 (g/cm³)"；英文 → "Density (g/cm^3)"
 CommandText.RangeText(density);                              // → "0.100 ~ 100.000 g/cm³"
 CommandText.LabelFor(ZevisionCommandSet.Find("F01030101"), "F01030101");   // → "预熔 1 · 起始斜坡/上升时间"
 CommandText.ObjectKind('P');                                 // → "工艺"
-ZevisionErrorCode.IllegalArgument.Localized();               // → "非法参数值";英文 → "Illegal parameter value"
+ZevisionErrorCode.IllegalArgument.Localized();               // → "非法参数值"；英文 → "Illegal parameter value"
 CommunicationText.ValidateValue("a;b");                      // → "不能包含 ; { }"
 CommunicationText.Describe(error, command);                  // ZevisionError → 界面语言的说明
 ```
 
-## 11. 通讯配置 (settings.json)
+#### 4.2.8 通信配置（settings.json）
 
-`ConnectionPreferences` 是 DataContract,保存为 `settings.json`。缺少的字段保持默认值 (`[OnDeserializing]` 先设默认值)。
+`ConnectionPreferences` 是 DataContract 类型，保存为 `settings.json`。缺少的字段保持默认值（`[OnDeserializing]` 先设置默认值）。字段见表 18。
+
+表 18  settings.json 的字段
 
 | 属性 | JSON 键 | 默认值 | 说明 |
 |---|---|---|---|
 | `PortName` | `portName` | 空 | 上次使用的串口 |
 | `BaudRate` | `baudRate` | 115200 | |
 | `ResponseTimeoutMs` | `responseTimeoutMs` | 1000 | 响应空闲超时 |
-| `SerialChecksumEnabled` | `checksumEnabled` | false | RS232 的校验和 (G1304) |
-| `SerialLengthEnabled` | `lengthEnabled` | false | RS232 的长度字节 (G1305) |
-| `SerialSaveCommunicationData` | `rawCaptureEnabled` | false | RS232 连接时保存通讯数据;键名沿用开发版本 |
-| `TcpChecksumEnabled` | `tcpChecksumEnabled` | 同 RS232 | TCP 的校验和 (G1407) |
-| `TcpLengthEnabled` | `tcpLengthEnabled` | 同 RS232 | TCP 的长度字节 (G1408) |
-| `TcpSaveCommunicationData` | `tcpSaveCommunicationData` | 同 RS232 | TCP 连接时保存通讯数据 |
-| `EditSource` | `editSource` | `Device` | 修改配置的数据来源 (`Device` / `File`) |
+| `SerialChecksumEnabled` | `checksumEnabled` | false | RS232 的校验和（G1304） |
+| `SerialLengthEnabled` | `lengthEnabled` | false | RS232 的长度字节（G1305） |
+| `SerialSaveCommunicationData` | `rawCaptureEnabled` | false | RS232 连接时保存通信数据；键名沿用早期版本 |
+| `TcpChecksumEnabled` | `tcpChecksumEnabled` | 同 RS232 | TCP 的校验和（G1407） |
+| `TcpLengthEnabled` | `tcpLengthEnabled` | 同 RS232 | TCP 的长度字节（G1408） |
+| `TcpSaveCommunicationData` | `tcpSaveCommunicationData` | 同 RS232 | TCP 连接时保存通信数据 |
+| `EditSource` | `editSource` | `Device` | 修改配置的数据来源（`Device` / `File`） |
 | `ConnectionType` | `connectionType` | `Serial` | `Serial` / `Tcp` |
-| `TcpHost` | `tcpHost` | 空 | 设备 IP;端口固定 2101,不保存 |
+| `TcpHost` | `tcpHost` | 空 | 设备 IP 地址；端口固定为 2101，不保存 |
 | `Language` | `language` | `auto` | `auto` / `zh` / `en` |
 | `DisplayFormat` | `displayFormat` | `Ascii` | `Ascii` / `Hex` / `Binary` |
 | `RepeatSend` | `repeatSend` | false | |
 | `RepeatIntervalMs` | `repeatIntervalMs` | 1000 | |
+| `HandshakeEnabled` | `handshakeEnabled` | true | 连接时握手（并启用重发和心跳）；1.0 版的文件中没有此项，读取后为 true |
+| `AutoReconnect` | `autoReconnect` | false | 连接意外中断后自动重连 |
 
-不认识的值 (如旧版本或手工编辑) 由视图模型按默认处理。
+无法识别的值（如旧版本写入或手工编辑的值）由视图模型按默认值处理。
 
-校验和、长度字节和保存通讯数据按连接方式分别保存,因为设备上 RS232 (G1304/G1305) 与 TCP (G1407/G1408) 是独立的设置。RS232 沿用 0.9.x 的键名;0.9.x 的文件没有 TCP 的三项,读取时 TCP 取与 RS232 相同的值 (以前两种连接共用一组),升级后界面不变。
+校验和、长度字节和保存通信数据按连接方式分别保存，因为设备上 RS232（G1304/G1305）与 TCP（G1407/G1408）是独立的设置。RS232 沿用 0.9.x 版的键名；0.9.x 版的文件中没有 TCP 的三项，读取时 TCP 取与 RS232 相同的值（0.9.x 版两种连接共用一组开关），升级后界面不变。
 
 ```csharp
 IPreferencesStore store = new JsonFilePreferencesStore(AppFolders.GetSettingsFilePath());
-var loaded = store.Load();          // 文件不存在 → 成功,默认值;文件损坏 → 失败 (调用方记录后使用默认值)
+var loaded = store.Load();          // 文件不存在 → 成功，返回默认值；文件损坏 → 失败（调用方记录后使用默认值）
 var preferences = loaded.IsSuccess ? loaded.Value : new ConnectionPreferences();
 preferences.PortName = "COM3";
 var saved = store.Save(preferences);
 ```
 
-## 12. 存储层
+#### 4.2.9 存储层
 
-### 12.1 AppFolders
+##### 4.2.9.1 AppFolders
+
+表 19  AppFolders 的方法
 
 | 方法 | 位置 |
 |---|---|
 | `GetSettingsFilePath()` | `<程序目录>\settings.json` |
-| `GetRecipeFolder()` | `<程序目录>\recipe` |
-| `GetLogsFolder()` | `<程序目录>\logs` (`error.txt`、`capture_*.txt`) |
+| `GetRecipeFolder()` | `<程序目录>\recipes` |
+| `GetLogsFolder()` | `<程序目录>\logs`（`error.txt`、`capture_*.txt`） |
 
-程序目录不可写时 (如装在 Program Files) 改用 `文档\Zevision\…`;日志目录再不可写时用系统临时目录。目录不存在时创建。每次调用都会探测一次可写性 (创建并删除一个临时文件),不要在循环中调用。
+程序目录不可写时（如安装在 Program Files 下）改用 `文档\Zevision\…`；日志目录仍不可写时使用系统临时目录。目录不存在时自动创建。每次调用都探测一次可写性（创建并删除一个临时文件），不宜在循环中调用。
 
-### 12.2 RecipeFileStore:仪器配置文件
+配置文件目录在 1.1.0 之前名为 `recipe`。`GetRecipeFolder()` 在实际尝试的每个位置（先程序目录；程序目录不可写时再 `文档\Zevision`）检查：存在旧的 `recipe` 目录而 `recipes` 尚不存在时，把 `recipe` 改名为 `recipes`。`recipes` 已存在，或改名失败（目录只读，或其中的文件被其他程序打开）时，保留旧目录。该行为由 `AppFoldersTests` 测试。
 
-`IRecipeStore` 的实现。`Folder` 为 `AppFolders.GetRecipeFolder()` (第一次使用时确定),`FileExtension` 为 `.json`。
+##### 4.2.9.2 RecipeFileStore：仪器配置文件
 
-文件格式 (`formatVersion` 2),缩进的 UTF-8 JSON:
+`RecipeFileStore` 实现 `IRecipeStore`。`Folder` 为 `AppFolders.GetRecipeFolder()`（第一次使用时确定），`FileExtension` 为 `.json`。
+
+文件格式（`formatVersion` 2）为缩进的 UTF-8 JSON：
 
 ```json
 {
@@ -741,72 +835,126 @@ var saved = store.Save(preferences);
 }
 ```
 
-- **保存** (`Save`):计算 MD5 写入 `recipe.Md5`,先写同目录的临时文件 (`.tmp`) 再替换目标文件。写到一半出错时原文件完好。
-- **读取** (`Load`) 按顺序检查:能否读取和解析 → 格式版本 (版本 1 没有校验值,拒绝并提示重新保存;其他版本不支持) → MD5 存在且格式正确 → **MD5 一致** → 头部字段齐全、设备名不为空 → 至少一项 → 每项 ID 合法 (`DeviceIds.IsWellFormed`)、值和说明不为 null。先校验 MD5,任何改动 (包括删字段) 都报告为"文件被修改"。
-- **MD5 的计算**:不对 JSON 原文计算 (缩进、字段顺序不影响)。按固定顺序把每个字段写成 `<UTF-16 长度>:<内容>\n` (null 写成 `-1:\n`),对其 UTF-8 编码求 MD5,输出 32 位小写十六进制。顺序:formatVersion、deviceName、modelNumber、firmwareVersion、serialNumber、savedAt、条目数,然后每个条目的 id、value、description。修改算法或字段必须提升 `InstrumentRecipe.CurrentFormatVersion`。
-- MD5 只能发现意外的改动 (手工编辑、传输损坏)。算法公开,有意篡改的人可以重新计算;需要防篡改时应改用带密钥的签名 (如 HMAC)。
-- Windows 启用 FIPS 策略时 MD5 不可用,保存和读取返回失败 (说明原因)。
-- 文件可以带 UTF-8 BOM (记事本"另存为 UTF-8"会加上)。
+- 保存（`Save`）：计算 MD5 并写入 `recipe.Md5`，先写入同目录的临时文件（`.tmp`），再替换目标文件。写入中途出错时原文件保持完好。
+- 读取（`Load`）按顺序检查：能否读取和解析；格式版本（版本 1 没有校验值，拒绝并提示重新保存；其他版本不支持）；MD5 存在且格式正确；MD5 一致；头部字段齐全、设备名不为空；至少有一项；每项的 ID 合法（`DeviceIds.IsWellFormed`），值和说明不为 null。MD5 先于其他内容校验，任何改动（包括删除字段）都报告为“文件被修改”。
+- MD5 的计算：不对 JSON 原文计算（缩进、字段顺序不影响结果）。按固定顺序把每个字段写成 `<UTF-16 长度>:<内容>\n`（null 写成 `-1:\n`），对其 UTF-8 编码求 MD5，输出 32 位小写十六进制。字段顺序：formatVersion、deviceName、modelNumber、firmwareVersion、serialNumber、savedAt、条目数，然后是每个条目的 id、value、description。修改算法或字段时，应提升 `InstrumentRecipe.CurrentFormatVersion`。
+- MD5 只能发现意外的改动（手工编辑、传输损坏）。算法公开，有意篡改者可重新计算；需要防篡改时，应改用带密钥的签名（如 HMAC）。
+- Windows 启用 FIPS 策略时 MD5 不可用，保存和读取返回失败并说明原因。
+- 文件可带 UTF-8 BOM（Windows 记事本以 UTF-8 另存时写入 BOM）。
 
-### 12.3 JsonFilePreferencesStore
+##### 4.2.9.3 JsonFilePreferencesStore
 
-`IPreferencesStore` 的实现,读写方式与配置文件相同 (DataContract JSON、临时文件 + 替换、可带 BOM)。文件不存在时 `Load` 成功并返回默认值;内容损坏或无法读取时返回失败。
+`JsonFilePreferencesStore` 实现 `IPreferencesStore`，读写方式与配置文件相同（DataContract JSON、临时文件加替换、可带 BOM）。文件不存在时 `Load` 成功并返回默认值；内容损坏或无法读取时返回失败。
 
-### 12.4 FileErrorLog
+##### 4.2.9.4 FileErrorLog
 
-`IErrorLog` 的实现。线程安全,写入失败时静默放弃,永远不抛出。
+`FileErrorLog` 实现 `IErrorLog`。该类型线程安全；写入失败时放弃该条记录，不抛出异常。
 
 ```csharp
-var log = new FileErrorLog(Path.Combine(AppFolders.GetLogsFolder(), "error.txt"), AppInfo.Description);   // 会话标题
+var log = new FileErrorLog(Path.Combine(AppFolders.GetLogsFolder(), "error.txt"), AppInfo.Description);   // 第二个参数为会话标题
 log.Write("连接", "无法连接 COM3, 115200, 8N1: 对端口“COM3”的访问被拒绝。", exception);
 ```
 
 ```
-==== Zevision 1.0.0  |  Microsoft Windows NT 10.0.26200.0  |  .NET CLR 4.0.30319.42000  |  64 位进程 ====
+==== Zevision 1.1.0  |  Microsoft Windows NT 10.0.26200.0  |  .NET CLR 4.0.30319.42000  |  64 位进程 ====
 2026-10-18 23:28:29.123 [连接] 无法连接 COM3, 115200, 8N1: 对端口“COM3”的访问被拒绝。
-System.UnauthorizedAccessException: …(含堆栈)
+System.UnauthorizedAccessException: …（含堆栈）
 ```
 
-- 每行 `yyyy-MM-dd HH:mm:ss.fff [来源] 消息`;消息截断到 500 字符 (`MaxMessageLength`),换行压成一行;有异常时其后附 `Exception.ToString()`。
-- 每次运行的第一条之前写会话标题 (`==== 标题 ====`)。文件和目录在第一次写入时创建,程序正常运行时不产生文件。
-- 超过 5 MB (`MaxFileBytes`) 时转存为 `error.1.txt` (覆盖上一次的转存),再从空文件开始。转存失败 (如 `error.1.txt` 被编辑器占用) 时照常追加。
+- 每行格式为 `yyyy-MM-dd HH:mm:ss.fff [来源] 消息`；消息截断到 500 个字符（`MaxMessageLength`），换行合并为一行；有异常时其后附加 `Exception.ToString()`。
+- 每次运行的第一条记录之前写入会话标题（`==== 标题 ====`）。文件和目录在第一次写入时创建，程序正常运行时不产生文件。
+- 文件超过 5 MB（`MaxFileBytes`）时转存为 `error.1.txt`（覆盖上一次的转存），再从空文件开始。转存失败（如 `error.1.txt` 被编辑器占用）时继续追加。
 
-### 12.5 CommunicationLogFiles:通讯数据文件
+##### 4.2.9.5 CommunicationLogFiles：通信数据文件
 
-`ICommunicationRecorderFactory` 的实现。每次连接 `Create()` 一个记录,文件为日志目录中的 `capture_yyyyMMdd_HHmmss.txt`,永久保留,不自动清理。
+`CommunicationLogFiles` 实现 `ICommunicationRecorderFactory`。每次连接由 `Create()` 创建一个记录，文件为日志目录中的 `capture_yyyyMMdd_HHmmss.txt`，永久保留，不自动清理。
 
 ```csharp
-var recorders = new CommunicationLogFiles(errorLog);           // 可选第二个参数:目录 (Func<string>),测试用
+var recorders = new CommunicationLogFiles(errorLog);           // 可选的第二个参数：目录（Func<string>），用于测试
 var opened = recorders.Create();
 if (!opened.IsSuccess) { ShowError(opened.Error); return; }   // 无法创建文件
 var recorder = opened.Value;
-recorder.Append(new[] { "10:00:00.000 TX {QG03}", "10:00:00.020 RX {QG03+:IMC300}" });   // 不阻塞,后台按顺序写入
+recorder.Append(new[] { "10:00:00.000 TX {QG03}", "10:00:00.020 RX {QG03+:IMC300}" });   // 不阻塞：先缓存在内存中
 // …
-await recorder.CloseAsync();                                   // 写完已排队的行后关闭;之后的 Append 被忽略
+await recorder.CloseAsync();                                   // 断开连接：在后台写完缓存后关闭；之后的 Append 被忽略
+recorder.Dispose();                                            // 程序退出：在调用线程上写完缓存后关闭（可在 CloseAsync 之后调用）
 ```
 
-- 保存的是数据显示区的内容 (显示的样子,含当时的显示格式),由界面层把每批显示的行交给 `Append`。
-- 写入在后台按顺序进行,每批写完立即刷新。写入失败时记入 error.txt 并停止记录,不影响通讯。
+- 保存的内容为数据显示区的显示内容（含当时的显示格式），由界面层把每批显示的行交给 `Append`。
+- 内容先缓存在内存中，缓存的 UTF-8 字节数达到 `CommunicationLogWriter.BufferLimit`（50 KB）时作为一块在后台写入并刷新；`CloseAsync` 在后台、`Dispose` 在调用线程上写完剩余内容后关闭文件。各块在文件锁中按排队顺序写入，顺序不变。
+- 界面层断开连接（含连接中断）时调用 `CloseAsync`；程序退出时（`MainViewModel.Dispose` → `ConnectionLifecycle.CloseRecorder`）调用 `Dispose`，因为注销、关机时窗口不经过 `Closing`，后台写入可能来不及完成。
+- 写入失败时记入 `error.txt` 并停止记录（丢弃缓存），不影响通信。程序异常终止时，缓存中尚未写入的内容（最多约 50 KB）丢失。
 
-### 12.6 TextFile
+##### 4.2.9.6 TextFile
 
-`TextFile.Load(path)` 读取并检查 `Texts.json`:必须是 `{ "键": { "zh": "…", "en": "…" } }`,每条都有 zh 和 en。失败的说明是原因本身 (英文或系统语言的异常消息),因为这时文本还没有读到。`TextFile.DefaultPath` 是程序旁边的 `Texts.json`。
+`TextFile.Load(path)` 读取并检查 `Texts.json`：格式应为 `{ "键": { "zh": "…", "en": "…" } }`，每条都有 zh 和 en。失败说明为原因本身（英文或系统语言的异常消息），因为此时文本尚未读取。`TextFile.DefaultPath` 为程序目录中的 `Texts.json`。
 
-## 13. 测试与替换实现
+### 4.3 程序设计实例
 
-| 要替换的 | 测试中的实现 (`Zevision.Tests/Fakes`) |
+#### 4.3.1 新建对象
+
+以下代码对应修改窗口中的“新建”操作：
+
+```csharp
+var session = RecipeEditSession.Open(recipe, path, config, recipes);
+var type = ObjectTypes.Film;
+
+var group = await session.ReadDeviceGroupAsync(type.Group, ct);            // 设备上现有的对象
+if (!group.IsSuccess) { ShowError(group.Error); return; }
+var before = RecipeDocument.ObjectIdsIn(group.Value, type.Group);
+var id = type.NextFreeId(session.UsedObjectIds(type.Group, before));     // 如 "F02"
+
+var created = await session.CreateObjectAsync(type, id, ct);             // AF02，并把第一个材料写入 F0202
+var after = await session.RereadGroupAsync(type.Group, ct);              // 无论成功与否都重新读取：设备状态以读取结果为准
+if (!after.IsSuccess) { ShowError(after.Error); return; }
+
+var error = created.Error;
+if (error == null)
+{
+    var (missing, extra) = RecipeDocument.CompareObjectChange(
+        CommandActions.Add, id, before, RecipeDocument.ObjectIdsIn(after.Value, type.Group));
+    // missing 或 extra 不为空时，设备的变化与预期不同，应提示
+    error = session.ApplyObjectChange(CommandActions.Add, id, after.Value);   // 保存的配置：写入文件；失败时为原因
+}
+// 重新生成页面；created.DefaultsError 不为 null 时提示默认引用未设置成功
+```
+
+#### 4.3.2 其他编辑操作
+
+- 删除对象：先调用 `RecipeRules.FindReferencesTo(session.Document.Entries, id)`，有引用时拒绝并列出引用的项；然后依次调用 `DeleteObjectAsync`、`RereadGroupAsync`，核对结果，再调用 `ApplyObjectChange(CommandActions.Delete, …)`。数据来源为保存的配置时，删除设备上不存在的对象只修改文件，不发送指令。
+- 列表追加：依次调用 `CheckListCountAsync`、`AppendListItemAsync(listId, value)`、`RereadGroupAsync`、`ApplyListAppend`。预熔、后处理的一项有多个设置，`value` 传入 null 以使用设备默认值；工艺的膜层传入膜层编号。
+- 删除列表中间的一项：设备只能删除最后一项。先用 `ApplyEditsAsync` 把后面的项前移一位，再调用 `RemoveLastListItemAsync`，最后调用 `ApplyListRemove(removedId, shifted)`。
+- 保存修改的值：调用 `ApplyEditsAsync(edits, progress, ct)`，全部成功后调用 `Commit(d => d.SetValues(values))`。失败时页面和文件都不变。
+- 新建、删除和列表增删之前，页面上不应有已勾选（未保存）的项：页面重新生成时会丢弃这些项。
+
+### 4.4 错误检测和诊断特征
+
+- 预期内的失败以 `Result.Error`、`RestoreReport.Error` / `FailedId`、`ObjectCreation.DefaultsError` 返回界面语言的说明（见 4.1.2）。
+- 通信失败（超时、帧无效、无法解析）且发送期间收到格式不一致的帧时，说明之后附加检查帧格式设置项的提示（见 4.2.1.5）。
+- 握手失败时返回原因：设备无应答、无法识别帧格式、读不到型号（见 4.2.1.7）；型号不符和设置不一致作为警告返回。
+- 写入和恢复后逐项读回，不一致的项列于 `RestoreReport.VerifyMismatches`（见 4.2.3.5）；创建后新出现的跳过项列于 `AdditionalSkipped`。
+- 新建、删除对象后，以 `RecipeDocument.CompareObjectChange` 核对设备的变化（见 4.2.6.1、4.3.1）。
+- 读取循环的意外异常和事件处理程序抛出的异常写入 `error.txt`；拔线等 I/O 异常和心跳无应答引起的中断不写入（见 4.2.1.4）。错误日志的格式和转存规则见 4.2.9.4。
+- 通信数据文件保存连接期间的显示内容，用于诊断通信问题（见 4.2.9.5）。
+- 配置文件的 MD5 校验用于发现文件的意外改动（见 4.2.9.2）。
+
+### 4.5 测试与替换实现
+
+表 20  测试中的替换实现
+
+| 被替换的接口 | 测试中的实现（`Zevision.Tests/Fakes`） |
 |---|---|
-| `IDeviceService` | `FakeDeviceService`:模拟设备的配置表,响应 `?`、组帮助和 Q/U/A/D;可以指定拒绝的写入和创建 (`RejectWrites`、`RejectCreates`)、追加条目的默认项 (`AppendTemplate`) |
-| 传输 (`IDeviceTransport`) | `FakeSerialTransport`;或 LIBRARY.md §5.7 的 `SimulatedDevice`。用 `new ZevisionDeviceService(transport)` 或传工厂 |
+| `IDeviceService` | `FakeDeviceService`：模拟设备的配置表，响应 `?`、组帮助和 Q/U/A/D 指令；可指定被拒绝的写入和创建（`RejectWrites`、`RejectCreates`）、追加条目的默认项（`AppendTemplate`） |
+| 传输（`IDeviceTransport`） | `FakeSerialTransport`（可配合 `SimulatedImc300` 模拟设备的帧格式行为），或 ZEV-CPM-01 自定义传输部分的 `SimulatedDevice` 示例；以 `new ZevisionDeviceService(transport)` 或传输工厂创建服务 |
 | `IPreferencesStore` | `MemoryPreferencesStore` |
 | `ICommunicationRecorderFactory` | `NoCommunicationRecorders` |
-| `IRecipeStore` | `RecipeFileStore` + 临时目录 |
-| `IErrorLog` | `FileErrorLog` + 临时目录,或自己的列表实现 |
+| `IRecipeStore` | `RecipeFileStore` 加临时目录 |
+| `IErrorLog` | `FileErrorLog` 加临时目录，或基于列表的实现 |
 
-- 测试程序集在 C# 9 模块初始化器 (`Zevision.Tests/TestSetup.cs`) 中读取 `Texts.json` 并初始化 `TextCatalog`。
-- 未初始化 `Lang` 时为中文;测试英文用 `Lang.Override`。
-- 纯函数 (`RestorePlanner`、`RecipeRules`、`RecipeDocument`…) 直接构造数据测试,不需要设备。`InstrumentSnapshot` 可以用 `HelpTableEntry` 列表构造。
-- 不用真实设备也能走完整流程:`ZevisionDeviceService` + 模拟传输 (帧格式 `FrameOptions.Plain`) + 一个按 ID 读写的小表。响应 `?` 时按实机格式生成帮助表:先是 `\n`,每行 ID、值各占 30 列,再是说明,以 `\n` 结束,第一行为表头 `[CMD ID]`、`[VALUE]`、`[DESCRIPTION]`。
+- 测试程序集在 C# 9 模块初始化器（`Zevision.Tests/TestSetup.cs`）中读取 `Texts.json` 并初始化 `TextCatalog`。
+- 未初始化 `Lang` 时为中文；测试英文时使用 `Lang.Override`。
+- 纯函数（`RestorePlanner`、`RecipeRules`、`RecipeDocument` 等）以构造的数据测试，不需要设备。`InstrumentSnapshot` 可由 `HelpTableEntry` 列表构造。
+- 不连接设备也能运行完整流程：`ZevisionDeviceService` 加模拟传输（帧格式 `FrameOptions.Plain`）和一个按 ID 读写的表。响应 `?` 时按实机格式生成帮助表：以 `\n` 开头，每行的 ID、值各占 30 列，其后为说明，以 `\n` 结束；第一行为表头 `[CMD ID]`、`[VALUE]`、`[DESCRIPTION]`。
 
 ```csharp
 var service = new ZevisionDeviceService(_ => new SimulatedDevice(table.Respond), errorLog);
@@ -815,48 +963,78 @@ var config = new InstrumentConfigService(service);
 var snapshot = await config.ReadSnapshotAsync(ct);          // → IMC300 Ready
 ```
 
-## 14. 常见修改
+### 4.6 常见修改
 
-| 要做的 | 改哪里 | 同时检查 |
+表 21  常见修改
+
+| 修改内容 | 修改位置 | 同时检查 |
 |---|---|---|
-| 新增或修改提示文本 | `Localization/Texts.json` + `Texts.cs` (Core 或 Storage) | `TextCatalogTests` |
-| 某项恢复时被设备拒绝 / 不应保存 | `RecipeRules` 的组白名单或 `Exclusions` | `RecipeRulesTests`、`InstrumentConfigServiceTests` (恢复计划和执行) |
-| 新的引用关系 (值是另一个对象的编号) | `RecipeRules.References` (恢复计划也用) 或 `DeleteCheckReferences` (只用于删除检查);修改窗口的下拉框由指令集的引用类型决定 | 两个都要考虑:恢复计划会据此跳过写入 |
-| 新的可新建对象或可增删的子列表 | `ObjectTypes` (以及 `ZevisionCommandSet` 允许该 ID 的 A/D 动作) | `ObjectTypesTests`、修改窗口的按钮 |
-| 恢复的顺序 | `RecipeRules.GroupOrder` | 被引用的对象必须在前 |
-| 配置文件新增字段 | `InstrumentRecipe` (`DataMember`) + `RecipeFile.ComputeMd5` + 提升 `CurrentFormatVersion`,并决定是否接受旧版本 | `RecipeFileTests` 的参考 MD5 |
-| `settings.json` 新增字段 | `ConnectionPreferences` (`DataMember` + `SetDefaults`) | 旧文件缺字段时用默认值 |
-| 换一种存储 (如数据库) | 实现 `IRecipeStore` / `IPreferencesStore`,只改 `App.OnStartup` | `LibraryBoundaryTests` |
-| 新的连接方式 | 实现 `IDeviceTransport` (LIBRARY.md §5.7),在传给 `ZevisionDeviceService` 的工厂中选择 | `ZevisionDeviceServiceTests` |
+| 新增或修改提示文本 | `Localization/Texts.json` 和 `Texts.cs`（`Zevision.Core` 或 `Zevision.Storage`） | `TextCatalogTests` |
+| 某项恢复时被设备拒绝，或不应保存 | `RecipeRules` 的组白名单或 `Exclusions` | `RecipeRulesTests`、`InstrumentConfigServiceTests`（恢复计划和执行） |
+| 新的引用关系（值为另一个对象的编号） | `RecipeRules.References`（恢复计划也使用）或 `DeleteCheckReferences`（只用于删除检查）；修改窗口的下拉框由指令集的引用类型决定 | 两处均需考虑：恢复计划据此跳过写入 |
+| 新的可新建对象或可增删的子列表 | `ObjectTypes`（以及 `ZevisionCommandSet` 中该 ID 允许的 A/D 动作） | `ObjectTypesTests`、修改窗口的按钮 |
+| 恢复的顺序 | `RecipeRules.GroupOrder` | 被引用的对象应排在前面 |
+| 配置文件新增字段 | `InstrumentRecipe`（`DataMember`）、`RecipeFile.ComputeMd5`，提升 `CurrentFormatVersion`，并确定是否接受旧版本 | `RecipeFileTests` 的参考 MD5 |
+| `settings.json` 新增字段 | `ConnectionPreferences`（`DataMember` 和 `SetDefaults`） | 旧文件缺少该字段时使用默认值 |
+| 更换存储方式（如数据库） | 实现 `IRecipeStore` / `IPreferencesStore`，只修改 `App.OnStartup` | `LibraryBoundaryTests` |
+| 新的连接方式 | 实现 `IDeviceTransport`（见 ZEV-CPM-01 自定义传输部分），在传给 `ZevisionDeviceService` 的工厂中选择 | `ZevisionDeviceServiceTests` |
 
-## 15. 性能与内存
+### 4.7 性能与内存
 
-实机帮助表 (固件 1.8.11,116 KB),Release,.NET Framework 4.8:
+表 22  性能实测（实机帮助表，固件 1.8.11，116 KB；Release，.NET Framework 4.8）
 
 | 操作 | 实测 |
 |---|---|
-| 解析帮助表 + `ToRecipe` + `RestorePlanner.Plan` | 约 6 ms (1525 行 → 940 项) |
-| `RecipeFileStore.Save` (约 92 KB,含 MD5) | 约 12 ms |
-| `RecipeFileStore.Load` (含 MD5 校验) | 约 3 ms |
+| 解析帮助表、`ToRecipe` 和 `RestorePlanner.Plan` | 约 6 ms（1525 行 → 940 项） |
+| `RecipeFileStore.Save`（约 92 KB，含 MD5） | 约 12 ms |
+| `RecipeFileStore.Load`（含 MD5 校验） | 约 3 ms |
 | `InstrumentSnapshot` 常驻内存 | 约 320 KB |
-| `InstrumentRecipe` (由快照生成) | 约 45 KB (字符串与快照共享) |
+| `InstrumentRecipe`（由快照生成） | 约 45 KB（字符串与快照共享） |
 
-- 与设备通讯的时间远大于计算:完整的 `?` 约 10 秒,组帮助 0.5–5 秒。能用组帮助或批量 `Q` 时不要读完整的 `?` (修改配置的写入前检查就用一帧 `QG03;QC09` 代替 `?`)。
-- 规则、对象类型表、文本表都是静态只读数据,首次使用时生成;正则表达式只编译一次。
-- 快照、配置和恢复计划在操作结束后即可回收;编辑会话随修改窗口关闭而释放。
-- `CommunicationLogWriter` 复制每批行后在后台写入,不占用 UI 线程。
+- 与设备通信的时间远大于计算时间：完整的 `?` 约 10 s，组帮助 0.5 s ~ 5 s。能使用组帮助或批量 `Q` 时，不宜读取完整的 `?`（修改配置写入前的检查以一帧 `QG03;QC09` 代替 `?`）。
+- 规则、对象类型表、文本表均为静态只读数据，首次使用时生成；正则表达式只编译一次。
+- 快照、配置和恢复计划在操作结束后即可回收；编辑会话随修改窗口关闭而释放。
+- `CommunicationLogWriter` 在内存中最多缓存约 50 KB，超过时在后台写入，不占用 UI 线程；程序退出时的写入在 UI 线程上进行。
 
-## 16. API 参考
+## 5 注解
 
-以下由程序集和 XML 文档生成,列出全部公开类型和成员。`T?`、可空注解没有显示,以说明为准。
+表 23  术语和缩略语
 
-### 16.1 Zevision.Core
+| 术语 / 缩略语 | 含义 |
+|---|---|
+| 帮助表 | `?` 指令返回的全部设置项列表（ID、当前值、说明） |
+| 组帮助 | `?M` 等只返回一组设置项的帮助指令 |
+| 快照 | `InstrumentSnapshot`，一次读取得到的帮助表 |
+| 配置文件 | 保存的仪器配置，即 `InstrumentRecipe` 的 JSON 文件，位于 `recipes` 目录 |
+| 实机数据 / 保存的配置 | 修改窗口的两种数据来源：设备当前配置 / 配置文件 |
+| 帧格式 | 帧是否带长度字节和校验和（RS232：G1304/G1305；TCP：G1407/G1408） |
+| 握手 | 连接后确认设备应答、确定帧格式并读取型号的过程 |
+| 重发 | 传输出错后由通信库自动再次发送同一帧 |
+| 心跳 | 连接空闲时定期发送的 `H01`，用于检测连接中断 |
+| Ready | 设备的空闲状态（C09 的值） |
+| 组装根 | 创建并连接全部服务对象的唯一位置（`App.OnStartup`） |
+| 写时复制 | 先修改副本并保存，成功后才修改原对象 |
+| BOM | 字节顺序标记（Byte Order Mark） |
+| CPM | 计算机编程手册（Computer Programming Manual） |
+| DataContract | .NET 的数据协定序列化（`System.Runtime.Serialization`） |
+| FIPS | 美国联邦信息处理标准（Federal Information Processing Standards） |
+| HMAC | 基于散列的消息认证码（Hash-based Message Authentication Code） |
+| MD5 | 消息摘要算法第 5 版（Message-Digest Algorithm 5） |
+| RS232 | 串行通信接口标准 |
+| TCP | 传输控制协议（Transmission Control Protocol） |
 
-#### interface `ICommunicationRecorder`
-保存通讯数据:把数据显示区的内容按显示的样子追加保存。只是记录用途,写入失败不影响通讯。
+## 附录 A（资料性）API 参考
+
+本附录由程序集和 XML 文档注释生成，列出 `Zevision.Core` 和 `Zevision.Storage` 的全部公开类型和成员。可空注解（`T?`）未显示，以成员说明为准。条目说明取自源代码的 XML 文档注释。
+
+### A.1 Zevision.Core
+
+#### interface `ICommunicationRecorder` : IDisposable
+保存通讯数据:把数据显示区的内容按显示的样子追加保存。只是记录用途,写入失败不影响通讯。实现可以先缓存在内存中,积累到一定大小、关闭或释放时再写入。`Dispose` 在调用线程上写完缓存和已排队的行后关闭,用于程序退出;不抛出 I/O 异常,可以在 `CloseAsync` 之后调用。
 - `string Path { get; }`: 保存位置 (显示给用户)。
 - `void Append(IReadOnlyList<string> lines)`: 追加一批行 (一次通讯显示的全部行)。不阻塞调用方,不抛出 I/O 异常。
-- `Task CloseAsync()`: 写完已排队的行后关闭。之后的 `Append` 被忽略。
+- `Task CloseAsync()`: 在后台写完缓存和已排队的行后关闭 (断开连接时)。之后的 `Append` 被忽略。
+- `void Dispose()`: 在调用线程上写完缓存和已排队的行后关闭 (程序退出时)。
 
 #### interface `ICommunicationRecorderFactory`
 为一次连接创建 `ICommunicationRecorder`。
@@ -1152,14 +1330,38 @@ var snapshot = await config.ReadSnapshotAsync(ct);          // → IMC300 Ready
 - `string Description { get; init; }`: 说明。
 - `string Command { get; }`: 写入指令,如 `UF0101:L1` (由 `Update` 生成)。
 
+#### class `CommandsFailedEventArgs` : EventArgs
+`CommandsFailed` 的参数:一次发送中没有得到成功响应的指令数。
+- `CommandsFailedEventArgs(string command, int count)`: 创建参数。
+- `string Command { get; }`: 发送的指令 (多条时用 `;` 分隔)。
+- `int Count { get; }`: 其中没有得到成功响应的指令数 (大于零)。
+
 #### static class `DeviceServiceExtensions`
 `IDeviceService` 的便捷方法。
 - `static Task<Result<ZevisionReply>> SendAsync(IDeviceService device, string command, CancellationToken cancellationToken)`: 发送命令并等待响应,使用连接设置的响应超时。
 
+#### record `DeviceIdentity`
+握手 (`HandshakeAsync`) 得到的设备信息。
+- `DeviceIdentity(string Hello, string Model, FrameOptions Frame, IReadOnlyList<string> Warnings)`: 握手 (`HandshakeAsync`) 得到的设备信息。
+- `const string ExpectedModel`: 本程序适用的设备型号。
+- `string Hello { get; init; }`: `H01` 的回答,如 `Zevision IMC300 1.8.11.202606101229`。
+- `string Model { get; init; }`: 设备型号 (G03),如 `IMC300`。
+- `FrameOptions Frame { get; init; }`: 设备在这个接口上使用的帧格式,当前连接已改用它。
+- `IReadOnlyList<string> Warnings { get; init; }`: 不妨碍通讯、但应当提示的情况 (界面语言),如型号不是 IMC300。
+
+#### static class `FrameFormatDetector`
+从设备的回答识别它在这个接口上使用的帧格式 (长度字节、校验和)。
+- `static IReadOnlyList<FrameOptions> All { get; }`: 所有帧格式,按结构由强到弱排列:带长度、校验和的格式几乎不会把其他格式的数据当成有效帧, 而不带两者的格式什么都能读,所以识别时依次尝试,先成功的为准。
+- `static FrameOptions Detect(byte[] received)`: 识别收到的字节 (按收到的顺序拼接) 使用的帧格式:按 `All` 的顺序,第一个能把它们解成 至少一个响应帧、且每一帧都有效并能按响应格式解析的格式 (起始符之前的帧外数据不计)。无法识别时为 null。
+
+#### static class `FrameSettings`
+设备上决定帧格式的设置项:RS232 为 G1304 (校验和)、G1305 (长度字节),TCP 为 G1407、G1408 (两个接口各自独立)。
+- `static ValueTuple<string, string> Ids(ConnectionEndpoint endpoint)`: 设置项的 ID:TCP 为 G1407 (校验和)、G1408 (长度),RS232 为 G1304、G1305。
+- `static FrameOptions AfterUpdates(ConnectionEndpoint endpoint, FrameOptions current, IEnumerable<string> commands, IReadOnlyList<ZevisionResponse> responses)`: 一帧指令修改了当前接口的帧格式设置 (如 `UG1304:1`) 并被设备接受时,修改后的帧格式;没有改变时为 null。
+
 #### static class `FramingCheck`
 判断收到的帧是否说明设备的帧格式 (长度字节) 与程序的设置不同,通讯出错时据此提示检查设置。
 - `static FramingMismatch Check(ZevisionFrame frame, FrameOptions options)`: 检查收到的帧。
-- `static ValueTuple<string, string> SettingIds(ConnectionEndpoint endpoint)`: 帧格式设置项的 ID:TCP 为 G1407 (校验和)、G1408 (长度),RS232 为 G1304、G1305。
 
 #### enum `FramingMismatch` : IComparable, IFormattable, IConvertible
 收到的帧与程序的帧格式设置 (长度字节) 不一致的情况。
@@ -1172,8 +1374,11 @@ var snapshot = await config.ReadSnapshotAsync(ct);          // → IMC300 Ready
 - `bool IsConnected { get; }`: 是否已连接。
 - `event EventHandler<FrameSentEventArgs> FrameSent`: 帧发送前触发。
 - `event EventHandler<FrameReceivedEventArgs> FrameReceived`: 收到一帧 (含错误帧和帧外数据) 时触发。
-- `event EventHandler<ConnectionLostEventArgs> ConnectionLost`: 连接因传输错误 (串口拔出、TCP 断开等) 意外中断时触发。主动断开不触发。
-- `Task<Result> ConnectAsync(ConnectionOptions options, CancellationToken cancellationToken)`: 打开连接 (串口或 TCP) 并开始接收。连接参数 (连接目标、帧格式、响应超时) 在连接期间不变。
+- `event EventHandler<ConnectionLostEventArgs> ConnectionLost`: 连接因传输错误 (串口拔出、TCP 断开等) 或心跳无应答意外中断时触发。主动断开不触发。
+- `event EventHandler<RetryEventArgs> Retrying`: 一次发送传输出错、即将重发时触发 (见 `RetryCount`;不显示的发送不触发)。
+- `event EventHandler<CommandsFailedEventArgs> CommandsFailed`: 一次发送结束,其中有指令没有得到成功响应时触发 (发送方的线程)。设备的否定响应 (含不回显的 `-C`) 计该指令;发出后没有有效响应 (超时、写入失败、响应帧无效或无法解析) 计帧中全部指令;重发后成功的、未发出的、等待时连接断开的不计。不显示的发送和握手不触发。
+- `Task<Result> ConnectAsync(ConnectionOptions options, CancellationToken cancellationToken)`: 打开连接 (串口或 TCP) 并开始接收。连接参数 (连接目标、帧格式、响应超时、重试、心跳) 在连接期间不变, 帧格式可由 `HandshakeAsync` 改为设备的实际设置。
+- `Task<Result<DeviceIdentity>> HandshakeAsync(FrameOptions preferred, CancellationToken cancellationToken)`: 握手:按设备的回答确定它在这个接口上使用的帧格式并改用它 (先试 `preferred`), 再读取型号 (G03) 和帧格式设置。期间的收发不显示。连接后,以及设备的帧格式设置被修改后调用。
 - `Task DisconnectAsync()`: 关闭连接。未连接时直接返回。
 - `Task<Result<ZevisionReply>> SendAsync(string command, TimeSpan minimumResponseTimeout, CancellationToken cancellationToken)`: 发送命令并等待响应。同一时间只有一个请求在等待响应,并发调用会排队。 响应超时 (空闲超时) 至少为 `minimumResponseTimeout`,连接设置的超时更长时用连接设置; 用于已知响应前或分包之间会停顿的指令,如 `?`。其他指令传 `Zero`。
 - `Task<Result<ZevisionReply>> SendHiddenAsync(string command, TimeSpan minimumResponseTimeout, CancellationToken cancellationToken)`: 与 `SendAsync` 相同,但不在数据显示区显示 (因此也不保存到通讯数据文件、不计数): 不触发 `FrameSent`;这次的响应、超时时报告的不完整数据,以及之后收到的回显相同的帧 (如取消后设备仍在发送的剩余数据) 都不触发 `FrameReceived`,直到再次用 `SendAsync` 发送同一指令。 用于程序内部读取设备配置的帮助指令 (`?`、`?M`):它们只在指令输入框中发送时显示。
@@ -1186,6 +1391,11 @@ var snapshot = await config.ReadSnapshotAsync(ct);          // → IMC300 Ready
 - `static bool ContainsFullHelpCommand(string command)`: 指令中是否有完整的帮助指令 `?` (不是 `?M` 这样的分组帮助)。完整帮助约 116 KB、10 秒,发送前提示用户。
 - `static TimeSpan MinimumResponseTimeout(string command)`: 发送时的最低响应超时:帮助指令的响应大、首字节前和分包之间有停顿,与保存配置读取 `?` 时一样用 `SlowReplyTimeout`;其他指令为 `Zero` (用连接设置的超时)。
 
+#### static class `ReconnectPolicy`
+连接中断后自动重连的等待时间:指数退避 1 → 2 → 4 → … 秒,上限 `MaxDelay`。
+- `static readonly TimeSpan MaxDelay`: 两次重连之间最长的等待。
+- `static TimeSpan DelayBefore(int attempt)`: 第 `attempt` 次重连前的等待:1、2、4、8、16、32 秒,之后都是 60 秒。
+
 #### class `ZevisionDeviceService` : IDeviceService, IDisposable
 `IDeviceService` 的实现:每次连接按当时的通讯参数创建一个 `ZevisionClient` (通讯库), 转发它的事件,把它的英文结果转换为界面语言的说明 (`CommunicationText`), 并把通讯库交出的意外异常 (读取循环出错、事件处理程序出错) 写入错误日志。
 - `ZevisionDeviceService(Func<ConnectionEndpoint, IDeviceTransport> transportFactory, IErrorLog errorLog = null)`: 创建服务。每次连接时用 `transportFactory` 按连接目标 (串口或 TCP) 创建传输, 断开时关闭。
@@ -1194,7 +1404,10 @@ var snapshot = await config.ReadSnapshotAsync(ct);          // → IMC300 Ready
 - `event EventHandler<FrameSentEventArgs> FrameSent`: 同接口/基类的说明。
 - `event EventHandler<FrameReceivedEventArgs> FrameReceived`: 同接口/基类的说明。
 - `event EventHandler<ConnectionLostEventArgs> ConnectionLost`: 同接口/基类的说明。
+- `event EventHandler<RetryEventArgs> Retrying`: 同接口/基类的说明。
+- `event EventHandler<CommandsFailedEventArgs> CommandsFailed`: 同接口/基类的说明。
 - `Task<Result> ConnectAsync(ConnectionOptions options, CancellationToken cancellationToken)`: 同接口/基类的说明。
+- `Task<Result<DeviceIdentity>> HandshakeAsync(FrameOptions preferred, CancellationToken cancellationToken)`: 同接口/基类的说明。
 - `Task DisconnectAsync()`: 同接口/基类的说明。
 - `Task<Result<ZevisionReply>> SendAsync(string command, TimeSpan minimumResponseTimeout, CancellationToken cancellationToken)`: 同接口/基类的说明。
 - `Task<Result<ZevisionReply>> SendHiddenAsync(string command, TimeSpan minimumResponseTimeout, CancellationToken cancellationToken)`: 同接口/基类的说明。
@@ -1218,6 +1431,8 @@ var snapshot = await config.ReadSnapshotAsync(ct);          // → IMC300 Ready
 通讯库 (Zevision.Communication) 结果的界面文本。通讯库只给出英文说明和错误类型, 这里按 `Current` 生成中英文提示,内容与拆分前的程序一致。
 - `static string Describe(ZevisionError error, string command = null)`: `ZevisionClient` 操作失败的说明。
 - `static string FramingHint(FramingMismatch mismatch, ConnectionEndpoint endpoint)`: 帧格式不一致的提示 (`FramingCheck`),附在通讯错误之后,如"设备的响应带长度字节,而程序未启用长度…"。
+- `static string DescribeRetry(RetryEventArgs e)`: 重发的说明,如"第 1/2 次重发 QG01: 等待响应超时 …"。
+- `static string DescribeConnectionLost(ConnectionLostEventArgs e, int heartbeatMissLimit)`: 连接中断的原因:心跳无应答时为"设备连续 n 次没有应答心跳",否则为异常的说明 (如系统给出的串口错误)。
 - `static string Localized(ZevisionErrorCode code)`: 设备错误代码的说明,如 `B` → 非法参数值。
 - `static string Localized(FrameError error)`: 帧解码错误的说明,如 `ChecksumMismatch` → 校验和不匹配。
 - `static string ValidateCommand(string command)`: 校验命令 (规则见 `CheckCommand`)。
@@ -1275,13 +1490,15 @@ var snapshot = await config.ReadSnapshotAsync(ct);          // → IMC300 Ready
 - `bool RepeatSend { get; set; }`: 是否勾选重复发送。
 - `int RepeatIntervalMs { get; set; }`: 重复发送间隔 (毫秒)。不在选项中的值按默认处理。
 - `string Language { get; set; }`: 界面语言:`auto` (按系统:中国地区或中文系统用中文,其他用英文)、`zh` 或 `en`。
+- `bool HandshakeEnabled { get; set; }`: 连接时是否握手 (默认是):确认设备应答、按设备的实际设置确定帧格式、读取型号,并启用重发和心跳。 关闭时只打开通道 (帧格式按界面设置,不重发、不发心跳),用于调试帧格式不一致等情况。
+- `bool AutoReconnect { get; set; }`: 连接意外中断后是否自动重连 (默认否)。
 
 #### interface `IPreferencesStore`
 读写持久化的通讯配置。
 - `Result<ConnectionPreferences> Load()`: 读取配置。文件不存在 (首次运行) 时成功返回默认值;文件损坏或无法读取时返回失败,调用方应使用默认值并提示。
 - `Result Save(ConnectionPreferences preferences)`: 保存配置。
 
-### 16.2 Zevision.Storage
+### A.2 Zevision.Storage
 
 #### static class `AppFolders`
 程序数据位置:通讯配置 (settings.json)、仪器配置文件 (recipe)、日志 (logs)。

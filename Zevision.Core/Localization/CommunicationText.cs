@@ -60,7 +60,7 @@ namespace Zevision.Core.Localization
         /// <param name="endpoint">连接目标,决定设置项的 ID (RS232:G1304/G1305,TCP:G1407/G1408)。</param>
         public static string? FramingHint(FramingMismatch mismatch, ConnectionEndpoint endpoint)
         {
-            var (checksum, length) = FramingCheck.SettingIds(endpoint ?? throw new ArgumentNullException(nameof(endpoint)));
+            var (checksum, length) = FrameSettings.Ids(endpoint ?? throw new ArgumentNullException(nameof(endpoint)));
             switch (mismatch)
             {
                 case FramingMismatch.ReplyHasLength:
@@ -70,6 +70,40 @@ namespace Zevision.Core.Localization
                 default:
                     return null;
             }
+        }
+
+        /// <summary>
+        /// 重发的说明,如"第 1/2 次重发 QG01: 等待响应超时 …"。
+        /// </summary>
+        /// <param name="e">重发事件的参数。</param>
+        public static string DescribeRetry(RetryEventArgs e)
+        {
+            if (e is null)
+            {
+                throw new ArgumentNullException(nameof(e));
+            }
+
+            var reason = e.Error != null
+                ? Describe(e.Error, e.Command)
+                : Texts.DeviceAnswered(DeviceErrorLetter(e.DeviceError), e.DeviceError.Localized());
+            return Texts.Retrying(e.Attempt, e.MaxRetries, e.Command, reason);
+        }
+
+        /// <summary>
+        /// 连接中断的原因:心跳无应答时为"设备连续 n 次没有应答心跳",否则为异常的说明 (如系统给出的串口错误)。
+        /// </summary>
+        /// <param name="e">连接中断事件的参数。</param>
+        /// <param name="heartbeatMissLimit">判定中断的心跳次数 (<see cref="ConnectionOptions.HeartbeatMissLimit"/>)。</param>
+        public static string DescribeConnectionLost(ConnectionLostEventArgs e, int heartbeatMissLimit)
+        {
+            if (e is null)
+            {
+                throw new ArgumentNullException(nameof(e));
+            }
+
+            return e.Reason == ConnectionLostReason.HeartbeatTimeout
+                ? Texts.HeartbeatLost(heartbeatMissLimit)
+                : e.Exception.Message;
         }
 
         /// <summary>设备错误代码的说明,如 <c>B</c> → 非法参数值。</summary>
@@ -141,6 +175,18 @@ namespace Zevision.Core.Localization
                     return Texts.ValueNotAscii;
                 default:
                     return Texts.ValueHasDelimiters;
+            }
+        }
+
+        /// <summary>重发原因中的设备错误代码字母 (重发只针对 C、L、T)。</summary>
+        private static string DeviceErrorLetter(ZevisionErrorCode code)
+        {
+            switch (code)
+            {
+                case ZevisionErrorCode.ChecksumError: return "C";
+                case ZevisionErrorCode.LengthError: return "L";
+                case ZevisionErrorCode.Timeout: return "T";
+                default: return string.Empty;
             }
         }
 

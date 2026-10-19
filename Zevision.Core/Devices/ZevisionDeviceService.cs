@@ -22,18 +22,28 @@ namespace Zevision.Core.Devices
     /// 帧格式不一致:每个收到的帧用 <see cref="FramingCheck"/> 与当前的帧格式比较。一次发送失败 (超时、帧无效、无法解析),
     /// 而发送期间收到过格式不一致的帧时,错误说明后附上检查设置的提示 (<see cref="CommunicationText.FramingHint"/>)。
     /// </para>
+    /// <para>
+    /// 握手 (<see cref="HandshakeAsync"/>,步骤见 <see cref="DeviceHandshake"/>) 期间的收发都不转发,
+    /// 收到的字节另外记下 (最多 <see cref="MaxCapturedBytes"/>),用于识别设备的帧格式。
+    /// </para>
     /// </remarks>
-    public sealed class ZevisionDeviceService : IDeviceService
+    public sealed class ZevisionDeviceService : IDeviceService, IHandshakeLink
     {
+        /// <summary>握手期间记下的收到的字节上限 (设备对探测的回答只有几十字节)。</summary>
+        private const int MaxCapturedBytes = 4096;
+
         private static readonly AsyncLocal<bool> Hidden = new AsyncLocal<bool>();
+        private static readonly RequestOptions ProbeRequest = new RequestOptions { AllowRetry = false };
 
         private readonly Func<ConnectionEndpoint, IDeviceTransport> _transportFactory;
         private readonly IErrorLog? _errorLog;
         private readonly object _sync = new object();
         private readonly HashSet<string> _hiddenEchoes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        private readonly List<byte> _captured = new List<byte>();
         private ZevisionClient? _client;
         private ConnectionOptions? _options;
         private bool _connecting;
+        private bool _handshaking;
 
         /// <summary>收到格式不一致的帧的次数 (发送前后比较) 和最近一次的情况。用 <see cref="_sync"/> 保护。</summary>
         private int _mismatchCount;
@@ -71,7 +81,26 @@ namespace Zevision.Core.Devices
         public event EventHandler<ConnectionLostEventArgs>? ConnectionLost;
 
         /// <inheritdoc />
+        public event EventHandler<RetryEventArgs>? Retrying;
+
+        /// <inheritdoc />
+        public event EventHandler<CommandsFailedEventArgs>? CommandsFailed;
+
+        /// <inheritdoc />
         public bool IsConnected => Current?.IsConnected == true;
+
+        ConnectionEndpoint IHandshakeLink.Endpoint
+        {
+            get
+            {
+                lock (_sync)
+                {
+                    return _options?.Endpoint ?? throw new InvalidOperationException(Texts.NotConnected);
+                }
+            }
+        }
+
+        FrameOptions IHandshakeLink.Frame => Current?.Frame ?? FrameOptions.Plain;
 
         private ZevisionClient? Current
         {
@@ -132,7 +161,68 @@ namespace Zevision.Core.Devices
         }
 
         /// <inheritdoc />
+        public async Task<Result<DeviceIdentity>> HandshakeAsync(FrameOptions preferred, CancellationToken cancellationToken)
+        {
+            if (preferred is null)
+            {
+                throw new ArgumentNullException(nameof(preferred));
+            }
+
+            if (!IsConnected)
+            {
+                return Result<DeviceIdentity>.Fail(Texts.NotConnected);
+            }
+
+            SetHandshaking(true);
+            try
+            {
+                return await DeviceHandshake.RunAsync(this, preferred, cancellationToken).ConfigureAwait(false);
+            }
+            finally
+            {
+                SetHandshaking(false);
+            }
+        }
+
+        /// <inheritdoc />
         public Task DisconnectAsync() => Current?.DisconnectAsync() ?? Task.CompletedTask;
+
+        async Task<ZevisionResult> IHandshakeLink.ChangeFrameAsync(FrameOptions frame, CancellationToken cancellationToken)
+        {
+            var client = Current;
+            if (client == null)
+            {
+                return ZevisionResult.Fail(new ZevisionError(ZevisionErrorKind.NotConnected, "Not connected."));
+            }
+
+            return frame.Equals(client.Frame)
+                ? ZevisionResult.Ok()
+                : await client.ChangeFrameOptionsAsync(frame, cancellationToken).ConfigureAwait(false);
+        }
+
+        Task<ZevisionResult<ZevisionReply>> IHandshakeLink.SendAsync(string command, CancellationToken cancellationToken) =>
+            Current?.SendAsync(command, ProbeRequest, cancellationToken)
+            ?? Task.FromResult(ZevisionResult<ZevisionReply>.Fail(new ZevisionError(ZevisionErrorKind.NotConnected, "Not connected.")));
+
+        byte[] IHandshakeLink.TakeReceived()
+        {
+            lock (_sync)
+            {
+                var bytes = _captured.ToArray();
+                _captured.Clear();
+                return bytes;
+            }
+        }
+
+        private void SetHandshaking(bool value)
+        {
+            lock (_sync)
+            {
+                _handshaking = value;
+                _captured.Clear();
+                _captured.TrimExcess();
+            }
+        }
 
         /// <inheritdoc />
         public Task<Result<ZevisionReply>> SendAsync(string command, TimeSpan minimumResponseTimeout, CancellationToken cancellationToken) =>
@@ -154,6 +244,12 @@ namespace Zevision.Core.Devices
             Hidden.Value = hidden;
             var mismatches = MismatchCount;
             var result = await client.SendAsync(command, minimumResponseTimeout, cancellationToken).ConfigureAwait(false);
+            var failed = hidden ? 0 : CommandFailures.Count(command, result);
+            if (failed > 0)
+            {
+                RaiseCommandsFailed(new CommandsFailedEventArgs(command, failed));
+            }
+
             if (result.IsSuccess)
             {
                 return Result<ZevisionReply>.Ok(result.Value);
@@ -208,6 +304,7 @@ namespace Zevision.Core.Devices
             client.FrameSent += OnFrameSent;
             client.FrameReceived += OnFrameReceived;
             client.ConnectionLost += OnConnectionLost;
+            client.Retrying += OnRetrying;
             client.HandlerFailed += OnHandlerFailed;
         }
 
@@ -216,11 +313,28 @@ namespace Zevision.Core.Devices
             client.FrameSent -= OnFrameSent;
             client.FrameReceived -= OnFrameReceived;
             client.ConnectionLost -= OnConnectionLost;
+            client.Retrying -= OnRetrying;
             client.HandlerFailed -= OnHandlerFailed;
+        }
+
+        private bool IsHandshaking
+        {
+            get
+            {
+                lock (_sync)
+                {
+                    return _handshaking;
+                }
+            }
         }
 
         private void OnFrameSent(object? sender, FrameSentEventArgs e)
         {
+            if (IsHandshaking)
+            {
+                return;
+            }
+
             // 在发送的时刻 (取得发送锁之后) 记下回显:不显示的指令之后收到的同回显帧也不显示,正常发送同一指令后恢复显示。
             var echo = ZevisionResponseParser.EchoOf(e.Command);
             lock (_sync)
@@ -243,13 +357,19 @@ namespace Zevision.Core.Devices
 
         private void OnFrameReceived(object? sender, FrameReceivedEventArgs e)
         {
-            ConnectionOptions? options;
             lock (_sync)
             {
-                options = _options;
+                if (_handshaking)
+                {
+                    // 握手探测的回答不显示,只记下字节用于识别帧格式。
+                    var room = MaxCapturedBytes - _captured.Count;
+                    _captured.AddRange(room >= e.Frame.Raw.Length ? e.Frame.Raw : e.Frame.Raw.Take(Math.Max(room, 0)));
+                    return;
+                }
             }
 
-            var mismatch = options == null ? FramingMismatch.None : FramingCheck.Check(e.Frame, options.Frame);
+            var frame = (sender as ZevisionClient)?.Frame;
+            var mismatch = frame == null ? FramingMismatch.None : FramingCheck.Check(e.Frame, frame);
             if (mismatch != FramingMismatch.None)
             {
                 lock (_sync)
@@ -262,6 +382,15 @@ namespace Zevision.Core.Devices
             if (!Hidden.Value && !IsHiddenReply(e.Frame))
             {
                 FrameReceived?.Invoke(this, e);
+            }
+        }
+
+        private void OnRetrying(object? sender, RetryEventArgs e)
+        {
+            // 在发送方的异步流中触发:不显示的发送 (读取帮助) 的重发也不显示。
+            if (!Hidden.Value)
+            {
+                Retrying?.Invoke(this, e);
             }
         }
 
@@ -288,13 +417,29 @@ namespace Zevision.Core.Devices
         private void OnConnectionLost(object? sender, ConnectionLostEventArgs e)
         {
             var ex = e.Exception;
-            if (!(ex is IOException || ex is InvalidOperationException || ex is ObjectDisposedException || ex is UnauthorizedAccessException))
+            if (e.Reason == ConnectionLostReason.ReadFailed
+                && !(ex is IOException || ex is InvalidOperationException || ex is ObjectDisposedException || ex is UnauthorizedAccessException))
             {
-                // 拔线、对端关闭是预期内的;其他异常说明读取时出了意外错误,记下来以便诊断。
+                // 拔线、对端关闭、心跳无应答是预期内的;其他异常说明读取时出了意外错误,记下来以便诊断。
                 _errorLog?.Write(Texts.LogSourceReadLoop, Texts.ReadLoopEnded + ex.Message, ex);
             }
 
             ConnectionLost?.Invoke(this, e);
+        }
+
+        /// <summary>触发 <see cref="CommandsFailed"/>;处理程序的异常写入错误日志,不影响这次发送的结果 (与通讯库的事件相同)。</summary>
+        private void RaiseCommandsFailed(CommandsFailedEventArgs e)
+        {
+            try
+            {
+                CommandsFailed?.Invoke(this, e);
+            }
+#pragma warning disable CA1031 // 事件处理程序的异常与通讯无关:记录后继续,发送方仍得到自己的结果。
+            catch (Exception ex)
+#pragma warning restore CA1031
+            {
+                _errorLog?.Write(Texts.LogSourceEventHandler, Texts.HandlerFailed(nameof(CommandsFailed), ex.Message), ex);
+            }
         }
 
         private void OnHandlerFailed(object? sender, HandlerFailedEventArgs e) =>

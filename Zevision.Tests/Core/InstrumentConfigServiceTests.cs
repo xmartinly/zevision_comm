@@ -201,6 +201,21 @@ namespace Zevision.Tests
         }
 
         [Fact]
+        public async Task ExecuteRestore_StateError_ReportsCurrentState()
+        {
+            var device = NewDevice();
+            var (service, recipe, plan) = await PlanWithChangesAsync(device, ("M0103", "2.700"));
+            device.StateErrorWrites.Add("M0103");
+
+            var report = await service.ExecuteRestoreAsync(recipe, plan, null, CancellationToken.None);
+
+            // F:不自动切换设备状态,只读出 C09 一并报告。
+            Assert.Equal("M0103", report.FailedId);
+            Assert.EndsWith("设备当前状态 (C09): Ready。", report.Error);
+            Assert.Equal("QC09", device.Commands.Last());
+        }
+
+        [Fact]
         public async Task ExecuteRestore_ValueNotApplied_ReportsVerifyMismatch()
         {
             var device = NewDevice();

@@ -45,7 +45,7 @@ namespace Zevision.ViewModels.Editor
 
         /// <summary>提示。</summary>
         public string ToolTip => Lang.T(
-            "选择一个已有的膜层,点\"添加\"在设备上把它添加到这个工艺膜层列表的末尾,完成后重新读取。有勾选的项时不可用:请先保存或取消勾选",
-            "Choose an existing layer and click Add to append it to this process's layer list on the device, then read again. Not available while settings are checked: save or uncheck them first");
+            "把选中的膜层添加到工艺;有勾选项时不可用",
+            "Add the selected layer to the process; unavailable while settings are checked");
     }
 }

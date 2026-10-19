@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -5,8 +6,13 @@ namespace Zevision.Core
 {
     /// <summary>
     /// 保存通讯数据:把数据显示区的内容按显示的样子追加保存。只是记录用途,写入失败不影响通讯。
+    /// 实现可以先缓存在内存中,积累到一定大小、关闭或释放时再写入。
     /// </summary>
-    public interface ICommunicationRecorder
+    /// <remarks>
+    /// <see cref="IDisposable.Dispose"/> 在调用线程上写完缓存和已排队的行后关闭,用于程序退出 (后台写入可能来不及完成);
+    /// 不抛出 I/O 异常,可以在 <see cref="CloseAsync"/> 之后调用。
+    /// </remarks>
+    public interface ICommunicationRecorder : IDisposable
     {
         /// <summary>保存位置 (显示给用户)。</summary>
         string Path { get; }
@@ -14,7 +20,7 @@ namespace Zevision.Core
         /// <summary>追加一批行 (一次通讯显示的全部行)。不阻塞调用方,不抛出 I/O 异常。</summary>
         void Append(IReadOnlyList<string> lines);
 
-        /// <summary>写完已排队的行后关闭。之后的 <see cref="Append"/> 被忽略。</summary>
+        /// <summary>在后台写完缓存和已排队的行后关闭 (断开连接时)。之后的 <see cref="Append"/> 被忽略。</summary>
         /// <returns>关闭后完成;不会失败。</returns>
         Task CloseAsync();
     }

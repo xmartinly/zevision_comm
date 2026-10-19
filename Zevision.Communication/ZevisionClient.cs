@@ -14,7 +14,10 @@ namespace Zevision.Communication
     /// </summary>
     /// <remarks>
     /// <list type="bullet">
-    /// <item>一个后台读取循环负责拆帧 (含多包消息的重组);同一时间只有一个请求在等待响应,并发调用会排队。</item>
+    /// <item>一个后台读取循环负责拆帧 (含多包消息的重组);同一时间只有一个请求在等待响应,并发调用按优先级
+    /// (<see cref="RequestOptions.Priority"/>,同级按先后) 排队。</item>
+    /// <item>可选:传输出错时自动重发 (<see cref="ConnectionOptions.RetryCount"/>),
+    /// 空闲时发送心跳并在设备无应答时判定连接中断 (<see cref="ConnectionOptions.HeartbeatInterval"/>)。</item>
     /// <item>响应按命令回显与请求对应:回显不符的帧 (超时后迟到的响应、取消 <c>?</c> 后设备仍在发送的剩余数据)
     /// 作为未请求数据报告 (<see cref="FrameReceivedEventArgs.IsSolicited"/> 为 false),不会被当成当前请求的响应。</item>
     /// <item>帧的长度或校验和字节等于 <c>{ } &lt; &gt;</c> 时自动追加 <see cref="ZevisionFrameCodec.FillerCommand"/>
@@ -36,8 +39,8 @@ namespace Zevision.Communication
 
         private readonly Func<ConnectionEndpoint, IDeviceTransport> _transportFactory;
 
-        // 不释放:SemaphoreSlim 只有在用到 AvailableWaitHandle 时才持有非托管资源;释放它会让排队中的发送永远等待。
-        private readonly SemaphoreSlim _sendLock = new SemaphoreSlim(1, 1);
+        /// <summary>发送锁:持有者独占传输的写入和等待响应 (请求、心跳、改变帧格式)。</summary>
+        private readonly PriorityLock _sendLock = new PriorityLock();
 
         /// <summary>保护 <see cref="_session"/>、<see cref="_connecting"/>、<see cref="_disposed"/> 和会话的 <see cref="Session.Pending"/>。</summary>
         private readonly object _sync = new object();
@@ -74,19 +77,39 @@ namespace Zevision.Communication
         public event EventHandler<FrameReceivedEventArgs>? FrameReceived;
 
         /// <summary>
-        /// 连接意外中断 (串口拔出、TCP 断开、读取出错) 时触发 (后台线程)。主动断开不触发。
+        /// 连接意外中断 (串口拔出、TCP 断开、读取出错、心跳无应答) 时触发 (后台线程)。主动断开不触发。
         /// 触发时连接已经关闭,<see cref="IsConnected"/> 为 false。
         /// </summary>
         public event EventHandler<ConnectionLostEventArgs>? ConnectionLost;
 
         /// <summary>
-        /// <see cref="FrameSent"/>、<see cref="FrameReceived"/> 或 <see cref="ConnectionLost"/> 的处理程序抛出异常时触发 (后台线程)。
-        /// 这个事件自身的处理程序抛出的异常被忽略。
+        /// 一次请求传输出错、即将重发时触发 (后台线程,发送方的线程),见 <see cref="ConnectionOptions.RetryCount"/>。
+        /// </summary>
+        public event EventHandler<RetryEventArgs>? Retrying;
+
+        /// <summary>
+        /// <see cref="FrameSent"/>、<see cref="FrameReceived"/>、<see cref="ConnectionLost"/> 或 <see cref="Retrying"/>
+        /// 的处理程序抛出异常时触发 (后台线程)。这个事件自身的处理程序抛出的异常被忽略。
         /// </summary>
         public event EventHandler<HandlerFailedEventArgs>? HandlerFailed;
 
         /// <summary>通讯参数。</summary>
         public ConnectionOptions Options { get; }
+
+        /// <summary>
+        /// 当前使用的帧格式:连接时为 <see cref="ConnectionOptions.Frame"/>,可用 <see cref="ChangeFrameOptionsAsync"/> 改变;
+        /// 未连接时为 <see cref="ConnectionOptions.Frame"/>。
+        /// </summary>
+        public FrameOptions Frame
+        {
+            get
+            {
+                lock (_sync)
+                {
+                    return _session?.Frame ?? Options.Frame;
+                }
+            }
+        }
 
         /// <summary>是否已连接。</summary>
         public bool IsConnected
@@ -148,9 +171,14 @@ namespace Zevision.Communication
                 {
                     if (!_disposed)
                     {
-                        // 在同一个锁中发布会话并启动读取循环:断开时要么看不到会话,要么能等到它的读取循环结束。
+                        // 在同一个锁中发布会话并启动读取循环和心跳:断开时要么看不到会话,要么能等到它们结束。
                         _session = session;
                         session.ReadLoop = Task.Run(() => ReadLoopAsync(session));
+                        if (Options.HeartbeatInterval > TimeSpan.Zero)
+                        {
+                            session.Heartbeat = Task.Run(() => HeartbeatLoopAsync(session));
+                        }
+
                         return ZevisionResult.Ok();
                     }
                 }
@@ -169,7 +197,7 @@ namespace Zevision.Communication
         }
 
         /// <summary>
-        /// 关闭连接,并等待读取循环结束。正在等待的请求以 <see cref="ZevisionErrorKind.Disconnected"/> 结束。未连接时直接返回。
+        /// 关闭连接,并等待读取循环和心跳结束。正在等待的请求以 <see cref="ZevisionErrorKind.Disconnected"/> 结束。未连接时直接返回。
         /// </summary>
         public async Task DisconnectAsync()
         {
@@ -177,6 +205,11 @@ namespace Zevision.Communication
             if (session?.ReadLoop != null)
             {
                 await session.ReadLoop.ConfigureAwait(false);
+            }
+
+            if (session?.Heartbeat != null)
+            {
+                await session.Heartbeat.ConfigureAwait(false);
             }
         }
 
@@ -187,44 +220,110 @@ namespace Zevision.Communication
         /// <param name="cancellationToken">取消令牌;取消时抛出 <see cref="OperationCanceledException"/>。</param>
         /// <returns>设备的响应 (一条命令一个 <see cref="ZevisionResponse"/>),或失败原因。</returns>
         public Task<ZevisionResult<ZevisionReply>> SendAsync(string command, CancellationToken cancellationToken = default) =>
-            SendAsync(command, TimeSpan.Zero, cancellationToken);
+            SendAsync(command, RequestOptions.Default, cancellationToken);
 
         /// <summary>
-        /// 发送命令并等待响应,响应空闲超时至少为 <paramref name="minimumResponseTimeout"/>;
-        /// <see cref="ConnectionOptions.ResponseTimeout"/> 更长时用它。用于已知响应前或分包之间会停顿的指令,
-        /// 如 <c>?</c> (完整帮助约 116 KB,首字节约 0.4 s,包间约 0.35 s,建议至少 2 s)。
+        /// 发送命令并等待响应,响应空闲超时至少为 <paramref name="minimumResponseTimeout"/>
+        /// (见 <see cref="RequestOptions.MinimumResponseTimeout"/>)。
         /// </summary>
         /// <param name="command">命令数据,不含起止符。</param>
         /// <param name="minimumResponseTimeout">本次请求的最低空闲超时。</param>
         /// <param name="cancellationToken">取消令牌;取消时抛出 <see cref="OperationCanceledException"/>。</param>
         /// <returns>设备的响应,或失败原因。</returns>
-        public async Task<ZevisionResult<ZevisionReply>> SendAsync(string command, TimeSpan minimumResponseTimeout, CancellationToken cancellationToken = default)
+        public Task<ZevisionResult<ZevisionReply>> SendAsync(string command, TimeSpan minimumResponseTimeout, CancellationToken cancellationToken = default) =>
+            SendAsync(command, minimumResponseTimeout == TimeSpan.Zero ? RequestOptions.Default : new RequestOptions { MinimumResponseTimeout = minimumResponseTimeout }, cancellationToken);
+
+        /// <summary>
+        /// 按 <paramref name="options"/> (最低超时、优先级、是否允许重试) 发送命令并等待响应。
+        /// 传输出错时按 <see cref="ConnectionOptions.RetryCount"/> 重发,重发期间不让其他请求插入。
+        /// </summary>
+        /// <param name="command">命令数据,不含起止符。</param>
+        /// <param name="options">请求选项。</param>
+        /// <param name="cancellationToken">取消令牌;取消时抛出 <see cref="OperationCanceledException"/>。</param>
+        /// <returns>设备的响应 (重发时为最后一次的结果),或失败原因。</returns>
+        public async Task<ZevisionResult<ZevisionReply>> SendAsync(string command, RequestOptions options, CancellationToken cancellationToken = default)
         {
+            if (options is null)
+            {
+                throw new ArgumentNullException(nameof(options));
+            }
+
             if (string.IsNullOrWhiteSpace(command))
             {
                 return Fail(ZevisionErrorKind.InvalidCommand, "The command must not be empty.");
             }
 
-            await _sendLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+            await _sendLock.EnterAsync(options.Priority, cancellationToken).ConfigureAwait(false);
             try
             {
-                Session? session;
-                lock (_sync)
-                {
-                    session = _session;
-                }
-
+                var session = CurrentSession();
                 if (session == null)
                 {
                     return Fail(ZevisionErrorKind.NotConnected, "Not connected.");
                 }
 
-                var timeout = Options.ResponseTimeout > minimumResponseTimeout ? Options.ResponseTimeout : minimumResponseTimeout;
-                return await SendOnSessionAsync(session, command, timeout, cancellationToken).ConfigureAwait(false);
+                var timeout = Options.ResponseTimeout > options.MinimumResponseTimeout ? Options.ResponseTimeout : options.MinimumResponseTimeout;
+                var retries = options.AllowRetry && RetryPolicy.IsRepeatable(command) ? Options.RetryCount : 0;
+                for (var attempt = 1; ; attempt++)
+                {
+                    var result = await SendOnSessionAsync(session, command, timeout, silent: false, cancellationToken).ConfigureAwait(false);
+                    if (attempt > retries || !RetryPolicy.IsTransmissionFailure(result, out var deviceError))
+                    {
+                        return result;
+                    }
+
+                    Raise(Retrying, new RetryEventArgs(command, attempt, retries, result.IsSuccess ? null : result.Error, deviceError), nameof(Retrying));
+                }
             }
             finally
             {
-                _sendLock.Release();
+                _sendLock.Exit();
+            }
+        }
+
+        /// <summary>
+        /// 改变当前连接的帧格式:设备的 G1304/G1305 (TCP 为 G1407/G1408) 改变后,或探测设备实际使用的帧格式时。
+        /// 等正在进行的请求完成后生效 (排在等待发送的请求之前);解码器中没收完的数据先作为不完整的帧报告。
+        /// 只影响这次连接,重新连接时仍使用 <see cref="ConnectionOptions.Frame"/>。
+        /// </summary>
+        /// <param name="frame">新的帧格式。</param>
+        /// <param name="cancellationToken">取消令牌;取消时抛出 <see cref="OperationCanceledException"/>。</param>
+        /// <returns>成功,或 <see cref="ZevisionErrorKind.NotConnected"/>。</returns>
+        public async Task<ZevisionResult> ChangeFrameOptionsAsync(FrameOptions frame, CancellationToken cancellationToken = default)
+        {
+            if (frame is null)
+            {
+                throw new ArgumentNullException(nameof(frame));
+            }
+
+            await _sendLock.EnterAsync(SendPriority.High, cancellationToken).ConfigureAwait(false);
+            try
+            {
+                var session = CurrentSession();
+                if (session == null)
+                {
+                    return ZevisionResult.Fail(new ZevisionError(ZevisionErrorKind.NotConnected, "Not connected."));
+                }
+
+                lock (session.ReceiveLock)
+                {
+                    foreach (var partial in session.Decoder.FlushIncomplete())
+                    {
+                        Raise(FrameReceived, new FrameReceivedEventArgs(partial, false), nameof(FrameReceived));
+                    }
+
+                    session.Decoder = new ZevisionFrameDecoder(frame);
+                    lock (_sync)
+                    {
+                        session.Frame = frame;
+                    }
+                }
+
+                return ZevisionResult.Ok();
+            }
+            finally
+            {
+                _sendLock.Exit();
             }
         }
 
@@ -242,21 +341,33 @@ namespace Zevision.Communication
             EndSession(null);
         }
 
-        private async Task<ZevisionResult<ZevisionReply>> SendOnSessionAsync(Session session, string command, TimeSpan responseTimeout, CancellationToken cancellationToken)
+        private Session? CurrentSession()
+        {
+            lock (_sync)
+            {
+                return _session;
+            }
+        }
+
+        /// <summary>
+        /// 在会话上发送一帧并等待响应 (调用方持有发送锁)。<c>silent</c> (心跳) 时不触发 <see cref="FrameSent"/>,
+        /// 响应也不触发 <see cref="FrameReceived"/>。
+        /// </summary>
+        private async Task<ZevisionResult<ZevisionReply>> SendOnSessionAsync(Session session, string command, TimeSpan responseTimeout, bool silent, CancellationToken cancellationToken)
         {
             byte[] frame;
             string sentCommand;
             try
             {
                 // 设备会把等于分隔符的校验和误当作停止符,必要时追加 ;H01 改变校验和 (见 EncodeAvoidingDelimiters)。
-                frame = ZevisionFrameCodec.EncodeAvoidingDelimiters(command, Options.Frame, out sentCommand);
+                frame = ZevisionFrameCodec.EncodeAvoidingDelimiters(command, session.Frame, out sentCommand);
             }
             catch (ArgumentException ex)
             {
                 return ZevisionResult<ZevisionReply>.Fail(new ZevisionError(ZevisionErrorKind.InvalidCommand, ex.Message) { Exception = ex });
             }
 
-            var pending = new PendingRequest(ZevisionResponseParser.EchoOf(command));
+            var pending = new PendingRequest(ZevisionResponseParser.EchoOf(command), silent);
             lock (_sync)
             {
                 // 与 EndSession 互斥:会话在取得发送锁之后已结束时立即失败,否则这个请求不会被取消,只能等到超时。
@@ -270,10 +381,15 @@ namespace Zevision.Communication
 
             try
             {
-                Raise(FrameSent, new FrameSentEventArgs(sentCommand, frame), nameof(FrameSent));
+                if (!silent)
+                {
+                    Raise(FrameSent, new FrameSentEventArgs(sentCommand, frame), nameof(FrameSent));
+                }
+
                 try
                 {
                     await session.Transport.WriteAsync(frame, cancellationToken).ConfigureAwait(false);
+                    Interlocked.Exchange(ref session.LastSendTimestamp, Stopwatch.GetTimestamp());
                 }
                 catch (Exception ex) when (ex is IOException || ex is TimeoutException || ex is InvalidOperationException || ex is ObjectDisposedException)
                 {
@@ -480,9 +596,77 @@ namespace Zevision.Communication
                 }
             }
 
-            // 先通知 FrameReceived,再完成请求,保证调用方先看到收到的帧,再看到该请求的结果。
-            Raise(FrameReceived, new FrameReceivedEventArgs(frame, claimed != null), nameof(FrameReceived));
+            // 先通知 FrameReceived,再完成请求,保证调用方先看到收到的帧,再看到该请求的结果。心跳的响应不通知。
+            if (claimed == null || !claimed.Silent)
+            {
+                Raise(FrameReceived, new FrameReceivedEventArgs(frame, claimed != null), nameof(FrameReceived));
+            }
+
             claimed?.Reply.TrySetResult(new ReceivedReply(frame, responses));
+        }
+
+        /// <summary>
+        /// 心跳 (<see cref="ConnectionOptions.HeartbeatInterval"/> 大于零时):连接空闲 (没有收发) 满一个间隔后发送 <c>H01</c>,
+        /// 不触发收发事件。只在发送锁空闲时发送,不排在其他请求前面,也不打断它们。设备有任何回答 (包括错误响应、无效帧)
+        /// 都算应答;连续 <see cref="ConnectionOptions.HeartbeatMissLimit"/> 次无应答则结束会话并触发 <see cref="ConnectionLost"/>。
+        /// 一次无应答后立即再发,不再等一个间隔。
+        /// </summary>
+        private async Task HeartbeatLoopAsync(Session session)
+        {
+            var interval = Options.HeartbeatInterval;
+            var token = session.Cancellation.Token;
+            var misses = 0;
+            try
+            {
+                while (!token.IsCancellationRequested)
+                {
+                    var wait = misses > 0 ? TimeSpan.Zero : interval - session.IdleTime;
+                    if (wait > TimeSpan.Zero)
+                    {
+                        await Task.Delay(wait < MaxDelay ? wait : MaxDelay, token).ConfigureAwait(false);
+                        continue;
+                    }
+
+                    if (!_sendLock.TryEnter())
+                    {
+                        // 有请求正在收发或排队:连接不空闲,过一个间隔再看。
+                        await Task.Delay(interval < MaxDelay ? interval : MaxDelay, token).ConfigureAwait(false);
+                        continue;
+                    }
+
+                    ZevisionResult<ZevisionReply> result;
+                    try
+                    {
+                        result = await SendOnSessionAsync(session, ZevisionFrameCodec.FillerCommand, Options.ResponseTimeout, silent: true, CancellationToken.None).ConfigureAwait(false);
+                    }
+                    finally
+                    {
+                        _sendLock.Exit();
+                    }
+
+                    var kind = result.IsSuccess ? (ZevisionErrorKind?)null : result.Error!.Kind;
+                    if (kind == ZevisionErrorKind.Disconnected)
+                    {
+                        return; // 会话已结束 (断开或读取出错),由结束它的一方处理。
+                    }
+
+                    misses = kind == ZevisionErrorKind.Timeout || kind == ZevisionErrorKind.SendFailed ? misses + 1 : 0;
+                    if (misses >= Options.HeartbeatMissLimit)
+                    {
+                        if (EndSession(session) != null)
+                        {
+                            var timeout = new TimeoutException($"The device did not answer {misses} heartbeats in a row.");
+                            Raise(ConnectionLost, new ConnectionLostEventArgs(timeout, ConnectionLostReason.HeartbeatTimeout), nameof(ConnectionLost));
+                        }
+
+                        return;
+                    }
+                }
+            }
+            catch (OperationCanceledException) when (token.IsCancellationRequested)
+            {
+                // 会话结束。
+            }
         }
 
         /// <summary>
@@ -563,34 +747,60 @@ namespace Zevision.Communication
         /// <summary>正在等待响应的请求。</summary>
         private sealed class PendingRequest
         {
-            public PendingRequest(string expectedEcho)
+            public PendingRequest(string expectedEcho, bool silent)
             {
                 ExpectedEcho = expectedEcho;
+                Silent = silent;
             }
 
             /// <summary>响应中应有的命令回显。</summary>
             public string ExpectedEcho { get; }
 
+            /// <summary>响应不触发 <see cref="FrameReceived"/> (心跳)。</summary>
+            public bool Silent { get; }
+
             public TaskCompletionSource<ReceivedReply> Reply { get; } =
                 new TaskCompletionSource<ReceivedReply>(TaskCreationOptions.RunContinuationsAsynchronously);
         }
 
-        /// <summary>一次连接的状态:传输、解码器、读取循环、等待中的请求。断开后丢弃,重新连接时新建。</summary>
+        /// <summary>一次连接的状态:传输、帧格式、解码器、读取循环、心跳、等待中的请求。断开后丢弃,重新连接时新建。</summary>
+        /// <remarks>
+        /// <see cref="Cancellation"/> 不释放:它没有计时器和关联的令牌,不持有非托管资源;
+        /// 而连接中断与主动断开可能在不同线程上结束会话,释放后再取消会抛出 <see cref="ObjectDisposedException"/>。
+        /// </remarks>
         private sealed class Session
         {
             /// <summary>最近一次收到数据的时间 (<see cref="Stopwatch.GetTimestamp"/>),用于空闲超时;用 <see cref="Interlocked"/> 读写。</summary>
             public long LastReceiveTimestamp;
 
+            /// <summary>最近一次发送的时间,与 <see cref="LastReceiveTimestamp"/> 一起决定连接是否空闲 (心跳)。</summary>
+            public long LastSendTimestamp;
+
             public Session(IDeviceTransport transport, FrameOptions frame)
             {
                 Transport = transport;
+                Frame = frame;
                 Decoder = new ZevisionFrameDecoder(frame);
+                LastReceiveTimestamp = LastSendTimestamp = Stopwatch.GetTimestamp();
             }
 
             public IDeviceTransport Transport { get; }
 
-            /// <summary>解码器非线程安全。</summary>
-            public ZevisionFrameDecoder Decoder { get; }
+            /// <summary>帧格式;在 <see cref="ReceiveLock"/> 和客户端的 <c>_sync</c> 中修改,修改时调用方持有发送锁。</summary>
+            public FrameOptions Frame { get; set; }
+
+            /// <summary>解码器非线程安全,只在 <see cref="ReceiveLock"/> 中使用和替换。</summary>
+            public ZevisionFrameDecoder Decoder { get; set; }
+
+            /// <summary>距最近一次收发的时间。</summary>
+            public TimeSpan IdleTime
+            {
+                get
+                {
+                    var last = Math.Max(Interlocked.Read(ref LastReceiveTimestamp), Interlocked.Read(ref LastSendTimestamp));
+                    return TimeSpan.FromSeconds((double)(Stopwatch.GetTimestamp() - last) / Stopwatch.Frequency);
+                }
+            }
 
             /// <summary>
             /// 读取循环的解码和分发,与发送方超时时报告未收完的数据互斥:<see cref="FrameReceived"/> 依次触发,
@@ -604,6 +814,9 @@ namespace Zevision.Communication
             public PendingRequest? Pending { get; set; }
 
             public Task? ReadLoop { get; set; }
+
+            /// <summary>心跳循环;没有启用心跳时为 null。</summary>
+            public Task? Heartbeat { get; set; }
         }
     }
 }

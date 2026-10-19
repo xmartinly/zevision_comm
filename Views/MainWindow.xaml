@@ -116,8 +116,8 @@
                             </StackPanel>
                         </Button>
                     </UniformGrid>
-                    <StackPanel Orientation="Horizontal" Margin="2,12,0,0">
-                        <Ellipse x:Name="StatusDot" Width="10" Height="10" VerticalAlignment="Center">
+                    <DockPanel Margin="2,12,0,0">
+                        <Ellipse x:Name="StatusDot" DockPanel.Dock="Left" Width="10" Height="10" VerticalAlignment="Center">
                             <Ellipse.Style>
                                 <Style TargetType="Ellipse">
                                     <Setter Property="Fill" Value="{DynamicResource MaterialDesign.Brush.ForegroundLight}" />
@@ -125,12 +125,18 @@
                                         <DataTrigger Binding="{Binding IsConnected}" Value="True">
                                             <Setter Property="Fill" Value="{DynamicResource MaterialDesign.Brush.Secondary}" />
                                         </DataTrigger>
+                                        <!-- 正在连接、握手或等待自动重连 -->
+                                        <DataTrigger Binding="{Binding IsConnecting}" Value="True">
+                                            <Setter Property="Fill" Value="{DynamicResource MaterialDesign.Brush.Primary}" />
+                                        </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
                             </Ellipse.Style>
                         </Ellipse>
-                        <TextBlock Text="{Binding StatusText}" Margin="8,0,0,0" VerticalAlignment="Center" />
-                    </StackPanel>
+                        <!-- 重连提示较长:放不下时截断,完整内容见提示 -->
+                        <TextBlock Text="{Binding StatusText}" ToolTip="{Binding StatusText}" Margin="8,0,0,0" VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis" />
+                    </DockPanel>
                 </StackPanel>
 
                 <Separator DockPanel.Dock="Bottom" Margin="0" />
@@ -211,7 +217,7 @@
 
                         <!-- 两种设置叠放在同一格中,未选中的用 Hidden (仍占位):区域高度固定为较高的一种,
                              切换 tab 时下方"协议选项"等位置不变 -->
-                        <Grid Margin="0,12,0,12">
+                        <Grid Margin="0,12,0,8">
                             <StackPanel>
                                 <StackPanel.Style>
                                     <Style TargetType="StackPanel">
@@ -268,7 +274,7 @@
                             </TextBox>
                         </Grid>
 
-                        <TextBlock Text="{x:Static t:UiText.ProtocolOptions}" FontWeight="SemiBold" Margin="0,4,0,12"
+                        <TextBlock Text="{x:Static t:UiText.ProtocolOptions}" FontWeight="SemiBold" Margin="0,0,0,12"
                                    Foreground="{DynamicResource MaterialDesign.Brush.Primary}"
                                    ToolTip="{x:Static t:UiText.ProtocolOptionsToolTip}"
                                    ToolTipService.ShowOnDisabled="True" />
@@ -280,21 +286,35 @@
                                   ToolTip="{x:Static t:UiText.ResponseTimeoutToolTip}"
                                   ToolTipService.ShowOnDisabled="True" />
 
-                        <DockPanel Margin="0,4" Background="Transparent"
+                        <DockPanel Margin="0,2" Background="Transparent"
                                    ToolTip="{x:Static t:UiText.ChecksumToolTip}"
                                    ToolTipService.ShowOnDisabled="True">
                             <ToggleButton DockPanel.Dock="Right" IsChecked="{Binding Connection.IsChecksumEnabled}"
                                           Style="{StaticResource MaterialDesignSwitchToggleButton}" />
                             <TextBlock Text="{Binding Connection.ChecksumLabel}" VerticalAlignment="Center" />
                         </DockPanel>
-                        <DockPanel Margin="0,4" Background="Transparent"
+                        <DockPanel Margin="0,2" Background="Transparent"
                                    ToolTip="{x:Static t:UiText.LengthToolTip}"
                                    ToolTipService.ShowOnDisabled="True">
                             <ToggleButton DockPanel.Dock="Right" IsChecked="{Binding Connection.IsLengthEnabled}"
                                           Style="{StaticResource MaterialDesignSwitchToggleButton}" />
                             <TextBlock Text="{Binding Connection.LengthLabel}" VerticalAlignment="Center" />
                         </DockPanel>
-                        <DockPanel Margin="0,4" Background="Transparent"
+                        <DockPanel Margin="0,2" Background="Transparent"
+                                   ToolTip="{x:Static t:UiText.HandshakeToolTip}"
+                                   ToolTipService.ShowOnDisabled="True">
+                            <ToggleButton DockPanel.Dock="Right" IsChecked="{Binding Connection.IsHandshakeEnabled}"
+                                          Style="{StaticResource MaterialDesignSwitchToggleButton}" />
+                            <TextBlock Text="{x:Static t:UiText.Handshake}" VerticalAlignment="Center" />
+                        </DockPanel>
+                        <DockPanel Margin="0,2" Background="Transparent"
+                                   ToolTip="{x:Static t:UiText.AutoReconnectToolTip}"
+                                   ToolTipService.ShowOnDisabled="True">
+                            <ToggleButton DockPanel.Dock="Right" IsChecked="{Binding Connection.IsAutoReconnectEnabled}"
+                                          Style="{StaticResource MaterialDesignSwitchToggleButton}" />
+                            <TextBlock Text="{x:Static t:UiText.AutoReconnect}" VerticalAlignment="Center" />
+                        </DockPanel>
+                        <DockPanel Margin="0,2" Background="Transparent"
                                    ToolTip="{x:Static t:UiText.SaveCommunicationDataToolTip}"
                                    ToolTipService.ShowOnDisabled="True">
                             <ToggleButton DockPanel.Dock="Right" IsChecked="{Binding Connection.IsSaveCommunicationDataEnabled}"
@@ -338,6 +358,21 @@
                             <TextBlock Text="{Binding TxCount}" FontWeight="SemiBold" />
                             <TextBlock Text="   RX " Foreground="{DynamicResource MaterialDesign.Brush.ForegroundLight}" />
                             <TextBlock Text="{Binding RxCount}" FontWeight="SemiBold" />
+                            <!-- 错误指令数:有错误时用错误色显示 -->
+                            <StackPanel Orientation="Horizontal" Background="Transparent" ToolTip="{x:Static t:UiText.ErrorCountToolTip}">
+                                <TextBlock Text="   ERR " Foreground="{DynamicResource MaterialDesign.Brush.ForegroundLight}" />
+                                <TextBlock Text="{Binding ErrorCount}" FontWeight="SemiBold">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding HasErrors}" Value="True">
+                                                    <Setter Property="Foreground" Value="{DynamicResource MaterialDesign.Brush.ValidationError}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <materialDesign:PackIcon Kind="ConsoleLine" VerticalAlignment="Center"

@@ -97,8 +97,8 @@ namespace Zevision.ViewModels.Operations
         /// <summary>修改配置来源的选项。</summary>
         public IReadOnlyList<Choice<EditSource>> EditSources { get; } = new[]
         {
-            new Choice<EditSource>(EditSource.Device, Lang.T("实机数据", "Device data"), Lang.T("读取设备当前配置 (约 10 秒) 后修改,只写入设备,不保存文件", "Read the current device configuration (about 10 s), then edit; writes to the device only, no file is saved")),
-            new Choice<EditSource>(EditSource.File, Lang.T("保存的配置", "Saved configuration"), Lang.T("选择配置文件后修改,写入设备并保存到该文件", "Choose a configuration file and edit it; writes to the device and saves the file")),
+            new Choice<EditSource>(EditSource.Device, Lang.T("实机数据", "Device data"), Lang.T("修改设备的当前配置", "Edit the current device configuration")),
+            new Choice<EditSource>(EditSource.File, Lang.T("保存的配置", "Saved configuration"), Lang.T("修改配置文件,同时写入设备", "Edit a configuration file; also writes to the device")),
         };
 
         /// <summary>修改配置的数据来源。</summary>

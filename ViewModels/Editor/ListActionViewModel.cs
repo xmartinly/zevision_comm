@@ -64,12 +64,12 @@ namespace Zevision.ViewModels.Editor
 
         /// <summary>追加按钮的提示。</summary>
         public string AddToolTip => Lang.T(
-            $"在设备上把一条{ListName}追加到列表末尾 (使用设备默认值,现有 {Count} 条),完成后重新读取,新的一条出现后可以修改。有勾选的项时不可用:请先保存或取消勾选",
-            $"Appends a {ListName.ToLowerInvariant()} to the end of the list on the device (device defaults; {Count} now), then reads again so you can edit it. Not available while settings are checked: save or uncheck them first");
+            $"在设备上添加一条{ListName};有勾选项时不可用",
+            $"Add a {ListName.ToLowerInvariant()} on the device; unavailable while settings are checked");
 
         /// <summary>删除按钮的提示。</summary>
         public string RemoveToolTip => Lang.T(
-            $"在设备上删除最后一条{ListName} (第 {Count} 条,需确认,不能撤销),完成后重新读取。有勾选的项时不可用",
-            $"Removes the last {ListName.ToLowerInvariant()} (number {Count}) on the device (asks first; cannot be undone), then reads again. Not available while settings are checked");
+            $"删除最后一条{ListName};有勾选项时不可用",
+            $"Remove the last {ListName.ToLowerInvariant()}; unavailable while settings are checked");
     }
 }

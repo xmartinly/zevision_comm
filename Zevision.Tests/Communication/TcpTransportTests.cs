@@ -238,6 +238,7 @@ namespace Zevision.Tests
                 main.Connection.SelectedConnectionType = ConnectionType.Tcp;
                 main.Connection.TcpHost = "127.0.0.1";
                 main.Connection.TcpPort = Port; // 只有测试改端口:连接回环地址上的随机端口
+                main.Connection.IsHandshakeEnabled = false; // 回环上的监听方不应答 (握手见 HandshakeTests)
                 var accept = _listener.AcceptTcpClientAsync();
 
                 main.ConnectCommand.Execute(null);

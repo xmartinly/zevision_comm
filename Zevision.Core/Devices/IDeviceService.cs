@@ -19,16 +19,36 @@ namespace Zevision.Core.Devices
         /// <summary>收到一帧 (含错误帧和帧外数据) 时触发。</summary>
         event EventHandler<FrameReceivedEventArgs>? FrameReceived;
 
-        /// <summary>连接因传输错误 (串口拔出、TCP 断开等) 意外中断时触发。主动断开不触发。</summary>
+        /// <summary>连接因传输错误 (串口拔出、TCP 断开等) 或心跳无应答意外中断时触发。主动断开不触发。</summary>
         event EventHandler<ConnectionLostEventArgs>? ConnectionLost;
 
-        /// <summary>是否已连接。</summary>
+        /// <summary>一次发送传输出错、即将重发时触发 (见 <see cref="ConnectionOptions.RetryCount"/>;不显示的发送不触发)。</summary>
+        event EventHandler<RetryEventArgs>? Retrying;
+
+        /// <summary>
+        /// 一次发送结束,其中有指令没有得到成功响应时触发 (发送方的线程)。设备的否定响应 (含不回显的 <c>-C</c>) 计该指令;
+        /// 发出后没有有效响应 (超时、写入失败、响应帧无效或无法解析) 计帧中全部指令;重发后成功的、未发出的、
+        /// 等待时连接断开的不计。不显示的发送和握手不触发。
+        /// </summary>
+        event EventHandler<CommandsFailedEventArgs>? CommandsFailed;
+
+        /// <summary>是否已连接 (通道已打开;是否握手由调用方决定)。</summary>
         bool IsConnected { get; }
 
         /// <summary>
-        /// 打开连接 (串口或 TCP) 并开始接收。连接参数 (连接目标、帧格式、响应超时) 在连接期间不变。
+        /// 打开连接 (串口或 TCP) 并开始接收。连接参数 (连接目标、帧格式、响应超时、重试、心跳) 在连接期间不变,
+        /// 帧格式可由 <see cref="HandshakeAsync"/> 改为设备的实际设置。
         /// </summary>
         Task<Result> ConnectAsync(ConnectionOptions options, CancellationToken cancellationToken);
+
+        /// <summary>
+        /// 握手:按设备的回答确定它在这个接口上使用的帧格式并改用它 (先试 <paramref name="preferred"/>),
+        /// 再读取型号 (G03) 和帧格式设置。期间的收发不显示。连接后,以及设备的帧格式设置被修改后调用。
+        /// </summary>
+        /// <param name="preferred">先尝试的帧格式 (界面上的设置,或刚修改成的格式)。</param>
+        /// <param name="cancellationToken">取消令牌。</param>
+        /// <returns>设备信息;设备无应答、帧格式无法识别或读不到型号时失败,原因可直接显示。</returns>
+        Task<Result<DeviceIdentity>> HandshakeAsync(FrameOptions preferred, CancellationToken cancellationToken);
 
         /// <summary>
         /// 关闭连接。未连接时直接返回。

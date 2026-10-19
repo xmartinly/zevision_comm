@@ -63,9 +63,15 @@
     <Compile Include="Configuration\RecipeEditSession.cs" />
     <Compile Include="Configuration\RecipeRules.cs" />
     <Compile Include="Configuration\RestorePlanner.cs" />
+    <Compile Include="Devices\DeviceHandshake.cs" />
+    <Compile Include="Devices\CommandFailures.cs" />
+    <Compile Include="Devices\DeviceIdentity.cs" />
+    <Compile Include="Devices\FrameFormatDetector.cs" />
+    <Compile Include="Devices\FrameSettings.cs" />
     <Compile Include="Devices\FramingCheck.cs" />
     <Compile Include="Devices\IDeviceService.cs" />
     <Compile Include="Devices\ManualCommandPolicy.cs" />
+    <Compile Include="Devices\ReconnectPolicy.cs" />
     <Compile Include="Devices\ZevisionDeviceService.cs" />
     <Compile Include="Localization\CommandText.cs" />
     <Compile Include="Localization\CommunicationText.cs" />

@@ -102,6 +102,7 @@
     <Compile Include="ViewModels\Display\FrameLogFormatter.cs" />
     <Compile Include="ViewModels\Display\LogViewModel.cs" />
     <Compile Include="ViewModels\Main\MainViewModel.cs" />
+    <Compile Include="ViewModels\Main\ConnectionLifecycle.cs" />
     <Compile Include="ViewModels\Main\ConnectionSettingsViewModel.cs" />
     <Compile Include="ViewModels\Display\ResponseLogFormatter.cs" />
     <Compile Include="ViewModels\Common\IRequestClose.cs" />

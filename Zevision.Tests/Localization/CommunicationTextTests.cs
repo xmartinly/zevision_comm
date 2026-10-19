@@ -89,5 +89,33 @@ namespace Zevision.Tests
                 }
             }
         }
+
+        [Fact]
+        public void DescribeRetry_TransportErrorOrDeviceCode()
+        {
+            var timeout = new RetryEventArgs("QG01", 1, 2, new ZevisionError(ZevisionErrorKind.Timeout, "x") { Timeout = TimeSpan.FromSeconds(1) }, ZevisionErrorCode.None);
+            var checksum = new RetryEventArgs("UG0E03:20", 2, 2, null, ZevisionErrorCode.ChecksumError);
+
+            Assert.Equal("第 1/2 次重发 QG01: 等待响应超时 (1000 ms 内未收到数据)。", CommunicationText.DescribeRetry(timeout));
+            Assert.Equal("第 2/2 次重发 UG0E03:20: 设备回答 C (校验和错误)", CommunicationText.DescribeRetry(checksum));
+            using (Lang.Override(UiLanguage.English))
+            {
+                Assert.Equal("Retry 2/2 of UG0E03:20: the device answered C (Checksum error)", CommunicationText.DescribeRetry(checksum));
+            }
+        }
+
+        [Fact]
+        public void DescribeConnectionLost_HeartbeatOrException()
+        {
+            var heartbeat = new ConnectionLostEventArgs(new TimeoutException("x"), ConnectionLostReason.HeartbeatTimeout);
+            var unplugged = new ConnectionLostEventArgs(new IOException("设备已移除。"));
+
+            Assert.Equal("设备连续 3 次没有应答心跳。", CommunicationText.DescribeConnectionLost(heartbeat, 3));
+            Assert.Equal("设备已移除。", CommunicationText.DescribeConnectionLost(unplugged, 3));
+            using (Lang.Override(UiLanguage.English))
+            {
+                Assert.Equal("The device did not answer 3 heartbeats in a row.", CommunicationText.DescribeConnectionLost(heartbeat, 3));
+            }
+        }
     }
 }

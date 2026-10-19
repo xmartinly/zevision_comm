@@ -29,14 +29,27 @@ namespace Zevision.ViewModels.Main
     /// <remarks>
     /// 校验和、长度字节和保存通讯数据按连接方式各有一组 (设备上 RS232 与 TCP 的帧格式是独立的设置),
     /// 开关显示的是选中的连接方式的那一组,切换 tab 时随之切换。
+    /// <para>
+    /// "连接时握手"开启时 (默认),连接后按设备的实际设置确定帧格式 (校验和、长度字节开关随之更新),
+    /// 并启用传输出错重发 (<see cref="HandshakeRetryCount"/>) 和心跳 (<see cref="HandshakeHeartbeatInterval"/>);
+    /// 关闭时只打开通道,帧格式按开关,不重发、不发心跳 (与 1.0 版相同),用于调试。
+    /// </para>
     /// </remarks>
     public sealed class ConnectionSettingsViewModel : ViewModelBase
     {
+        /// <summary>启用握手时,传输出错 (超时、帧无效、设备回答 C/L/T) 后重发的次数。</summary>
+        public const int HandshakeRetryCount = 2;
+
+        /// <summary>启用握手时的心跳间隔:连接空闲这么久后发送一次不显示的 H01。</summary>
+        public static readonly TimeSpan HandshakeHeartbeatInterval = TimeSpan.FromSeconds(5);
+
         private ConnectionType _connectionType = ConnectionType.Serial;
         private string _tcpHost = string.Empty;
         private string? _selectedPort;
         private int _selectedBaudRate = 115200;
         private int _selectedTimeout = 1000;
+        private bool _isHandshakeEnabled = true;
+        private bool _isAutoReconnectEnabled;
         private readonly LinkSwitches _serial = new LinkSwitches();
         private readonly LinkSwitches _tcp = new LinkSwitches();
 
@@ -165,8 +178,56 @@ namespace Zevision.ViewModels.Main
             set => SetProperty(ref Switches.SaveCommunicationData, value);
         }
 
+        /// <summary>
+        /// 连接时是否握手:确认设备应答,按设备的实际设置确定帧格式 (开关随之更新),读取型号;并启用重发和心跳。
+        /// 关闭时只打开通道,用于调试帧格式不一致等情况。两种连接方式共用。
+        /// </summary>
+        public bool IsHandshakeEnabled
+        {
+            get => _isHandshakeEnabled;
+            set => SetProperty(ref _isHandshakeEnabled, value);
+        }
+
+        /// <summary>连接意外中断后是否自动重连 (1、2、4 … 秒后,最长 60 秒一次,直到成功或断开)。两种连接方式共用。</summary>
+        public bool IsAutoReconnectEnabled
+        {
+            get => _isAutoReconnectEnabled;
+            set => SetProperty(ref _isAutoReconnectEnabled, value);
+        }
+
+        /// <summary>选中的连接方式的开关对应的帧格式。</summary>
+        public FrameOptions Frame => new FrameOptions(IsChecksumEnabled, IsLengthEnabled);
+
         /// <summary>选中的连接方式的开关。</summary>
         private LinkSwitches Switches => IsTcpConnection ? _tcp : _serial;
+
+        /// <summary>把选中的连接方式的校验和、长度字节开关改为设备实际使用的帧格式 (握手后)。</summary>
+        public void ApplyFrame(FrameOptions frame)
+        {
+            if (frame is null)
+            {
+                throw new ArgumentNullException(nameof(frame));
+            }
+
+            Switches.Checksum = frame.ChecksumEnabled;
+            Switches.Length = frame.LengthEnabled;
+            OnSwitchesChanged();
+        }
+
+        /// <summary>帧格式的说明,如"校验和 (G1304) 开,长度字节 (G1305) 关"。</summary>
+        public string DescribeFrame(FrameOptions frame)
+        {
+            if (frame is null)
+            {
+                throw new ArgumentNullException(nameof(frame));
+            }
+
+            var on = Lang.T("开", "on");
+            var off = Lang.T("关", "off");
+            return Lang.T(
+                $"{ChecksumLabel} {(frame.ChecksumEnabled ? on : off)},{LengthLabel} {(frame.LengthEnabled ? on : off)}",
+                $"{ChecksumLabel} {(frame.ChecksumEnabled ? on : off)}, {LengthLabel} {(frame.LengthEnabled ? on : off)}");
+        }
 
         /// <summary>重新扫描串口;原来选中的串口仍存在时保持选中,否则选第一个。</summary>
         public void RefreshPorts()
@@ -208,20 +269,25 @@ namespace Zevision.ViewModels.Main
                 endpoint = new TcpSettings(TcpHost, TcpPort);
             }
 
-            return Result<ConnectionOptions>.Ok(new ConnectionOptions(
-                endpoint,
-                new FrameOptions(IsChecksumEnabled, IsLengthEnabled),
-                TimeSpan.FromMilliseconds(SelectedTimeout)));
+            // 握手开启时启用重发和心跳;关闭时只打开通道 (与 1.0 版相同)。
+            return Result<ConnectionOptions>.Ok(new ConnectionOptions(endpoint, Frame, TimeSpan.FromMilliseconds(SelectedTimeout))
+            {
+                RetryCount = IsHandshakeEnabled ? HandshakeRetryCount : 0,
+                HeartbeatInterval = IsHandshakeEnabled ? HandshakeHeartbeatInterval : TimeSpan.Zero,
+            });
         }
 
         /// <summary>连接成功后的说明,如"已连接 COM3 …;校验和 (G1304) 开,长度字节 (G1305) 关,超时 1000 ms。"。</summary>
         public string DescribeConnected(ConnectionOptions options)
         {
-            var on = Lang.T("开", "on");
-            var off = Lang.T("关", "off");
+            if (options is null)
+            {
+                throw new ArgumentNullException(nameof(options));
+            }
+
             return Lang.T(
-                $"已连接 {options.Endpoint};{ChecksumLabel} {(IsChecksumEnabled ? on : off)},{LengthLabel} {(IsLengthEnabled ? on : off)},超时 {SelectedTimeout} ms。",
-                $"Connected to {options.Endpoint}; {ChecksumLabel} {(IsChecksumEnabled ? on : off)}, {LengthLabel} {(IsLengthEnabled ? on : off)}, timeout {SelectedTimeout} ms.");
+                $"已连接 {options.Endpoint};{DescribeFrame(Frame)},超时 {SelectedTimeout} ms。",
+                $"Connected to {options.Endpoint}; {DescribeFrame(Frame)}, timeout {SelectedTimeout} ms.");
         }
 
         /// <summary>
@@ -248,6 +314,8 @@ namespace Zevision.ViewModels.Main
             _tcp.Length = saved.TcpLengthEnabled;
             _tcp.SaveCommunicationData = saved.TcpSaveCommunicationData;
             OnSwitchesChanged();
+            IsHandshakeEnabled = saved.HandshakeEnabled;
+            IsAutoReconnectEnabled = saved.AutoReconnect;
             if (TryParseName(saved.ConnectionType, out ConnectionType connectionType))
             {
                 SelectedConnectionType = connectionType;
@@ -273,6 +341,8 @@ namespace Zevision.ViewModels.Main
             preferences.TcpChecksumEnabled = _tcp.Checksum;
             preferences.TcpLengthEnabled = _tcp.Length;
             preferences.TcpSaveCommunicationData = _tcp.SaveCommunicationData;
+            preferences.HandshakeEnabled = IsHandshakeEnabled;
+            preferences.AutoReconnect = IsAutoReconnectEnabled;
             preferences.ConnectionType = SelectedConnectionType.ToString();
             preferences.TcpHost = TcpHost.Trim();
         }

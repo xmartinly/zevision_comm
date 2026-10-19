@@ -22,6 +22,15 @@ namespace Zevision.Tests
 
         public List<byte[]> Written { get; } = new List<byte[]>();
 
+        /// <summary>写入的帧的副本 (可以在后台线程写入时调用)。</summary>
+        public IReadOnlyList<byte[]> WrittenSnapshot()
+        {
+            lock (Written)
+            {
+                return Written.ToArray();
+            }
+        }
+
         /// <summary>收到写入的帧后返回要回送的字节;返回 null 表示不应答。</summary>
         public Func<byte[], byte[]?>? Responder { get; set; }
 
@@ -53,7 +62,12 @@ namespace Zevision.Tests
 
         public Task WriteAsync(byte[] data, CancellationToken cancellationToken)
         {
-            Written.Add(data);
+            // 心跳在后台线程写入,测试同时读取:加锁 (读取用 WrittenSnapshot)。
+            lock (Written)
+            {
+                Written.Add(data);
+            }
+
             var reply = Responder?.Invoke(data);
             if (reply != null)
             {

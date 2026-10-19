@@ -105,6 +105,17 @@ namespace Zevision.Core.Settings
         /// <summary><see cref="Language"/> 的默认值:按系统自动选择。</summary>
         public const string DefaultLanguage = "auto";
 
+        /// <summary>
+        /// 连接时是否握手 (默认是):确认设备应答、按设备的实际设置确定帧格式、读取型号,并启用重发和心跳。
+        /// 关闭时只打开通道 (帧格式按界面设置,不重发、不发心跳),用于调试帧格式不一致等情况。
+        /// </summary>
+        [DataMember(Name = "handshakeEnabled", Order = 17)]
+        public bool HandshakeEnabled { get; set; }
+
+        /// <summary>连接意外中断后是否自动重连 (默认否)。</summary>
+        [DataMember(Name = "autoReconnect", Order = 18)]
+        public bool AutoReconnect { get; set; }
+
         // TCP 的三项单独保存;为 null 表示文件中没有 (旧版本),取 RS232 的值。
         [DataMember(Name = "tcpChecksumEnabled", Order = 14, EmitDefaultValue = false)]
         private bool? _tcpChecksumEnabled;
@@ -130,6 +141,8 @@ namespace Zevision.Core.Settings
             DisplayFormat = DefaultDisplayFormat;
             RepeatSend = false;
             RepeatIntervalMs = 1000;
+            HandshakeEnabled = true;
+            AutoReconnect = false;
             _tcpChecksumEnabled = null;
             _tcpLengthEnabled = null;
             _tcpSaveCommunicationData = null;

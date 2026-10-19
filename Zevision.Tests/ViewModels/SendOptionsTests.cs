@@ -374,7 +374,8 @@ namespace Zevision.Tests
             {
                 return new MainViewModel(device, new MemoryPreferencesStore(new ConnectionPreferences()), new InstrumentConfigService(device), new RecipeFileStore(), new NoCommunicationRecorders(), new FakeDialogService(), new FakeErrorLog())
                 {
-                    Connection = { SelectedConnectionType = ConnectionType.Tcp, TcpHost = "127.0.0.1" },
+                    // 这些测试的设备只会固定应答,不握手 (握手见 HandshakeTests)。
+                    Connection = { SelectedConnectionType = ConnectionType.Tcp, TcpHost = "127.0.0.1", IsHandshakeEnabled = false },
                 };
             }
             finally
@@ -432,6 +433,10 @@ namespace Zevision.Tests
             public void Append(IReadOnlyList<string> lines) => Batches.Add(lines);
 
             public Task CloseAsync() => Task.CompletedTask;
+
+            public void Dispose()
+            {
+            }
         }
     }
 }

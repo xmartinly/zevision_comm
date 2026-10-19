@@ -24,7 +24,11 @@ namespace Zevision.Tests
 
         public event EventHandler<FrameReceivedEventArgs>? FrameReceived { add { } remove { } }
 
-        public event EventHandler<ConnectionLostEventArgs>? ConnectionLost { add { } remove { } }
+        public event EventHandler<ConnectionLostEventArgs>? ConnectionLost;
+
+        public event EventHandler<RetryEventArgs>? Retrying;
+
+        public event EventHandler<CommandsFailedEventArgs>? CommandsFailed;
 
         public bool IsConnected => true;
 
@@ -33,6 +37,9 @@ namespace Zevision.Tests
 
         /// <summary>对这些 ID 的写入返回 <c>-B</c>。</summary>
         public HashSet<string> RejectWrites { get; } = new HashSet<string>();
+
+        /// <summary>对这些 ID 的写入返回 <c>-F</c> (设备状态不允许)。</summary>
+        public HashSet<string> StateErrorWrites { get; } = new HashSet<string>();
 
         /// <summary>对这些 ID 的写入返回成功但不生效 (用于测试读回校验)。</summary>
         public HashSet<string> IgnoreWrites { get; } = new HashSet<string>();
@@ -79,10 +86,41 @@ namespace Zevision.Tests
 
         public string? Get(string id) => _entries.Where(e => e.Key == id).Select(e => e.Value.Value).FirstOrDefault();
 
-        public Task<Result> ConnectAsync(ConnectionOptions options, CancellationToken cancellationToken) =>
-            Task.FromResult(Result.Ok());
+        /// <summary>每次连接的参数。</summary>
+        public List<ConnectionOptions> Connections { get; } = new List<ConnectionOptions>();
+
+        /// <summary>连接的结果 (参数为第几次连接,从 1 开始);为 null 时成功。</summary>
+        public Func<int, Result>? ConnectResult { get; set; }
+
+        public Task<Result> ConnectAsync(ConnectionOptions options, CancellationToken cancellationToken)
+        {
+            Connections.Add(options);
+            return Task.FromResult(ConnectResult?.Invoke(Connections.Count) ?? Result.Ok());
+        }
+
+        /// <summary>模拟连接意外中断。</summary>
+        public void RaiseConnectionLost(ConnectionLostEventArgs e) => ConnectionLost?.Invoke(this, e);
+
+        /// <summary>模拟一次重发。</summary>
+        public void RaiseRetrying(RetryEventArgs e) => Retrying?.Invoke(this, e);
+
+        /// <summary>模拟一次有指令失败的发送。</summary>
+        public void RaiseCommandsFailed(CommandsFailedEventArgs e) => CommandsFailed?.Invoke(this, e);
 
         public Task DisconnectAsync() => Task.CompletedTask;
+
+        /// <summary>每次握手时先尝试的帧格式。</summary>
+        public List<FrameOptions> Handshakes { get; } = new List<FrameOptions>();
+
+        /// <summary>握手的结果;为 null 时成功,设备为 IMC300、帧格式为先尝试的格式。</summary>
+        public Func<FrameOptions, Result<DeviceIdentity>>? Handshake { get; set; }
+
+        public Task<Result<DeviceIdentity>> HandshakeAsync(FrameOptions preferred, CancellationToken cancellationToken)
+        {
+            Handshakes.Add(preferred);
+            return Task.FromResult(Handshake?.Invoke(preferred)
+                ?? Result<DeviceIdentity>.Ok(new DeviceIdentity("Zevision IMC300 1.8.11", DeviceIdentity.ExpectedModel, preferred, Array.Empty<string>())));
+        }
 
         /// <summary>收到的帧 (多条指令合并的帧在 <see cref="Commands"/> 中按单条记录)。</summary>
         public List<string> Frames { get; } = new List<string>();
@@ -179,6 +217,10 @@ namespace Zevision.Tests
                 if (index < 0)
                 {
                     payload = "U" + id + "-A";
+                }
+                else if (StateErrorWrites.Contains(id))
+                {
+                    payload = "U" + id + "-F";
                 }
                 else if (RejectWrites.Contains(id)
                     || (RecipeRules.TryGetReference(id, value, out var target, out _) && Get(target) == null))

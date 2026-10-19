@@ -107,6 +107,34 @@ namespace Zevision.Tests
         }
 
         [Fact]
+        public void Load_FileWithoutSessionSwitches_HandshakeOnAutoReconnectOff()
+        {
+            // 1.0 的文件没有这两项:升级后默认握手、不自动重连。
+            Directory.CreateDirectory(_directory);
+            File.WriteAllText(SettingsPath, "{\"portName\": \"COM3\"}");
+
+            var loaded = new JsonFilePreferencesStore(SettingsPath).Load().Value;
+
+            Assert.True(loaded.HandshakeEnabled);
+            Assert.False(loaded.AutoReconnect);
+        }
+
+        [Fact]
+        public void Save_SessionSwitches_RoundTrip()
+        {
+            var store = new JsonFilePreferencesStore(SettingsPath);
+            Assert.True(store.Save(new ConnectionPreferences { HandshakeEnabled = false, AutoReconnect = true }).IsSuccess);
+
+            var json = File.ReadAllText(SettingsPath);
+            var loaded = store.Load().Value;
+
+            Assert.Contains("\"handshakeEnabled\": false", json);
+            Assert.Contains("\"autoReconnect\": true", json);
+            Assert.False(loaded.HandshakeEnabled);
+            Assert.True(loaded.AutoReconnect);
+        }
+
+        [Fact]
         public void Save_TcpSwitches_AreSeparateKeys()
         {
             var store = new JsonFilePreferencesStore(SettingsPath);

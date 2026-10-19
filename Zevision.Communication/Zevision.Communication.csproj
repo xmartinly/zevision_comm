@@ -46,7 +46,10 @@
     <Compile Include="FrameOptions.cs" />
     <Compile Include="HelpTableParser.cs" />
     <Compile Include="IDeviceTransport.cs" />
+    <Compile Include="PriorityLock.cs" />
     <Compile Include="ProtocolText.cs" />
+    <Compile Include="RequestOptions.cs" />
+    <Compile Include="RetryPolicy.cs" />
     <Compile Include="SerialPortTransport.cs" />
     <Compile Include="SerialSettings.cs" />
     <Compile Include="TcpSettings.cs" />

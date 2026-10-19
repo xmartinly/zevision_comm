@@ -190,10 +190,32 @@ namespace Zevision.Core.Configuration
             }
 
             var response = result.Value.Responses.FirstOrDefault();
-            return response == null ? Result<ZevisionResponse>.Fail(Texts.NoResponse)
-                : response.IsSuccess ? Result<ZevisionResponse>.Ok(response)
-                : Result<ZevisionResponse>.Fail(DescribeRejection(response));
+            if (response == null)
+            {
+                return Result<ZevisionResponse>.Fail(Texts.NoResponse);
+            }
+
+            if (response.IsSuccess)
+            {
+                return Result<ZevisionResponse>.Ok(response);
+            }
+
+            var rejection = DescribeRejection(response);
+            if (response.ErrorCode == ZevisionErrorCode.StateError && !IsStateQuery(command))
+            {
+                // F:设备状态不允许这条命令。不自动切换状态 (如中止工艺),只读出当前状态一并报告,由操作者决定。
+                var state = await SendQueriesAsync(new[] { InstrumentSnapshot.StateId }, TimeSpan.Zero, cancellationToken).ConfigureAwait(false);
+                if (state.IsSuccess && ValueOf(state.Value[0]) is { IsSuccess: true } value)
+                {
+                    rejection += Texts.CurrentDeviceState(value.Value);
+                }
+            }
+
+            return Result<ZevisionResponse>.Fail(rejection);
         }
+
+        private static bool IsStateQuery(string command) =>
+            string.Equals(command, ZevisionCommandSet.Query(InstrumentSnapshot.StateId), StringComparison.Ordinal);
 
         /// <summary>
         /// 把多条查询合并为一帧发送,按回显找出每条的响应 (响应顺序与指令相同,但用回显匹配更稳妥:设备可能少回或多回一条)。

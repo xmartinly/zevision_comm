@@ -192,6 +192,28 @@ namespace Zevision.Core
 
         public static string FramingReplyWithoutLength(string lengthId, string checksumId) => TextCatalog.Format(nameof(FramingReplyWithoutLength), lengthId, checksumId);
 
+        public static string HandshakeNoReply(string reason) => TextCatalog.Format(nameof(HandshakeNoReply), reason);
+
+        public static string HandshakeFrameUnknown(string received) => TextCatalog.Format(nameof(HandshakeFrameUnknown), received);
+
+        public static string HandshakeRejected(string code, string description) => TextCatalog.Format(nameof(HandshakeRejected), code, description);
+
+        public static string HandshakeQueryFailed(string error) => TextCatalog.Format(nameof(HandshakeQueryFailed), error);
+
+        public static string HandshakeNoModel => TextCatalog.Get(nameof(HandshakeNoModel));
+
+        public static string UnexpectedModel(string model, string expected) => TextCatalog.Format(nameof(UnexpectedModel), model, expected);
+
+        public static string FrameSettingsDiffer(string checksumId, string checksum, string lengthId, string length) => TextCatalog.Format(nameof(FrameSettingsDiffer), checksumId, checksum, lengthId, length);
+
+        public static string Retrying(int attempt, int maxRetries, string command, string reason) => TextCatalog.Format(nameof(Retrying), attempt, maxRetries, command, reason);
+
+        public static string DeviceAnswered(string code, string description) => TextCatalog.Format(nameof(DeviceAnswered), code, description);
+
+        public static string HeartbeatLost(int count) => TextCatalog.Format(nameof(HeartbeatLost), count);
+
+        public static string CurrentDeviceState(string state) => TextCatalog.Format(nameof(CurrentDeviceState), state);
+
         public static string ErrorCodeNone => TextCatalog.Get(nameof(ErrorCodeNone));
 
         public static string ErrorCodeIllegalCommand => TextCatalog.Get(nameof(ErrorCodeIllegalCommand));

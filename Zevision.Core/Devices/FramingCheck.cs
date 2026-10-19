@@ -69,11 +69,6 @@ namespace Zevision.Core.Devices
                 : FramingMismatch.None;
         }
 
-        /// <summary>帧格式设置项的 ID:TCP 为 G1407 (校验和)、G1408 (长度),RS232 为 G1304、G1305。</summary>
-        /// <param name="endpoint">连接目标。</param>
-        public static (string Checksum, string Length) SettingIds(ConnectionEndpoint endpoint) =>
-            endpoint is TcpSettings ? ("G1407", "G1408") : ("G1304", "G1305");
-
         private static bool IsResponseStart(byte b) => b == (byte)'?' || b == (byte)'-' || (b >= (byte)'A' && b <= (byte)'Z');
 
         private static bool IsText(byte b) => b == (byte)'\t' || b == (byte)'\n' || b == (byte)'\r' || (b >= 0x20 && b != 0x7F);

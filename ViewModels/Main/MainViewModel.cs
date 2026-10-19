@@ -1,6 +1,5 @@
 using System;
-using System.Globalization;
-using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -20,23 +19,21 @@ namespace Zevision.ViewModels.Main
     /// 主窗口视图模型:连接/断开、发送指令、显示收发的帧、保存和恢复界面设置。
     /// 通讯配置见 <see cref="Connection"/>,仪器配置的保存/恢复/修改见 <see cref="Config"/>,
     /// 数据显示区见 <see cref="Log"/>,显示格式和重复发送见 <see cref="SendOptions"/>。
+    /// 连接、握手、自动重连和通讯数据文件由 <see cref="ConnectionLifecycle"/> 管理。
     /// </summary>
     public sealed class MainViewModel : ViewModelBase, IDisposable
     {
         private readonly IDeviceService _device;
+        private readonly IInstrumentConfigService _config;
         private readonly IPreferencesStore _preferences;
-        private readonly IErrorLog _errorLog;
         private readonly IDialogService _dialogs;
-        private readonly ICommunicationRecorderFactory _recorders;
         private readonly SynchronizationContext _uiContext;
-        private ICommunicationRecorder? _recorder;
-        private Task? _connecting;
+        private readonly ConnectionLifecycle _link;
         private string _languageSetting = ConnectionPreferences.DefaultLanguage;
-        private string _connectedTo = string.Empty;
-        private bool _isConnected;
         private string _commandText = string.Empty;
         private int _txCount;
         private int _rxCount;
+        private int _errorCount;
 
         /// <summary>
         /// 创建视图模型,扫描可用串口并恢复上次保存的通讯配置。必须在 UI 线程上创建,以便捕获其同步上下文。
@@ -58,25 +55,35 @@ namespace Zevision.ViewModels.Main
             IErrorLog errorLog)
         {
             _device = device ?? throw new ArgumentNullException(nameof(device));
+            _config = config ?? throw new ArgumentNullException(nameof(config));
             _preferences = preferences ?? throw new ArgumentNullException(nameof(preferences));
-            _recorders = recorders ?? throw new ArgumentNullException(nameof(recorders));
-            _errorLog = errorLog ?? throw new ArgumentNullException(nameof(errorLog));
             _dialogs = dialogs ?? throw new ArgumentNullException(nameof(dialogs));
             _uiContext = SynchronizationContext.Current ?? new SynchronizationContext();
+            if (recorders is null)
+            {
+                throw new ArgumentNullException(nameof(recorders));
+            }
 
-            Log = new LogViewModel(errorLog);
+            Log = new LogViewModel(errorLog ?? throw new ArgumentNullException(nameof(errorLog)));
             SendOptions = new SendOptionsViewModel();
 
             // 重复发送期间不开始配置操作:两者的指令会交错。
             Config = new ConfigOperationsViewModel(config, recipes, dialogs, errorLog, Log, () => IsConnected && !SendOptions.IsRepeating);
 
+            _link = new ConnectionLifecycle(device, recorders, Log, Connection);
+            _link.StateChanged += OnLinkStateChanged;
+
             _device.FrameSent += OnFrameSent;
             _device.FrameReceived += OnFrameReceived;
             _device.ConnectionLost += OnConnectionLost;
+            _device.Retrying += OnRetrying;
+            _device.CommandsFailed += OnCommandsFailed;
 
-            RefreshPortsCommand = new RelayCommand(_ => Connection.RefreshPorts(), _ => !IsConnected);
-            ConnectCommand = new AsyncRelayCommand(_ => TrackConnectAsync(), Log.ReportException, _ => !IsConnected && Connection.CreateOptions().IsSuccess);
-            DisconnectCommand = new AsyncRelayCommand(_ => DisconnectAsync(), Log.ReportException, _ => IsConnected && !Config.IsBusy);
+            RefreshPortsCommand = new RelayCommand(_ => Connection.RefreshPorts(), _ => IsDisconnected);
+            ConnectCommand = new AsyncRelayCommand(_ => _link.ConnectAsync(), Log.ReportException, _ => IsDisconnected && Connection.CreateOptions().IsSuccess);
+
+            // 连接中断后等待重连时,"断开"停止自动重连。
+            DisconnectCommand = new AsyncRelayCommand(_ => DisconnectAsync(), Log.ReportException, _ => (IsConnected && !Config.IsBusy) || _link.IsReconnecting);
             SendCommand = new AsyncRelayCommand(_ => SendInputAsync(), Log.ReportException, _ => CanSend && !string.IsNullOrWhiteSpace(CommandText));
             SendQuickCommand = new AsyncRelayCommand(p => SendAsync(p as string ?? string.Empty), Log.ReportException, p => CanSend && p is string);
             ClearLogCommand = new RelayCommand(_ => ClearLog(), _ => Log.Entries.Count > 0);
@@ -107,28 +114,45 @@ namespace Zevision.ViewModels.Main
         /// <summary>仪器配置的保存、恢复、修改。</summary>
         public ConfigOperationsViewModel Config { get; }
 
-        /// <summary>是否已连接。</summary>
-        public bool IsConnected
+        /// <summary>连接状态。</summary>
+        public ConnectionState ConnectionState => _link.State;
+
+        /// <summary>是否已连接 (握手已完成,或没有启用握手)。</summary>
+        public bool IsConnected => _link.State == ConnectionState.Connected;
+
+        /// <summary>是否未连接 (也不在连接、握手或等待重连)。用于在连接期间锁定配置控件。</summary>
+        public bool IsDisconnected => _link.State == ConnectionState.Disconnected;
+
+        /// <summary>是否正在连接、握手或等待自动重连。</summary>
+        public bool IsConnecting => !IsConnected && !IsDisconnected;
+
+        /// <summary>是否已连接、正在连接或等待重连 (关闭窗口前需要 <see cref="CloseConnectionAsync"/>)。</summary>
+        public bool HasConnection => !IsDisconnected;
+
+        /// <summary>状态栏文本。</summary>
+        public string StatusText
         {
-            get => _isConnected;
-            private set
+            get
             {
-                if (SetProperty(ref _isConnected, value))
+                switch (_link.State)
                 {
-                    OnPropertiesChanged(nameof(IsDisconnected), nameof(StatusText));
-                    RefreshCommands();
+                    case ConnectionState.Connected:
+                        return Lang.T("已连接 ", "Connected to ") + _link.Endpoint;
+                    case ConnectionState.Connecting:
+                        return Lang.T("正在连接 ", "Connecting to ") + _link.Endpoint + " …";
+                    case ConnectionState.Handshaking:
+                        return Lang.T("正在握手 …", "Handshaking …");
+                    case ConnectionState.Reconnecting:
+                        var seconds = _link.ReconnectDelay.TotalSeconds;
+                        return Lang.T($"连接中断,{seconds:0} 秒后第 {_link.ReconnectAttempt} 次重连 …", $"Connection lost; reconnection attempt {_link.ReconnectAttempt} in {seconds:0} s …");
+                    default:
+                        return Lang.T("未连接", "Not connected");
                 }
             }
         }
 
-        /// <summary>是否未连接。用于在连接期间锁定配置控件。</summary>
-        public bool IsDisconnected => !IsConnected;
-
-        /// <summary>是否已连接或正在连接 (关闭窗口前需要 <see cref="CloseConnectionAsync"/>)。</summary>
-        public bool HasConnection => IsConnected || _connecting != null;
-
-        /// <summary>状态栏文本。</summary>
-        public string StatusText => IsConnected ? Lang.T("已连接 ", "Connected to ") + _connectedTo : Lang.T("未连接", "Not connected");
+        /// <summary>连接的生命周期 (测试用来替换重连前的等待)。</summary>
+        internal ConnectionLifecycle Link => _link;
 
         /// <summary>指令输入框内容。</summary>
         public string CommandText
@@ -150,6 +174,24 @@ namespace Zevision.ViewModels.Main
             get => _rxCount;
             private set => SetProperty(ref _rxCount, value);
         }
+
+        /// <summary>
+        /// 错误指令数:显示的发送中没有得到成功响应的指令 (设备的否定响应,或发出后没有有效响应;重发后成功的不计)。
+        /// </summary>
+        public int ErrorCount
+        {
+            get => _errorCount;
+            private set
+            {
+                if (SetProperty(ref _errorCount, value))
+                {
+                    OnPropertiesChanged(nameof(HasErrors));
+                }
+            }
+        }
+
+        /// <summary>是否有错误指令 (计数醒目显示)。</summary>
+        public bool HasErrors => ErrorCount > 0;
 
         /// <summary>重新扫描串口。</summary>
         public ICommand RefreshPortsCommand { get; }
@@ -179,7 +221,7 @@ namespace Zevision.ViewModels.Main
         public string SwitchLanguageText => Lang.IsChinese ? "EN" : "中";
 
         /// <summary>切换语言按钮的提示。</summary>
-        public string SwitchLanguageToolTip => Lang.T("切换到 English (需要重新启动程序)", "Switch to 中文 (restarts the program)");
+        public string SwitchLanguageToolTip => Lang.T("切换到 English (重启程序)", "Switch to 中文 (restarts)");
 
         /// <summary>手动发送完整帮助指令 <c>?</c> 时显示的提示 (分组帮助如 <c>?M</c> 很快,不提示)。</summary>
         internal static string HelpCommandHint => Lang.T(
@@ -217,19 +259,18 @@ namespace Zevision.ViewModels.Main
         /// </summary>
         public async Task CloseConnectionAsync()
         {
-            var connecting = _connecting;
-            if (connecting != null)
-            {
-                // 连接中途关闭:等它结束 (TCP 最多 5 秒),否则连接成功后打开的通讯数据文件不会被关闭。异常已由命令处理。
-                await Task.WhenAny(connecting);
-            }
-
-            if (!IsConnected)
+            // 连接中途关闭:等它结束 (TCP 最多 5 秒,再加握手),否则连接成功后打开的通讯数据文件不会被关闭。异常已由命令处理。
+            await Task.WhenAny(_link.WaitForConnectAsync());
+            if (IsDisconnected)
             {
                 return;
             }
 
-            await Config.CancelAndWaitAsync();
+            if (IsConnected)
+            {
+                await Config.CancelAndWaitAsync();
+            }
+
             await DisconnectAsync();
         }
 
@@ -239,8 +280,12 @@ namespace Zevision.ViewModels.Main
             _device.FrameSent -= OnFrameSent;
             _device.FrameReceived -= OnFrameReceived;
             _device.ConnectionLost -= OnConnectionLost;
+            _device.Retrying -= OnRetrying;
+            _device.CommandsFailed -= OnCommandsFailed;
+            _link.StateChanged -= OnLinkStateChanged;
             SendOptions.Stop();
-            _ = CloseRecorderAsync(); // 正常退出时窗口关闭前已断开并关闭文件;这里只是兜底
+            _link.CancelReconnect();
+            _link.CloseRecorder(); // 正常退出时窗口关闭前已断开并关闭文件;这里是注销、关机等情况的兜底
         }
 
         private void ApplyPreferences()
@@ -293,89 +338,22 @@ namespace Zevision.ViewModels.Main
             RestartRequested?.Invoke(this, EventArgs.Empty);
         }
 
-        private async Task TrackConnectAsync()
-        {
-            var connecting = ConnectAsync();
-            _connecting = connecting;
-            try
-            {
-                await connecting;
-            }
-            finally
-            {
-                _connecting = null;
-            }
-        }
-
-        private async Task ConnectAsync()
-        {
-            var created = Connection.CreateOptions();
-            if (!created.IsSuccess)
-            {
-                Log.Add(LogKind.Error, created.Error);
-                return;
-            }
-
-            var options = created.Value;
-            ICommunicationRecorder? recorder = null;
-            if (Connection.IsSaveCommunicationDataEnabled)
-            {
-                var opened = _recorders.Create();
-                if (!opened.IsSuccess)
-                {
-                    Log.Add(LogKind.Error, opened.Error);
-                    return;
-                }
-
-                recorder = opened.Value;
-            }
-
-            var result = await _device.ConnectAsync(options, CancellationToken.None);
-            if (!result.IsSuccess)
-            {
-                if (recorder != null)
-                {
-                    await recorder.CloseAsync();
-                }
-
-                Log.Add(LogKind.Error, result.Error ?? Lang.T("连接失败。", "Connection failed."));
-                return;
-            }
-
-            // 从"已连接"这一行开始,显示的内容同时追加到文件。
-            _recorder = recorder;
-            Log.Recorder = recorder;
-
-            _connectedTo = options.Endpoint.ToString();
-            IsConnected = true;
-            Log.Add(LogKind.Info, Connection.DescribeConnected(options));
-            if (recorder != null)
-            {
-                Log.Add(LogKind.Info, Lang.T("通讯数据保存到: ", "Communication data is saved to: ") + recorder.Path);
-            }
-        }
-
-        private async Task DisconnectAsync()
+        private Task DisconnectAsync()
         {
             // 正在进行的一次收发会先完成 (发送锁),之后重复发送不再继续。
             SendOptions.Stop();
-            await _device.DisconnectAsync();
-            if (IsConnected)
-            {
-                IsConnected = false;
-                Log.Add(LogKind.Info, Lang.T("已断开。", "Disconnected."));
-            }
-
-            await CloseRecorderAsync();
+            return _link.DisconnectAsync();
         }
 
-        /// <summary>停止保存通讯数据:之后的显示不再写入,已排队的写完后关闭文件。</summary>
-        private Task CloseRecorderAsync()
+        private void OnLinkStateChanged(object? sender, EventArgs e)
         {
-            var recorder = _recorder;
-            _recorder = null;
-            Log.Recorder = null;
-            return recorder?.CloseAsync() ?? Task.CompletedTask;
+            if (!IsConnected)
+            {
+                SendOptions.Stop();
+            }
+
+            OnPropertiesChanged(nameof(ConnectionState), nameof(IsConnected), nameof(IsDisconnected), nameof(IsConnecting), nameof(HasConnection), nameof(StatusText));
+            RefreshCommands();
         }
 
         /// <summary>
@@ -415,7 +393,34 @@ namespace Zevision.ViewModels.Main
                 return;
             }
 
-            Log.AddRange(ResponseLogFormatter.Format(segments, result.Value.Responses, DateTime.Now));
+            var responses = result.Value.Responses;
+            Log.AddRange(ResponseLogFormatter.Format(segments, responses, DateTime.Now));
+
+            // 关闭握手时只做原样的收发 (调试),不额外查询。
+            if (Connection.IsHandshakeEnabled && responses.Any(r => r.ErrorCode == ZevisionErrorCode.StateError))
+            {
+                await ShowDeviceStateAsync();
+            }
+
+            // 设备接受了修改帧格式的指令 (如 UG1304:1):从下一帧起只认新格式。
+            var endpoint = _link.Options?.Endpoint;
+            var changed = endpoint == null ? null : FrameSettings.AfterUpdates(endpoint, Connection.Frame, segments, responses);
+            if (changed != null)
+            {
+                await _link.OnFrameSettingsChangedAsync(changed);
+            }
+        }
+
+        /// <summary>
+        /// 设备回答 F (状态不允许):读出当前状态 (C09) 一并显示。不自动切换设备状态 (如中止工艺),由操作者决定。
+        /// </summary>
+        private async Task ShowDeviceStateAsync()
+        {
+            var state = await _config.QueryAsync(new[] { InstrumentSnapshot.StateId }, CancellationToken.None);
+            if (state.IsSuccess && state.Value.FirstOrDefault()?.Value is string value)
+            {
+                Log.Add(LogKind.Info, Lang.T("设备当前状态 (C09): ", "Current device state (C09): ") + value);
+            }
         }
 
         private void ClearLog()
@@ -423,6 +428,7 @@ namespace Zevision.ViewModels.Main
             Log.Clear();
             TxCount = 0;
             RxCount = 0;
+            ErrorCount = 0;
         }
 
         private void OnFrameSent(object? sender, FrameSentEventArgs e)
@@ -446,17 +452,18 @@ namespace Zevision.ViewModels.Main
             });
         }
 
-        private void OnConnectionLost(object? sender, ConnectionLostEventArgs e)
+        private void OnConnectionLost(object? sender, ConnectionLostEventArgs e) => Post(() => _link.OnConnectionLost(e));
+
+        private void OnCommandsFailed(object? sender, CommandsFailedEventArgs e)
         {
-            var message = e.Exception.Message;
-            Post(() =>
-            {
-                IsConnected = false;
-                SendOptions.Stop();
-                Log.Add(LogKind.Error, Lang.T("连接中断: ", "Connection lost: ") + message);
-                // 不需要等待:CloseAsync 不会失败,文件在已排队的内容写完后关闭。
-                _ = CloseRecorderAsync();
-            });
+            var count = e.Count;
+            Post(() => ErrorCount += count);
+        }
+
+        private void OnRetrying(object? sender, RetryEventArgs e)
+        {
+            var text = CommunicationText.DescribeRetry(e);
+            Post(() => Log.Add(LogKind.Info, text));
         }
 
         private void Post(Action action) => _uiContext.Post(_ => action(), null);
