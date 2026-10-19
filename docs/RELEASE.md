@@ -17,7 +17,7 @@
 | 项目 | 内容 |
 |---|---|
 | 软件名称 | Zevision（IMC300 通讯测试） |
-| 应用版本 | 1.1.0（尚未打包发布） |
+| 应用版本 | 1.1.0（2026-10-19 发布） |
 | 上一发布版本 | 1.0.0（第一个正式版本；0.10.0 未发布，其内容并入 1.0.0；不存在 0.9.2） |
 | 通信库 | `Zevision.Communication` 1.2.0 |
 | 指令集库 | `Zevision.Commands` 1.1.0 |
@@ -224,9 +224,15 @@ powershell -ExecutionPolicy Bypass -File tools\package.ps1
 |---|---|
 | `dist\Zevision.Libraries-<库版本>\` | `Zevision.Communication.dll` 和 `.xml`、`Zevision.Commands.dll` 和 `.xml`（XML 为 IntelliSense 文档，与 dll 放在一起）；`LIBRARY.md`（即 ZEV-CPM-01）；`sample\Program.cs`（即 `samples/Zevision.Sample/Program.cs`） |
 | `dist\Zevision.Libraries-<库版本>.zip` | 上述文件夹的压缩包，即链接库发布包 |
-| `dist\symbols\` | 两个库的 `.pdb`，存档，不发布 |
+| `dist\symbols\Zevision.Libraries-<库版本>\` | 两个库的 `.pdb`，与发布包中的 dll 为同一次构建，存档，不发布（1.1.0 及以前为 `dist\symbols\Zevision.<库名>-<版本>.pdb`） |
 
-打包后应将链接库发布包解压到新目录，只引用解压出的两个 dll 编译 `sample\Program.cs`，连接设备（或模拟设备）运行一次。
+打包后应将链接库发布包解压到新目录，只引用解压出的两个 dll 编译 `sample\Program.cs`，连接设备（或模拟设备）运行一次。编译命令：
+
+```
+"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\Roslyn\csc.exe" /langversion:9 /nullable:enable /target:exe /out:sample\Zevision.Sample.exe /reference:Zevision.Communication.dll /reference:Zevision.Commands.dll /reference:System.dll /reference:System.Core.dll sample\Program.cs
+```
+
+链接库发布包名称中的版本取两个库中较高的版本；`AssemblyVersion` 均为 1.0.0.0，各库的文件版本见其属性。
 
 ### 4.5 发布包校验值
 
@@ -237,6 +243,7 @@ powershell -ExecutionPolicy Bypass -File tools\package.ps1
 | 1.0.0 | 2026-10-16 | `0B9CE469F582A71CAAA848DFFEF9CE06BF2F3CE5736A2C3D9E56CFDF7D613607` |
 | 1.0.1 | 2026-10-18 | `E1FCA5106911F557E3A202220E0BDEBD3B8BE141B526FF3B1817BD7E7DBC7B2B` |
 | 1.1.0 | 2026-10-19 | `1CA965260D8530FC7C0C5FFED189B18D4A60770265B0364765FFB9B17FC0FC59` |
+| 1.2.0（通信库 1.2.0，指令集库 1.1.0） | 2026-10-19 | `C260C30F40AB4B85539C7AB85102129F4548C75C06E252CEB2BA9C89AB792EBF` |
 
 表 12  应用发布包 SHA256
 
@@ -249,6 +256,7 @@ powershell -ExecutionPolicy Bypass -File tools\package.ps1
 | 0.9.5 | 2026-10-16 | `7FC95325891C23DE48338426FCE3DFB717F1326266B298958EB0B647E961BD09` |
 | 0.9.6 | 2026-10-16 | `02547CBBF00A1EA70C7D813361708D25CB61A310EABBDCB5EEE93C27B3403C18` |
 | 1.0.0 | 2026-10-19 | `8535CAC7105F2056138DF33A967AC77DB621C0B3BC2AA915F71F843A4066D50B` |
+| 1.1.0 | 2026-10-19 | `6C544B2947E6356B07F286012B710F38EB559F7779A740FA6ACC28C6B1F11EB3` |
 
 ### 4.6 发布前检查（实机）
 
