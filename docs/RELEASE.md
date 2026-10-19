@@ -63,7 +63,8 @@ Zevision 是 INFICON IMC300 膜厚控制仪的上位机软件，通过 RS232 或
 
 | 材料 | 位置 | 说明 |
 |---|---|---|
-| 应用发布包 | `dist\Zevision-<版本>.zip` | 发布对象：程序、.NET Framework 离线安装包、用户手册（中、英文） |
+| 应用发布包（含 .NET 安装包） | `dist\Zevision-<版本>_wDotnet.zip` | 发布对象：程序、.NET Framework 4.8 离线安装包、用户手册（中、英文）；用于未安装 .NET Framework 4.7.2 或更高版本的计算机 |
+| 应用发布包（不含 .NET 安装包） | `dist\Zevision-<版本>_woDotnet.zip` | 发布对象：程序、用户手册（中、英文）；用于已安装 .NET Framework 4.7.2 或更高版本的计算机（Windows 10 1803 及以上已内置）。程序文件与含安装包的发布包相同 |
 | 链接库发布包 | `dist\Zevision.Libraries-<库版本>.zip` | 发布对象：两个链接库、IntelliSense 文档、ZEV-CPM-01、示例程序 |
 | 调试符号 | `dist\symbols\` | 存档，用于分析用户反馈的异常堆栈，不发布 |
 
@@ -95,7 +96,7 @@ Zevision 是 INFICON IMC300 膜厚控制仪的上位机软件，通过 RS232 或
 | `MaterialDesignThemes.Wpf.dll` | `lib\` | 界面主题 |
 | `MaterialDesignColors.dll` | `lib\` | 界面主题颜色 |
 | `Microsoft.Xaml.Behaviors.dll` | `lib\` | `MaterialDesignThemes` 的依赖 |
-| `ndp48-x86-x64-allos-enu.exe` | `dotnet\` | .NET Framework 4.8 离线安装包 |
+| `ndp48-x86-x64-allos-enu.exe` | `dotnet\` | .NET Framework 4.8 离线安装包；只包含在 `_wDotnet` 发布包中 |
 
 `dotnet\ndp48-x86-x64-allos-enu.exe` 为 Microsoft 官方安装包（下载地址 `https://go.microsoft.com/fwlink/?linkid=2088631`），带 Microsoft 数字签名。程序的目标框架为 .NET Framework 4.7.2；4.8 为就地升级，与 4.7.2 兼容，且是支持 Windows 7 SP1 的最高版本（4.8.1 不支持 Windows 7）。该安装包只在缺少运行库的计算机上使用。
 
@@ -120,7 +121,8 @@ Zevision 是 INFICON IMC300 膜厚控制仪的上位机软件，通过 RS232 或
 | 11 | 配置文件 | `settings.json` 新增 `handshakeEnabled`（默认 true）和 `autoReconnect`（默认 false）；1.0.0 的文件可继续使用。 |
 | 12 | 仪器配置文件目录 | 目录改名为 `recipes\`。旧目录 `recipe\` 在第一次保存或打开配置文件时自动改名；`recipes\` 已存在时两者均保留。 |
 | 13 | 鼠标提示 | 每条提示精简为一句。 |
-| 14 | 文档 | 新增 ZEV-SRS-01、ZEV-SDD-01、ZEV-IDD-01（命令表由测试与代码比对）、ZEV-STR-01、ZEV-OPS-01；开发规范增加实施状态与偏离说明。 |
+| 14 | 发布包 | 应用发布包分为含 .NET Framework 4.8 离线安装包的 `_wDotnet` 和不含安装包的 `_woDotnet` 两种，由打包脚本一次生成。 |
+| 15 | 文档 | 新增 ZEV-SRS-01、ZEV-SDD-01、ZEV-IDD-01（命令表由测试与代码比对）、ZEV-STR-01、ZEV-OPS-01；开发规范增加实施状态与偏离说明。 |
 
 ### 3.4 适应性数据
 
@@ -140,7 +142,7 @@ Zevision 是 INFICON IMC300 膜厚控制仪的上位机软件，通过 RS232 或
 安装、升级和卸载见 ZEV-OPS-01 第 3 章。要点如下：
 
 1. 将应用发布包解压到可写目录，运行 `Zevision.exe`。软件不需要安装程序。
-2. 计算机缺少 .NET Framework 4.7.2 或更高版本时，运行 `dotnet\ndp48-x86-x64-allos-enu.exe`。
+2. 计算机缺少 .NET Framework 4.7.2 或更高版本时，使用 `_wDotnet` 发布包并运行其中的 `dotnet\ndp48-x86-x64-allos-enu.exe`；已安装时可使用不含安装包的 `_woDotnet` 发布包。
 3. 保留原程序目录中的 `settings.json`、`recipes\`（或 1.1.0 之前的 `recipe\`）和 `logs\`。
 
 ### 3.6 可能的问题和已知错误
@@ -200,9 +202,9 @@ powershell -ExecutionPolicy Bypass -File tools\package.ps1
 1. 以 Release 配置重新构建并运行全部单元测试（参数 `-SkipBuild` 跳过此步）。
 2. 组装发布文件夹。
 3. 核对 .NET 安装包的数字签名（签名者 Microsoft Corporation，状态 Valid）。
-4. 压缩。
-5. 输出 SHA256。
-6. 将 zip 解压到临时目录并启动一次，核对标题栏中的版本后关闭。程序已在运行时跳过此步并提示手动检查（程序只允许运行一个实例）。
+4. 压缩为两个发布包：含 `dotnet\` 的 `_wDotnet` 和不含 `dotnet\` 的 `_woDotnet`，并核对两者只差 `dotnet\` 中的文件。
+5. 输出两个发布包的 SHA256。
+6. 将 `_woDotnet` 发布包解压到临时目录并启动一次，核对标题栏中的版本后关闭。程序已在运行时跳过此步并提示手动检查（程序只允许运行一个实例）。
 
 同一版本的输出已存在时，脚本拒绝覆盖。
 
@@ -211,7 +213,8 @@ powershell -ExecutionPolicy Bypass -File tools\package.ps1
 | 输出 | 内容 |
 |---|---|
 | `dist\Zevision-<版本>\` | 程序目录：`Zevision.exe`、`Zevision.exe.config`、`Texts.json`、`使用说明.md`、`User Guide.md`；`lib\`：表 5 中的 7 个 dll；`dotnet\ndp48-x86-x64-allos-enu.exe`：默认取 `dist` 中最近一个发布包中的文件，或用参数 `-DotNetInstaller` 指定 |
-| `dist\Zevision-<版本>.zip` | 上述文件夹的压缩包，即应用发布包。脚本输出的 SHA256 填入表 12 |
+| `dist\Zevision-<版本>_wDotnet.zip` | 上述文件夹的压缩包，即含 .NET 安装包的应用发布包。脚本输出的 SHA256 填入表 12 |
+| `dist\Zevision-<版本>_woDotnet.zip` | 上述文件夹去掉 `dotnet\` 后的压缩包（zip 中的顶层文件夹名相同），即不含 .NET 安装包的应用发布包。脚本输出的 SHA256 填入表 12 |
 | `dist\symbols\Zevision-<版本>\` | exe 和 4 个 dll 的 pdb（0.9.x 只有 `dist\symbols\Zevision-<版本>.pdb`），存档，不发布 |
 
 注：不应在 `dist\Zevision-<版本>\` 中启动程序，启动会在该目录生成 `settings.json` 和 `logs\`。
@@ -255,8 +258,11 @@ powershell -ExecutionPolicy Bypass -File tools\package.ps1
 | 0.9.4 | 2026-10-16 | `7C9352B61A5F079C18D331CB323479724A2DA0A49D406CE2206C9D11852D0FCB` |
 | 0.9.5 | 2026-10-16 | `7FC95325891C23DE48338426FCE3DFB717F1326266B298958EB0B647E961BD09` |
 | 0.9.6 | 2026-10-16 | `02547CBBF00A1EA70C7D813361708D25CB61A310EABBDCB5EEE93C27B3403C18` |
-| 1.0.0 | 2026-10-19 | `8535CAC7105F2056138DF33A967AC77DB621C0B3BC2AA915F71F843A4066D50B` |
-| 1.1.0 | 2026-10-19 | `6C544B2947E6356B07F286012B710F38EB559F7779A740FA6ACC28C6B1F11EB3` |
+| 1.0.0（含 .NET 安装包） | 2026-10-19 | `8535CAC7105F2056138DF33A967AC77DB621C0B3BC2AA915F71F843A4066D50B` |
+| 1.1.0（`_wDotnet`，含 .NET 安装包） | 2026-10-19 | `AB6884F64D6487BF4639CC055978CB3265B7AAF0912DC59F82F606704AC3B9AD` |
+| 1.1.0（`_woDotnet`，不含 .NET 安装包） | 2026-10-19 | `A499282B13237F83E7DF4A8E4D39C32617ABC03AED9FB5A81D4FAB8110CFFED4` |
+
+注：1.0.0 之前的发布包均含 .NET 安装包；表中 1.0.0 及以前的校验值为含安装包的发布包。
 
 ### 4.6 发布前检查（实机）
 
@@ -283,7 +289,7 @@ powershell -ExecutionPolicy Bypass -File tools\package.ps1
 | 项目 | 要求 |
 |---|---|
 | 操作系统 | Windows 7 SP1 及以上；宜使用 Windows 10 或 Windows 11 |
-| 运行库 | .NET Framework 4.7.2 或更高。Windows 10 1803 及以上已内置；其他系统运行发布包中的 `dotnet\ndp48-x86-x64-allos-enu.exe` |
+| 运行库 | .NET Framework 4.7.2 或更高。Windows 10 1803 及以上已内置；其他系统使用 `_wDotnet` 发布包并运行其中的 `dotnet\ndp48-x86-x64-allos-enu.exe` |
 | 程序目录 | 应可写，用于 `settings.json`、`logs\` 和 `recipes\`；不可写时（如安装在 `Program Files`）软件改用 `文档\Zevision\` |
 
 ## 6 注解

@@ -69,9 +69,9 @@ Zevision 是运行于 Windows 的上位机软件，通过 RS232 串口或以太�
 | `Zevision.exe` | 主程序 |
 | `Zevision.exe.config` | 程序配置（运行库版本、`lib` 文件夹位置） |
 | `Texts.json` | 界面提示和错误信息的中英文文本；缺失或损坏时软件显示提示并退出 |
-| `USER_GUIDE.md`、`USER_GUIDE.en.md` | 用户手册（中文、英文） |
+| `使用说明.md`、`User Guide.md` | 用户手册（中文、英文） |
 | `lib\` | 程序使用的全部 DLL 文件 |
-| `dotnet\ndp48-x86-x64-allos-enu.exe` | .NET Framework 4.8 离线安装包 |
+| `dotnet\ndp48-x86-x64-allos-enu.exe` | .NET Framework 4.8 离线安装包；只包含在 `Zevision-<版本>_wDotnet.zip` 发布包中 |
 
 ### 3.3 软件环境
 
@@ -125,9 +125,10 @@ Zevision 是运行于 Windows 的上位机软件，通过 RS232 串口或以太�
 
 #### 4.1.1 安装和设置
 
-1. 将发布包解压到一个可写的文件夹，例如 `D:\Zevision`。软件不需要安装程序。
-2. 运行 `Zevision.exe`。
-3. 启动时提示缺少 .NET Framework 时（Windows 7 SP1、Windows 8.1 或 1803 之前的 Windows 10），运行发布包中的 `dotnet\ndp48-x86-x64-allos-enu.exe`，然后重新启动软件。该安装包不需要联网，需要管理员权限，安装后可能要求重启计算机。
+1. 选择发布包：计算机已安装 .NET Framework 4.7.2 或更高版本（Windows 10 1803 及以上已内置）时使用 `Zevision-<版本>_woDotnet.zip`，否则使用含离线安装包的 `Zevision-<版本>_wDotnet.zip`。
+2. 将发布包解压到一个可写的文件夹，例如 `D:\Zevision`。软件不需要安装程序。
+3. 运行 `Zevision.exe`。
+4. 启动时提示缺少 .NET Framework 时（Windows 7 SP1、Windows 8.1 或 1803 之前的 Windows 10），运行 `_wDotnet` 发布包中的 `dotnet\ndp48-x86-x64-allos-enu.exe`，然后重新启动软件。该安装包不需要联网，需要管理员权限，安装后可能要求重启计算机。
 
 首次启动时界面语言按 5.3.1 确定，其他设置取默认值；退出时设置保存到 `settings.json`。
 

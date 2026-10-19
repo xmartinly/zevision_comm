@@ -1,12 +1,14 @@
 ﻿<#
 .SYNOPSIS
-    生成 Zevision 发布包 (见 docs/RELEASE.md "打包"):dist\Zevision-<版本>\、zip、SHA256 和调试符号。
+    生成 Zevision 发布包 (见 docs/RELEASE.md "打包"):dist\Zevision-<版本>\、两个 zip、SHA256 和调试符号。
 .DESCRIPTION
     1. Release 重新构建 (0 警告) 并运行全部单元测试 (-SkipBuild 跳过)。
     2. 组装发布文件夹:程序目录只有 Zevision.exe、Zevision.exe.config (含 probing privatePath="lib")、Texts.json 和使用说明;
        全部 dll 在 lib\;.NET Framework 4.8 离线安装包在 dotnet\ (先核对 Microsoft 数字签名)。
-    3. 压缩为 zip 并输出 SHA256;各 pdb 存到 dist\symbols\Zevision-<版本>\ (留档,不发布)。
-    4. 把 zip 解压到临时目录启动一次,确认标题栏的版本,再关闭。程序已在运行时跳过 (单实例:新启动的会直接退出)。
+    3. 压缩为两个 zip 并输出各自的 SHA256:Zevision-<版本>_wDotnet.zip (含 dotnet\) 和 Zevision-<版本>_woDotnet.zip
+       (不含 dotnet\,用于已有 .NET Framework 4.7.2 或更高版本的计算机);核对两者只差 dotnet\。
+       各 pdb 存到 dist\symbols\Zevision-<版本>\ (留档,不发布)。
+    4. 把不含 dotnet\ 的 zip 解压到临时目录启动一次,确认标题栏的版本,再关闭。程序已在运行时跳过 (单实例:新启动的会直接退出)。
 .PARAMETER SkipBuild
     不构建、不运行测试,直接用 bin\Release 中的文件。
 .PARAMETER DotNetInstaller
@@ -39,8 +41,11 @@ if (-not $SkipBuild) {
 $version = (Get-Item (Join-Path $bin 'Zevision.exe')).VersionInfo.ProductVersion
 $name = "Zevision-$version"
 $pkg = Join-Path $OutDir $name
-$zip = "$pkg.zip"
-if ((Test-Path $pkg) -or (Test-Path $zip)) { throw "$pkg 或 $zip 已存在:版本号没有提高,或先删除旧的输出" }
+$zipFull = $pkg + '_wDotnet.zip'
+$zipLite = $pkg + '_woDotnet.zip'
+foreach ($existing in $pkg, $zipFull, $zipLite) {
+    if (Test-Path $existing) { throw "$existing 已存在:版本号没有提高,或先删除旧的输出" }
+}
 
 if (-not $DotNetInstaller) {
     $DotNetInstaller = Get-ChildItem (Join-Path $root 'dist') -Recurse -Filter 'ndp48-x86-x64-allos-enu.exe' -ErrorAction SilentlyContinue |
@@ -68,12 +73,34 @@ $symbols = Join-Path $OutDir "symbols\$name"
 New-Item -ItemType Directory $symbols -Force | Out-Null
 Get-ChildItem $bin -Filter 'Zevision*.pdb' | Copy-Item -Destination $symbols
 
-Compress-Archive -Path $pkg -DestinationPath $zip
-$hash = (Get-FileHash $zip -Algorithm SHA256).Hash
+Compress-Archive -Path $pkg -DestinationPath $zipFull
 
-# 解压到临时目录启动一次 (不在发布文件夹中启动:会生成 settings.json、logs\)。
+# 不含 .NET 安装包的版本:在临时目录中组装同名文件夹 (zip 中的顶层文件夹名相同),去掉 dotnet\ 后压缩。
+$stage = Join-Path ([IO.Path]::GetTempPath()) ('zevision_pkg_' + [Guid]::NewGuid().ToString('N'))
+Copy-Item $pkg (Join-Path $stage $name) -Recurse
+Remove-Item (Join-Path $stage "$name\dotnet") -Recurse -Force
+Compress-Archive -Path (Join-Path $stage $name) -DestinationPath $zipLite
+Remove-Item $stage -Recurse -Force
+
+# 两个 zip 只差 dotnet\ 中的文件。
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+function Get-ZipEntries([string]$path) {
+    $archive = [IO.Compression.ZipFile]::OpenRead($path)
+    try { return @($archive.Entries | ForEach-Object { $_.FullName.Replace('\', '/') } | Sort-Object) }
+    finally { $archive.Dispose() }
+}
+$fullEntries = Get-ZipEntries $zipFull
+$liteEntries = Get-ZipEntries $zipLite
+$expected = @($fullEntries | Where-Object { $_ -notlike "$name/dotnet/*" })
+if ($expected.Count -eq $fullEntries.Count) { throw "$zipFull 中没有 dotnet\" }
+if (Compare-Object $expected $liteEntries) { throw "$zipLite 的内容与 $zipFull 去掉 dotnet\ 后不同" }
+
+$hashFull = (Get-FileHash $zipFull -Algorithm SHA256).Hash
+$hashLite = (Get-FileHash $zipLite -Algorithm SHA256).Hash
+
+# 把不含 .NET 安装包的 zip 解压到临时目录启动一次 (不在发布文件夹中启动:会生成 settings.json、logs\)。
 $check = Join-Path ([IO.Path]::GetTempPath()) ('zevision_check_' + [Guid]::NewGuid().ToString('N'))
-Expand-Archive $zip -DestinationPath $check
+Expand-Archive $zipLite -DestinationPath $check
 $exe = Join-Path $check "$name\Zevision.exe"
 if (Get-Process Zevision -ErrorAction SilentlyContinue) {
     Write-Warning ('Zevision 正在运行 (单实例),跳过启动检查。关闭后手动启动一次: ' + $exe)
@@ -94,6 +121,9 @@ else {
     Remove-Item $check -Recurse -Force
 }
 
-Write-Host "发布包: $zip"
-Write-Host "SHA256: $hash (填入 docs/RELEASE.md 的版本表)"
+Write-Host "发布包 (含 .NET 安装包): $zipFull"
+Write-Host "SHA256: $hashFull"
+Write-Host "发布包 (不含 .NET 安装包): $zipLite"
+Write-Host "SHA256: $hashLite"
+Write-Host "两个 SHA256 填入 docs/RELEASE.md 的版本表"
 Write-Host "调试符号: $symbols"

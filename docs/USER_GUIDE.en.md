@@ -69,9 +69,9 @@ Table 2  Contents of the release package
 | `Zevision.exe` | Main program |
 | `Zevision.exe.config` | Program configuration (runtime version, location of the `lib` folder) |
 | `Texts.json` | Chinese and English texts of messages; when it is missing or damaged, the software shows a message and exits |
-| `USER_GUIDE.md`, `USER_GUIDE.en.md` | User manuals (Chinese, English) |
+| `使用说明.md`, `User Guide.md` | User manuals (Chinese, English) |
 | `lib\` | All DLL files used by the program |
-| `dotnet\ndp48-x86-x64-allos-enu.exe` | .NET Framework 4.8 offline installer |
+| `dotnet\ndp48-x86-x64-allos-enu.exe` | .NET Framework 4.8 offline installer; included only in the `Zevision-<version>_wDotnet.zip` release package |
 
 ### 3.3 Software environment
 
@@ -125,9 +125,10 @@ Hovering the mouse pointer over a setting shows a short description.
 
 #### 4.1.1 Installation and setup
 
-1. Extract the release package to a writable folder, for example `D:\Zevision`. The software has no setup program.
-2. Run `Zevision.exe`.
-3. If a message reports that .NET Framework is missing (Windows 7 SP1, Windows 8.1, or Windows 10 earlier than 1803), run `dotnet\ndp48-x86-x64-allos-enu.exe` from the release package and start the software again. The installer needs no internet connection, requires administrator rights and may require a restart of the computer.
+1. Select the release package: on a computer with .NET Framework 4.7.2 or later (included in Windows 10 1803 and later) use `Zevision-<version>_woDotnet.zip`; otherwise use `Zevision-<version>_wDotnet.zip`, which contains the offline installer.
+2. Extract the release package to a writable folder, for example `D:\Zevision`. The software has no setup program.
+3. Run `Zevision.exe`.
+4. If a message reports that .NET Framework is missing (Windows 7 SP1, Windows 8.1, or Windows 10 earlier than 1803), run `dotnet\ndp48-x86-x64-allos-enu.exe` from the `_wDotnet` release package and start the software again. The installer needs no internet connection, requires administrator rights and may require a restart of the computer.
 
 On the first start the user interface language is determined as described in 5.3.1, and all other settings have their default values; the settings are saved to `settings.json` on exit.
 
