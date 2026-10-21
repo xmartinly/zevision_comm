@@ -64,7 +64,7 @@ namespace Zevision.Tests
         [Fact]
         public void Connect_DeviceUsesOtherFormat_SwitchesFollowDevice()
         {
-            var device = new FakeDeviceService { Handshake = _ => Result<DeviceIdentity>.Ok(new DeviceIdentity("Zevision IMC300", "IMC300", FrameOptions.Plain, new[] { "提示" })) };
+            var device = new FakeDeviceService { Handshake = _ => Result<DeviceIdentity>.Ok(new DeviceIdentity("Zevision IMC300", "IMC300", null, FrameOptions.Plain, new[] { "提示" })) };
             using (Inline())
             using (var main = NewMain(device))
             {
@@ -330,6 +330,49 @@ namespace Zevision.Tests
             }
         }
 
+        [Theory]
+        [InlineData(true, "XXXXXXXX")]
+        [InlineData(false, null)]
+        public void Connect_SaveCommunicationData_NamesFileAfterHandshakeSerialNumber(bool handshake, string? expected)
+        {
+            var device = new FakeDeviceService();
+            var factory = new SingleRecorderFactory(new TrackingRecorder());
+            using (Inline())
+            {
+                var main = new MainViewModel(device, new MemoryPreferencesStore(new ConnectionPreferences()), new InstrumentConfigService(device), new RecipeFileStore(), factory, new FakeDialogService(), new FakeErrorLog());
+                main.Connection.SelectedConnectionType = ConnectionType.Tcp;
+                main.Connection.TcpHost = "127.0.0.1";
+                main.Connection.IsHandshakeEnabled = handshake;
+                main.Connection.IsSaveCommunicationDataEnabled = true;
+
+                main.ConnectCommand.Execute(null);
+
+                Assert.True(main.IsConnected);
+                Assert.Equal(new[] { expected }, factory.SerialNumbers);
+                main.Dispose();
+            }
+        }
+
+        [Fact]
+        public void Connect_HandshakeFails_CreatesNoCommunicationDataFile()
+        {
+            var device = new FakeDeviceService { Handshake = _ => Result<DeviceIdentity>.Fail("no reply") };
+            var factory = new SingleRecorderFactory(new TrackingRecorder());
+            using (Inline())
+            {
+                var main = new MainViewModel(device, new MemoryPreferencesStore(new ConnectionPreferences()), new InstrumentConfigService(device), new RecipeFileStore(), factory, new FakeDialogService(), new FakeErrorLog());
+                main.Connection.SelectedConnectionType = ConnectionType.Tcp;
+                main.Connection.TcpHost = "127.0.0.1";
+                main.Connection.IsSaveCommunicationDataEnabled = true;
+
+                main.ConnectCommand.Execute(null);
+
+                Assert.False(main.IsConnected);
+                Assert.Empty(factory.SerialNumbers);
+                main.Dispose();
+            }
+        }
+
         [Fact]
         public void Preferences_HandshakeAndAutoReconnect_RoundTrip()
         {
@@ -397,7 +440,14 @@ namespace Zevision.Tests
 
             public SingleRecorderFactory(ICommunicationRecorder recorder) => _recorder = recorder;
 
-            public Result<ICommunicationRecorder> Create() => Result<ICommunicationRecorder>.Ok(_recorder);
+            /// <summary>每次 <see cref="Create"/> 收到的设备序列号。</summary>
+            public List<string?> SerialNumbers { get; } = new List<string?>();
+
+            public Result<ICommunicationRecorder> Create(string? deviceSerialNumber)
+            {
+                SerialNumbers.Add(deviceSerialNumber);
+                return Result<ICommunicationRecorder>.Ok(_recorder);
+            }
         }
 
         private sealed class InlineContext : SynchronizationContext

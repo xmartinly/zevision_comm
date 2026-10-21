@@ -213,18 +213,6 @@ namespace Zevision.ViewModels.Main
         private async Task<bool> OpenAsync(ConnectionOptions options, int reconnectAttempt, CancellationToken cancellationToken)
         {
             ICommunicationRecorder? recorder = null;
-            if (_settings.IsSaveCommunicationDataEnabled)
-            {
-                var file = _recorders.Create();
-                if (!file.IsSuccess)
-                {
-                    ReportFailure(reconnectAttempt, file.Error);
-                    return false;
-                }
-
-                recorder = file.Value;
-            }
-
             Endpoint = options.Endpoint.ToString();
             string? failure = null;
             var opened = false;
@@ -252,6 +240,19 @@ namespace Zevision.ViewModels.Main
                     }
 
                     identity = handshake.Value;
+                }
+
+                // 文件名含设备序列号 (握手时读取;未启用握手时未知),所以在握手之后创建。
+                if (_settings.IsSaveCommunicationDataEnabled)
+                {
+                    var file = _recorders.Create(identity?.SerialNumber);
+                    if (!file.IsSuccess)
+                    {
+                        failure = file.Error;
+                        return false;
+                    }
+
+                    recorder = file.Value;
                 }
 
                 connected = true;

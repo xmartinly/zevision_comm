@@ -116,7 +116,7 @@ Hovering the mouse pointer over a setting shows a short description.
 ### 3.7 Assistance and problem reporting
 
 - Hovering the mouse pointer over a setting shows a short description.
-- A problem report shall include `logs\error.txt`. For communication problems, turn on "Save communication data", reproduce the problem (set "Display format" to HEX for byte-level analysis) and include the matching `logs\capture_*.txt`.
+- A problem report shall include `logs\error.txt`. For communication problems, turn on "Save communication data", reproduce the problem (set "Display format" to HEX for byte-level analysis) and include the matching communication data file (`logs\<serial number>_<date>_<time>.txt`).
 - Troubleshooting of the communication link is described in ZEV-OPS-01.
 
 ## 4 Access to the software
@@ -270,7 +270,7 @@ The send options are located to the left of the command input box; they can be c
 - The header shows TX (frames sent), RX (frames received) and ERR (failed commands). A failed command is a command without a successful response: a command answered with a negative response (`-A`, `-B` and so on), and every command of a frame that received no valid response (timeout, invalid response). Commands that succeed after a resend, the handshake and the heartbeat are not counted. ERR is shown in the error color when greater than 0.
 - Select lines and press Ctrl+C to copy them; Ctrl+A selects all. "Clear" clears the display and the TX, RX and ERR counters.
 - The display keeps at most 20000 lines; when this is exceeded, the oldest 2000 lines are removed.
-- With "Save communication data" on, the content shown during the connection (in the display format selected at the time) is kept in memory and written to `logs\capture_*.txt` when it exceeds 50 KB, when the connection ends (including a lost connection) and when the program exits. Content not yet written is lost if the program terminates abnormally. The switch takes effect on connecting.
+- With "Save communication data" on, the content shown during the connection (in the display format selected at the time) is kept in memory and written to a communication data file in the `logs` folder when it exceeds 50 KB, when the connection ends (including a lost connection) and when the program exits. The file name consists of the device's system serial number (G06) and the date and time of the connection (to the minute), for example `XXXXXXXX_20261021_1337.txt`; with "Handshake on connect" off, or when the device does not return a serial number, the serial number part is `unknown`. A connection within the same minute appends to the same file. When a file exceeds 30 MB, the following content is written to a file named after it with `_1`, `_2`… appended (for example `XXXXXXXX_20261021_1337_1.txt`). Content not yet written is lost if the program terminates abnormally. The switch takes effect on connecting.
 
 #### 5.3.9 Saving the configuration
 
@@ -497,6 +497,6 @@ Table A.1  Data files
 | `settings.json` | Connection settings, send options and user interface language |
 | `recipes\*.json` | Instrument configuration files (`recipe\` before 1.1.0, see 5.5) |
 | `logs\error.txt` | Error log, appended; moved to `error.1.txt` above 5 MB |
-| `logs\capture_*.txt` | With "Save communication data" on: the content shown during the connection; written when it exceeds 50 KB, when the connection ends and when the program exits |
+| `logs\<serial number>_<date>_<time>.txt` | With "Save communication data" on: the content shown during the connection; written when it exceeds 50 KB, when the connection ends and when the program exits; continued in `_1`, `_2`… files above 30 MB |
 
 These files are located in the program directory, or in `Documents\Zevision\` when the program directory is not writable.

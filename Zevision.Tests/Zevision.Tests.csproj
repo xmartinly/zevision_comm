@@ -57,6 +57,7 @@
     <Compile Include="Localization\TextCatalogTests.cs" />
     <Compile Include="Storage\TextFileTests.cs" />
     <Compile Include="Storage\AppFoldersTests.cs" />
+    <Compile Include="Storage\CommunicationLogFilesTests.cs" />
     <Compile Include="Storage\CommunicationLogWriterTests.cs" />
     <Compile Include="Core\CommandFailuresTests.cs" />
     <Compile Include="Localization\LocalizationTests.cs" />

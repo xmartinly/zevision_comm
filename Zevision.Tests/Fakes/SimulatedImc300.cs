@@ -30,6 +30,9 @@ namespace Zevision.Tests
 
         public string Model { get; set; } = "IMC300";
 
+        /// <summary>系统序列号 (G06);为 null 时设备对 <c>QG06</c> 回答 <c>-A</c>。实机为 <c>XXXXXXXX</c>。</summary>
+        public string? SerialNumber { get; set; } = "XXXXXXXX";
+
         /// <summary>不应答任何输入 (设备关机、接错端口)。</summary>
         public bool Silent { get; set; }
 
@@ -87,6 +90,8 @@ namespace Zevision.Tests
                     return "H01+:Zevision " + Model + " 1.8.11.202606101229";
                 case "QG03":
                     return "QG03+:" + Model;
+                case "QG06":
+                    return SerialNumber == null ? "QG06-A" : "QG06+:" + SerialNumber;
             }
 
             if (command == "Q" + ChecksumId)

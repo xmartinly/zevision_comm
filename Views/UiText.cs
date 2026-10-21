@@ -104,8 +104,8 @@ namespace Zevision.Views
         /// <summary>帧头长度字节 (RS232: G1305,TCP: G1408)</summary>
         public static string LengthToolTip => Lang.T("帧头长度字节 (RS232: G1305,TCP: G1408)", "Length bytes (RS232: G1305, TCP: G1408)");
 
-        /// <summary>把显示的数据保存到 logs\capture_*.txt</summary>
-        public static string SaveCommunicationDataToolTip => Lang.T("把显示的数据保存到 logs\\capture_*.txt", "Save the displayed data to logs\\capture_*.txt");
+        /// <summary>把显示的数据保存到 logs 目录</summary>
+        public static string SaveCommunicationDataToolTip => Lang.T("把显示的数据保存到 logs 目录", "Save the displayed data in the logs folder");
 
         /// <summary>保存通讯数据</summary>
         public static string SaveCommunicationData => Lang.T("保存通讯数据", "Save communication data");

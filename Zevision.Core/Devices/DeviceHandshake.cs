@@ -39,8 +39,8 @@ namespace Zevision.Core.Devices
     /// <item>用期望的帧格式发送 <c>H01</c>。回答 <c>H01+:…</c> 即帧格式正确。</item>
     /// <item>否则等设备回答完 (<see cref="Settle"/>),用 <see cref="FrameFormatDetector"/> 从收到的字节识别设备的帧格式,
     /// 改用它再发 <c>H01</c>;识别不出时依次试其余格式。一个字节也没收到说明设备不在线 (设备对任何输入都会回答),直接失败。</item>
-    /// <item>一帧查询 G03 和当前接口的帧格式设置 (RS232:G1304/G1305,TCP:G1407/G1408)。型号读不到则失败;
-    /// 型号不是 IMC300、或设置与实际通讯的格式不一致时作为提示返回。</item>
+    /// <item>一帧查询 G03、G06 (序列号,用于通讯数据文件名) 和当前接口的帧格式设置 (RS232:G1304/G1305,TCP:G1407/G1408)。
+    /// 型号读不到则失败;序列号读不到时为 null;型号不是 IMC300、或设置与实际通讯的格式不一致时作为提示返回。</item>
     /// </list>
     /// </remarks>
     internal static class DeviceHandshake
@@ -65,7 +65,7 @@ namespace Zevision.Core.Devices
             }
 
             var (checksumId, lengthId) = FrameSettings.Ids(link.Endpoint);
-            var ids = new[] { InstrumentSnapshot.DeviceNameId, checksumId, lengthId };
+            var ids = new[] { InstrumentSnapshot.DeviceNameId, InstrumentSnapshot.SerialNumberId, checksumId, lengthId };
             var command = string.Join(";", ids.Select(ZevisionCommandSet.Query));
             var reply = await link.SendAsync(command, cancellationToken).ConfigureAwait(false);
             if (!reply.IsSuccess)
@@ -93,7 +93,8 @@ namespace Zevision.Core.Devices
                 warnings.Add(Texts.FrameSettingsDiffer(checksumId, checksum, lengthId, length));
             }
 
-            return Result<DeviceIdentity>.Ok(new DeviceIdentity(hello.Value, model, frame, warnings));
+            var serialNumber = ValueOf(responses, InstrumentSnapshot.SerialNumberId) is { Length: > 0 } serial ? serial : null;
+            return Result<DeviceIdentity>.Ok(new DeviceIdentity(hello.Value, model, serialNumber, frame, warnings));
         }
 
         /// <summary>找到设备回答 <c>H01</c> 的帧格式,并改用它。</summary>

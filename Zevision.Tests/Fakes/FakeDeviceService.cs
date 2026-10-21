@@ -119,7 +119,7 @@ namespace Zevision.Tests
         {
             Handshakes.Add(preferred);
             return Task.FromResult(Handshake?.Invoke(preferred)
-                ?? Result<DeviceIdentity>.Ok(new DeviceIdentity("Zevision IMC300 1.8.11", DeviceIdentity.ExpectedModel, preferred, Array.Empty<string>())));
+                ?? Result<DeviceIdentity>.Ok(new DeviceIdentity("Zevision IMC300 1.8.11", DeviceIdentity.ExpectedModel, "XXXXXXXX", preferred, Array.Empty<string>())));
         }
 
         /// <summary>收到的帧 (多条指令合并的帧在 <see cref="Commands"/> 中按单条记录)。</summary>

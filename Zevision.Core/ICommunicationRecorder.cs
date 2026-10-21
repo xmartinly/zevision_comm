@@ -14,7 +14,7 @@ namespace Zevision.Core
     /// </remarks>
     public interface ICommunicationRecorder : IDisposable
     {
-        /// <summary>保存位置 (显示给用户)。</summary>
+        /// <summary>当前保存位置 (显示给用户)。实现可以在记录过程中换到新文件 (如文件超过大小上限)。</summary>
         string Path { get; }
 
         /// <summary>追加一批行 (一次通讯显示的全部行)。不阻塞调用方,不抛出 I/O 异常。</summary>
@@ -30,7 +30,8 @@ namespace Zevision.Core
     /// </summary>
     public interface ICommunicationRecorderFactory
     {
-        /// <summary>创建新的记录 (如以当前时间命名的文件)。无法创建时返回失败,原因可直接显示。</summary>
-        Result<ICommunicationRecorder> Create();
+        /// <summary>创建新的记录 (如以设备序列号和当前时间命名的文件)。无法创建时返回失败,原因可直接显示。</summary>
+        /// <param name="deviceSerialNumber">设备的系统序列号 (G06,握手时读取);未知 (未启用握手、设备未回答) 时为 null。</param>
+        Result<ICommunicationRecorder> Create(string? deviceSerialNumber);
     }
 }

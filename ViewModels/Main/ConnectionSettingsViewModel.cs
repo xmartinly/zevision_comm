@@ -169,7 +169,7 @@ namespace Zevision.ViewModels.Main
         }
 
         /// <summary>
-        /// 选中的连接方式是否保存通讯数据:连接期间把数据显示区的内容 (按当时的显示格式) 追加到 logs\capture_*.txt。
+        /// 选中的连接方式是否保存通讯数据:连接期间把数据显示区的内容 (按当时的显示格式) 追加到 logs 目录中以设备序列号和时间命名的文件。
         /// 在连接时生效,连接期间不能修改。
         /// </summary>
         public bool IsSaveCommunicationDataEnabled

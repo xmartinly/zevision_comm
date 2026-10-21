@@ -356,7 +356,7 @@ foreach (var warning in identity.Value.Warnings) { Log(warning); }   // 型号�
 
 1. 以 `preferred` 发送 `H01`（不重发）。回答为 `H01+:…` 时帧格式正确。
 2. 否则等待 300 ms（设备对格式不符的输入最迟约 230 ms 回答 `-T`），用 `FrameFormatDetector.Detect` 从此期间收到的字节识别设备的帧格式，改用该格式后再次发送 `H01`；无法识别时依次尝试其余格式（最多 4 次）。第一次未收到任何字节时表明设备不在线（设备对任何输入都会回答），握手失败。
-3. 以一帧查询 `QG03;QG1304;QG1305`（TCP 为 G1407/G1408）。读不到 G03 时握手失败；型号不是 `DeviceIdentity.ExpectedModel`（IMC300），或设置与实际使用的帧格式不一致时，作为 `Warnings` 返回。
+3. 以一帧查询 `QG03;QG06;QG1304;QG1305`（TCP 为 G1407/G1408）。读不到 G03 时握手失败；G06（系统序列号，用于通信数据文件名）读不到时 `SerialNumber` 为 null，不影响握手；型号不是 `DeviceIdentity.ExpectedModel`（IMC300），或设置与实际使用的帧格式不一致时，作为 `Warnings` 返回。
 
 - 握手期间的收发不触发 `FrameSent`/`FrameReceived`（不显示、不保存、不计数）；收到的字节另行记录（最多 4 KB），用于识别帧格式。
 - 耗时：帧格式一致时为两帧（约 50 ms）；不一致时增加一次探测和 300 ms 等待（实测，RS232 约 460 ms，TCP 约 380 ms）。
@@ -406,7 +406,7 @@ if (values.IsSuccess)
 // → M0101 = Al / M0103 = 2.700 / M0901: 非法格式      （单项被拒绝不影响其他项）
 ```
 
-- `InstrumentSnapshot` 的常量：`DeviceNameId` = `G03`、`StateId` = `C09`、`ReadyState` = `Ready`。属性：`DeviceName`（G03）、`ModelNumber`（G05）、`SerialNumber`（G06）、`FirmwareVersion`（G08）、`CurrentState`（C09）、`Entries`（保持设备给出的顺序）。`GetValue` / `GetDescription` 按 ID 查找，没有时为 null；ID 重复时取第一次出现的项。
+- `InstrumentSnapshot` 的常量：`DeviceNameId` = `G03`、`SerialNumberId` = `G06`、`StateId` = `C09`、`ReadyState` = `Ready`。属性：`DeviceName`（G03）、`ModelNumber`（G05）、`SerialNumber`（G06）、`FirmwareVersion`（G08）、`CurrentState`（C09）、`Entries`（保持设备给出的顺序）。`GetValue` / `GetDescription` 按 ID 查找，没有时为 null；ID 重复时取第一次出现的项。
 - `ReadGroupAsync`：响应中没有该组的数量项（`MFE`、`FFE`、`P02FE` 等）时返回失败，不把解析失败视为“该组为空”。
 - `QueryAsync`：通信失败时整体失败；单项被拒绝时该项的 `Value` 为 null，`Error` 为原因（如“非法格式”）。
 
@@ -807,7 +807,7 @@ var saved = store.Save(preferences);
 |---|---|
 | `GetSettingsFilePath()` | `<程序目录>\settings.json` |
 | `GetRecipeFolder()` | `<程序目录>\recipes` |
-| `GetLogsFolder()` | `<程序目录>\logs`（`error.txt`、`capture_*.txt`） |
+| `GetLogsFolder()` | `<程序目录>\logs`（`error.txt`、通信数据文件 `<序列号>_*.txt`） |
 
 程序目录不可写时（如安装在 Program Files 下）改用 `文档\Zevision\…`；日志目录仍不可写时使用系统临时目录。目录不存在时自动创建。每次调用都探测一次可写性（创建并删除一个临时文件），不宜在循环中调用。
 
@@ -867,11 +867,14 @@ System.UnauthorizedAccessException: …（含堆栈）
 
 ##### 4.2.9.5 CommunicationLogFiles：通信数据文件
 
-`CommunicationLogFiles` 实现 `ICommunicationRecorderFactory`。每次连接由 `Create()` 创建一个记录，文件为日志目录中的 `capture_yyyyMMdd_HHmmss.txt`，永久保留，不自动清理。
+`CommunicationLogFiles` 实现 `ICommunicationRecorderFactory`。每次连接由 `Create(deviceSerialNumber)` 创建一个记录，文件为日志目录中的 `<序列号>_yyyyMMdd_HHmm.txt`（`FileName`），如 `XXXXXXXX_20261021_1337.txt`；超过 30 MB 时续写到 `XXXXXXXX_20261021_1337_1.txt`、`_2.txt`…。文件永久保留，不自动清理。
+
+- 序列号为握手读取的 G06（`DeviceIdentity.SerialNumber`）。其中的空白和不能用于文件名的字符替换为 `_`，超过 32 个字符的部分截去；为 null 或空白（未启用握手、设备未回答 G06）时为 `unknown`（`UnknownSerialNumber`）。
+- 时间到分钟：同一分钟内再次连接（含自动重连）时追加到同一文件。
 
 ```csharp
 var recorders = new CommunicationLogFiles(errorLog);           // 可选的第二个参数：目录（Func<string>），用于测试
-var opened = recorders.Create();
+var opened = recorders.Create(identity?.SerialNumber);         // 握手得到的序列号；未知时为 null，文件名为 unknown_…
 if (!opened.IsSuccess) { ShowError(opened.Error); return; }   // 无法创建文件
 var recorder = opened.Value;
 recorder.Append(new[] { "10:00:00.000 TX {QG03}", "10:00:00.020 RX {QG03+:IMC300}" });   // 不阻塞：先缓存在内存中
@@ -883,7 +886,8 @@ recorder.Dispose();                                            // 程序退出�
 - 保存的内容为数据显示区的显示内容（含当时的显示格式），由界面层把每批显示的行交给 `Append`。
 - 内容先缓存在内存中，缓存的 UTF-8 字节数达到 `CommunicationLogWriter.BufferLimit`（50 KB）时作为一块在后台写入并刷新；`CloseAsync` 在后台、`Dispose` 在调用线程上写完剩余内容后关闭文件。各块在文件锁中按排队顺序写入，顺序不变。
 - 界面层断开连接（含连接中断）时调用 `CloseAsync`；程序退出时（`MainViewModel.Dispose` → `ConnectionLifecycle.CloseRecorder`）调用 `Dispose`，因为注销、关机时窗口不经过 `Closing`，后台写入可能来不及完成。
-- 写入失败时记入 `error.txt` 并停止记录（丢弃缓存），不影响通信。程序异常终止时，缓存中尚未写入的内容（最多约 50 KB）丢失。
+- 写入一块会使当前文件超过 `CommunicationLogWriter.FileSizeLimit`（30 MB）时，先关闭当前文件，在原文件名后加 `_1`、`_2`…（`NumberedPath`）打开下一个文件后再写入。一块由完整的若干批显示行组成，不拆到两个文件中；单独一块超过上限时写入空文件。编号文件已存在（同一秒内重新连接）时追加，放不下时继续使用下一个编号。`Path` 为当前文件；界面层只在连接时显示第一个文件。
+- 写入失败（含无法创建下一个文件）时记入 `error.txt` 并停止记录（丢弃缓存），不影响通信。程序异常终止时，缓存中尚未写入的内容（最多约 50 KB）丢失。
 
 ##### 4.2.9.6 TextFile
 
@@ -1031,14 +1035,14 @@ var snapshot = await config.ReadSnapshotAsync(ct);          // → IMC300 Ready
 
 #### interface `ICommunicationRecorder` : IDisposable
 保存通讯数据:把数据显示区的内容按显示的样子追加保存。只是记录用途,写入失败不影响通讯。实现可以先缓存在内存中,积累到一定大小、关闭或释放时再写入。`Dispose` 在调用线程上写完缓存和已排队的行后关闭,用于程序退出;不抛出 I/O 异常,可以在 `CloseAsync` 之后调用。
-- `string Path { get; }`: 保存位置 (显示给用户)。
+- `string Path { get; }`: 当前保存位置 (显示给用户)。实现可以在记录过程中换到新文件 (如文件超过大小上限)。
 - `void Append(IReadOnlyList<string> lines)`: 追加一批行 (一次通讯显示的全部行)。不阻塞调用方,不抛出 I/O 异常。
 - `Task CloseAsync()`: 在后台写完缓存和已排队的行后关闭 (断开连接时)。之后的 `Append` 被忽略。
 - `void Dispose()`: 在调用线程上写完缓存和已排队的行后关闭 (程序退出时)。
 
 #### interface `ICommunicationRecorderFactory`
 为一次连接创建 `ICommunicationRecorder`。
-- `Result<ICommunicationRecorder> Create()`: 创建新的记录 (如以当前时间命名的文件)。无法创建时返回失败,原因可直接显示。
+- `Result<ICommunicationRecorder> Create(string deviceSerialNumber)`: 创建新的记录 (如以设备序列号和当前时间命名的文件)。无法创建时返回失败,原因可直接显示。
 
 #### interface `IErrorLog`
 运行时错误日志。实现必须线程安全,且写入失败时不能抛出异常。
@@ -1132,6 +1136,7 @@ var snapshot = await config.ReadSnapshotAsync(ct);          // → IMC300 Ready
 通过 `?` 读取的设备配置快照。
 - `InstrumentSnapshot(IReadOnlyList<HelpTableEntry> entries)`: 创建快照。ID 重复时以第一次出现为准。
 - `const string DeviceNameId`: 设备名 (型号) 的 ID。
+- `const string SerialNumberId`: 系统序列号的 ID。
 - `const string StateId`: 当前状态的 ID (工艺状态)。
 - `const string ReadyState`: 空闲状态的值:只有在这个状态下才修改设置。
 - `IReadOnlyList<HelpTableEntry> Entries { get; }`: 帮助表中的全部条目,保持设备给出的顺序。
@@ -1342,10 +1347,11 @@ var snapshot = await config.ReadSnapshotAsync(ct);          // → IMC300 Ready
 
 #### record `DeviceIdentity`
 握手 (`HandshakeAsync`) 得到的设备信息。
-- `DeviceIdentity(string Hello, string Model, FrameOptions Frame, IReadOnlyList<string> Warnings)`: 握手 (`HandshakeAsync`) 得到的设备信息。
+- `DeviceIdentity(string Hello, string Model, string SerialNumber, FrameOptions Frame, IReadOnlyList<string> Warnings)`: 握手 (`HandshakeAsync`) 得到的设备信息。
 - `const string ExpectedModel`: 本程序适用的设备型号。
 - `string Hello { get; init; }`: `H01` 的回答,如 `Zevision IMC300 1.8.11.202606101229`。
 - `string Model { get; init; }`: 设备型号 (G03),如 `IMC300`。
+- `string SerialNumber { get; init; }`: 系统序列号 (G06),如 `XXXXXXXX`;设备未回答或为空时为 null。
 - `FrameOptions Frame { get; init; }`: 设备在这个接口上使用的帧格式,当前连接已改用它。
 - `IReadOnlyList<string> Warnings { get; init; }`: 不妨碍通讯、但应当提示的情况 (界面语言),如型号不是 IMC300。
 
@@ -1507,9 +1513,10 @@ var snapshot = await config.ReadSnapshotAsync(ct);          // → IMC300 Ready
 - `static string GetLogsFolder()`: 日志目录 (收发记录、error.txt)。
 
 #### class `CommunicationLogFiles` : ICommunicationRecorderFactory
-为每次连接在日志目录中创建一个通讯数据文件 `capture_yyyyMMdd_HHmmss.txt` (`CommunicationLogWriter`)。 文件永久保留,不自动清理。
+为每次连接在日志目录中创建一个通讯数据文件 (`CommunicationLogWriter`):设备序列号、日期、时间 (到分钟), 如 `XXXXXXXX_20261021_1337.txt`;序列号未知时为 `UnknownSerialNumber`。 同一分钟内再次连接 (含自动重连) 时追加到同一文件。超过 30 MB 时续写到 `XXXXXXXX_20261021_1337_1.txt`、`_2`…。 文件永久保留,不自动清理。
 - `CommunicationLogFiles(IErrorLog errorLog, Func<string> folder = null)`: 创建工厂。
-- `Result<ICommunicationRecorder> Create()`: 同接口/基类的说明。
+- `const string UnknownSerialNumber`: 设备序列号未知 (未启用握手、设备未回答 G06) 时文件名中代替它的文字。
+- `Result<ICommunicationRecorder> Create(string deviceSerialNumber)`: 同接口/基类的说明。
 
 #### class `FileErrorLog` : IErrorLog
 以追加方式把错误写入文本文件 (UTF-8)。线程安全;写入失败时静默放弃,不影响程序运行。

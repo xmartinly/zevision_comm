@@ -31,9 +31,24 @@ namespace Zevision.Tests
                 Assert.True(identity.IsSuccess, identity.Error);
                 Assert.Equal("Zevision IMC300 1.8.11.202606101229", identity.Value.Hello);
                 Assert.Equal("IMC300", identity.Value.Model);
+                Assert.Equal("XXXXXXXX", identity.Value.SerialNumber);
                 Assert.Equal(FrameOptions.Plain, identity.Value.Frame);
                 Assert.Empty(identity.Value.Warnings);
-                Assert.Equal(new[] { "H01", "QG03;QG1304;QG1305" }, device.Commands);
+                Assert.Equal(new[] { "H01", "QG03;QG06;QG1304;QG1305" }, device.Commands);
+            }
+        }
+
+        [Fact]
+        public async Task Handshake_NoSerialNumber_SucceedsWithoutIt()
+        {
+            var device = new SimulatedImc300(FrameOptions.Plain) { SerialNumber = null };
+            using (var service = await ConnectAsync(device, FrameOptions.Plain))
+            {
+                var identity = await service.HandshakeAsync(FrameOptions.Plain, CancellationToken.None);
+
+                Assert.True(identity.IsSuccess, identity.Error);
+                Assert.Null(identity.Value.SerialNumber);
+                Assert.Empty(identity.Value.Warnings);
             }
         }
 

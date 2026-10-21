@@ -14,6 +14,9 @@ namespace Zevision.Core.Configuration
         /// <summary>设备名 (型号) 的 ID。</summary>
         public const string DeviceNameId = "G03";
 
+        /// <summary>系统序列号的 ID。</summary>
+        public const string SerialNumberId = "G06";
+
         /// <summary>当前状态的 ID (工艺状态)。</summary>
         public const string StateId = "C09";
 
@@ -48,7 +51,7 @@ namespace Zevision.Core.Configuration
         public string FirmwareVersion => GetValue("G08") ?? string.Empty;
 
         /// <summary>序列号 (G06)。</summary>
-        public string SerialNumber => GetValue("G06") ?? string.Empty;
+        public string SerialNumber => GetValue(SerialNumberId) ?? string.Empty;
 
         /// <summary>当前运行状态 (C09),空闲时为 <c>Ready</c>。</summary>
         public string? CurrentState => GetValue(StateId);
