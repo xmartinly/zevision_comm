@@ -135,6 +135,24 @@ namespace Zevision.Tests
         }
 
         [Fact]
+        public void Save_LastCommand_RoundTripsWithLineBreaks()
+        {
+            var store = new JsonFilePreferencesStore(SettingsPath);
+            Assert.True(store.Save(new ConnectionPreferences { LastCommand = "QG01\r\nUM0101:Ålu;QG03" }).IsSuccess);
+
+            Assert.Equal("QG01\r\nUM0101:Ålu;QG03", store.Load().Value.LastCommand);
+        }
+
+        [Fact]
+        public void Load_FileWithoutLastCommand_IsEmpty()
+        {
+            Directory.CreateDirectory(_directory);
+            File.WriteAllText(SettingsPath, "{\"portName\": \"COM3\"}");
+
+            Assert.Equal(string.Empty, new JsonFilePreferencesStore(SettingsPath).Load().Value.LastCommand);
+        }
+
+        [Fact]
         public void Save_TcpSwitches_AreSeparateKeys()
         {
             var store = new JsonFilePreferencesStore(SettingsPath);

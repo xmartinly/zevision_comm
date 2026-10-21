@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
@@ -12,7 +13,8 @@ using Zevision.ViewModels.Main;
 namespace Zevision.Views
 {
     /// <summary>
-    /// 主窗口。代码隐藏只处理纯视图行为:数据显示区自动滚动 (仅当停在底部时)、复制选中行。
+    /// 主窗口。代码隐藏只处理纯视图行为:数据显示区自动滚动 (仅当停在底部时)、复制选中行、
+    /// 程序不在前台时降低数据显示区的刷新率 (<see cref="LogViewModel.IsInBackground"/>)。
     /// </summary>
     public partial class MainWindow : Window
     {
@@ -21,6 +23,9 @@ namespace Zevision.Views
         private bool _logChanging;
         private bool _connectionClosed;
         private bool _closing;
+
+        /// <summary>程序是否在前台 (本程序的某个窗口是活动窗口)。显示之前当作在前台,不暂存记录。</summary>
+        private bool _appActive = true;
 
         /// <summary>
         /// 创建主窗口。
@@ -31,6 +36,40 @@ namespace Zevision.Views
             FitToWorkArea();
             ((INotifyCollectionChanged)LogList.Items).CollectionChanged += OnLogChanged;
             Closing += OnClosing;
+            StateChanged += (s, e) => UpdateLogRefresh();
+            var app = Application.Current;
+            if (app != null)
+            {
+                // 程序级的激活:修改配置窗口、消息框在前台时程序仍在前台。
+                app.Activated += OnAppActivated;
+                app.Deactivated += OnAppDeactivated;
+                Closed += (s, e) =>
+                {
+                    app.Activated -= OnAppActivated;
+                    app.Deactivated -= OnAppDeactivated;
+                };
+            }
+        }
+
+        private void OnAppActivated(object? sender, EventArgs e)
+        {
+            _appActive = true;
+            UpdateLogRefresh();
+        }
+
+        private void OnAppDeactivated(object? sender, EventArgs e)
+        {
+            _appActive = false;
+            UpdateLogRefresh();
+        }
+
+        /// <summary>其他程序在前台或主窗口最小化时,数据显示区每秒刷新一次;回到前台时立即显示。</summary>
+        private void UpdateLogRefresh()
+        {
+            if (DataContext is MainViewModel viewModel)
+            {
+                viewModel.Log.IsInBackground = !_appActive || WindowState == WindowState.Minimized;
+            }
         }
 
         /// <summary>

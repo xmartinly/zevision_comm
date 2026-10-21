@@ -3,10 +3,10 @@
 | Item | Content |
 |---|---|
 | Document identifier | ZEV-SUM-01-EN |
-| Document version | 1.1 |
-| Applicable software | Zevision 1.1.0 (user interface language: English) |
+| Document version | 1.2 |
+| Applicable software | Zevision 1.2.0 (user interface language: English) |
 | Prepared by | INFICON |
-| Date | 2026-10-19 |
+| Date | 2026-10-21 |
 
 ## 1 Scope
 
@@ -14,8 +14,8 @@
 
 This document applies to the following software:
 
-- Software name: Zevision (window title `IMC300 Communication Test - Zevision 1.1.0`);
-- Software version: 1.1.0;
+- Software name: Zevision (window title `IMC300 Communication Test - Zevision 1.2.0`);
+- Software version: 1.2.0;
 - Contact: martin.liang@inficon.com.
 
 The user manual for the Chinese user interface is ZEV-SUM-01 (docs/USER_GUIDE.md). Its content corresponds to this document section by section.
@@ -250,7 +250,7 @@ Click "Disconnect". The exchange in progress completes, the connection closes, r
 Rules:
 
 - The delimiters `{ }`, the length bytes and the checksum are added by the software.
-- When sending, the command part of each command is converted to upper case; data after `:` is unchanged, for example `um0101:Aluminium` is sent as `UM0101:Aluminium`. The input box shows the converted text and keeps it, so that it can be edited and sent again.
+- When sending, the command part of each command is converted to upper case; data after `:` is unchanged, for example `um0101:Aluminium` is sent as `UM0101:Aluminium`. The input box shows the converted text and keeps it, so that it can be edited and sent again. The last text sent from the input box is saved on exit and shown in the input box at the next start; quick commands and edits that were not sent are not saved.
 - Multiple commands are separated by `;` (or the full-width `；`) or written one per line (Shift+Enter starts a new line) and sent in one frame, for example `QG01;QG1304;QG1305`. The software shows `command = data` for each command.
 - The help command `?` can be sent manually. The full `?` reply is about 116 KB and takes about 10 s over RS232; no other command can be sent meanwhile. Group help (for example `?M`) returns that group only. To save the complete configuration, use "Save" (5.3.9).
 - Help commands (`?`, `?M` and so on) are displayed only when sent from the input box. The help commands that the software uses to read the device during save, restore and edit, and their replies, are not displayed and not saved to the communication data file.
@@ -270,6 +270,7 @@ The send options are located to the left of the command input box; they can be c
 - The header shows TX (frames sent), RX (frames received) and ERR (failed commands). A failed command is a command without a successful response: a command answered with a negative response (`-A`, `-B` and so on), and every command of a frame that received no valid response (timeout, invalid response). Commands that succeed after a resend, the handshake and the heartbeat are not counted. ERR is shown in the error color when greater than 0.
 - Select lines and press Ctrl+C to copy them; Ctrl+A selects all. "Clear" clears the display and the TX, RX and ERR counters.
 - The display keeps at most 20000 lines; when this is exceeded, the oldest 2000 lines are removed.
+- While the software is not in the foreground (another program's window is active, or the main window is minimized), the display is refreshed once per second; on returning to the foreground all content is shown at once. Saved communication data and `error.txt` are not affected.
 - With "Save communication data" on, the content shown during the connection (in the display format selected at the time) is kept in memory and written to a communication data file in the `logs` folder when it exceeds 50 KB, when the connection ends (including a lost connection) and when the program exits. The file name consists of the device's system serial number (G06) and the date and time of the connection (to the minute), for example `XXXXXXXX_20261021_1337.txt`; with "Handshake on connect" off, or when the device does not return a serial number, the serial number part is `unknown`. A connection within the same minute appends to the same file. When a file exceeds 30 MB, the following content is written to a file named after it with `_1`, `_2`… appended (for example `XXXXXXXX_20261021_1337_1.txt`). Content not yet written is lost if the program terminates abnormally. The switch takes effect on connecting.
 
 #### 5.3.9 Saving the configuration
@@ -400,7 +401,7 @@ With "Saved configuration", adding or removing process layers, film pre and post
 - Configuration files are stored in the `recipes` folder of the program directory (`Documents\Zevision\recipes` when the program directory is not writable). A backup consists of a copy of this folder.
 - Configuration files are UTF-8 JSON files with an MD5 checksum; files changed by hand are refused.
 - Versions earlier than 1.1.0 use the folder `recipe`. The first time a configuration file is saved or opened, the software renames `recipe` to `recipes`; when `recipes` already exists, both folders are kept. If renaming fails (for example because a file in it is open in another program), the old files remain in `recipe` and can be selected in the open dialog.
-- `settings.json` holds the connection settings, the send options and the user interface language. When it is damaged, the software uses default values, reports this in the data display and overwrites the file on exit.
+- `settings.json` holds the connection settings, the send options, the user interface language and the last sent command. When it is damaged, the software uses default values, reports this in the data display and overwrites the file on exit.
 - Annex A lists all file locations.
 
 ### 5.6 Error, malfunction and emergency recovery
@@ -494,7 +495,7 @@ Table A.1  Data files
 
 | File | Content |
 |---|---|
-| `settings.json` | Connection settings, send options and user interface language |
+| `settings.json` | Connection settings, send options, user interface language and the last sent command |
 | `recipes\*.json` | Instrument configuration files (`recipe\` before 1.1.0, see 5.5) |
 | `logs\error.txt` | Error log, appended; moved to `error.1.txt` above 5 MB |
 | `logs\<serial number>_<date>_<time>.txt` | With "Save communication data" on: the content shown during the connection; written when it exceeds 50 KB, when the connection ends and when the program exits; continued in `_1`, `_2`… files above 30 MB |

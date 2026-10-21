@@ -393,6 +393,49 @@ namespace Zevision.Tests
             Assert.False(new ConnectionPreferences().AutoReconnect);
         }
 
+        [Fact]
+        public void Preferences_LastSentCommand_SavedAndRestoredIntoInputBox()
+        {
+            var store = new MemoryPreferencesStore(new ConnectionPreferences { LastCommand = "QG03" });
+            var device = new FakeDeviceService();
+            using (Inline())
+            using (var main = NewMain(device, store))
+            {
+                Assert.Equal("QG03", main.CommandText);
+                main.Connection.SelectedConnectionType = ConnectionType.Tcp;
+                main.Connection.TcpHost = "127.0.0.1";
+                main.ConnectCommand.Execute(null);
+
+                main.CommandText = "qg01\nqm0101";
+                main.SendCommand.Execute(null);
+                main.CommandText = "not sent"; // 只保存发送过的内容
+                main.SavePreferences();
+            }
+
+            Assert.Equal("QG01\nQM0101", store.Saved!.LastCommand);
+            Assert.Contains("QG01;QM0101", device.Frames); // 多行合并为一帧发送
+
+            using (Inline())
+            using (var restarted = NewMain(new FakeDeviceService(), new MemoryPreferencesStore(store.Saved)))
+            {
+                Assert.Equal("QG01\nQM0101", restarted.CommandText);
+            }
+        }
+
+        [Fact]
+        public void Preferences_NoCommandSent_KeepsPreviousLastCommand()
+        {
+            var store = new MemoryPreferencesStore(new ConnectionPreferences { LastCommand = "H01" });
+            using (Inline())
+            using (var main = NewMain(new FakeDeviceService(), store))
+            {
+                main.CommandText = "edited but not sent";
+                main.SavePreferences();
+            }
+
+            Assert.Equal("H01", store.Saved!.LastCommand);
+        }
+
         private static List<string> Texts(MainViewModel main) => main.Log.Entries.Select(e => e.Text).ToList();
 
         private static MainViewModel NewMain(FakeDeviceService device, MemoryPreferencesStore? store = null)

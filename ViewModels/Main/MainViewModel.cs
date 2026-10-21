@@ -31,6 +31,9 @@ namespace Zevision.ViewModels.Main
         private readonly ConnectionLifecycle _link;
         private string _languageSetting = ConnectionPreferences.DefaultLanguage;
         private string _commandText = string.Empty;
+
+        /// <summary>上次从输入框发送的指令,退出时保存,下次启动时填入输入框。</summary>
+        private string _lastSentCommand = string.Empty;
         private int _txCount;
         private int _rxCount;
         private int _errorCount;
@@ -243,6 +246,7 @@ namespace Zevision.ViewModels.Main
                 RepeatIntervalMs = SendOptions.RepeatInterval,
                 EditSource = Config.EditSource.ToString(),
                 Language = _languageSetting, // 界面语言在启动时由 App 读取;这里原样保留
+                LastCommand = _lastSentCommand,
             };
             Connection.WriteTo(preferences);
 
@@ -315,6 +319,10 @@ namespace Zevision.ViewModels.Main
             SendOptions.IsRepeatEnabled = saved.RepeatSend;
             SendOptions.RepeatInterval = saved.RepeatIntervalMs; // 不在选项中的值被忽略
             _languageSetting = string.IsNullOrWhiteSpace(saved.Language) ? ConnectionPreferences.DefaultLanguage : saved.Language;
+
+            // JSON 中为 null 时 DataContract 会写入 null。
+            _lastSentCommand = saved.LastCommand ?? string.Empty;
+            CommandText = _lastSentCommand;
         }
 
         private async Task SwitchLanguageAsync()
@@ -359,12 +367,14 @@ namespace Zevision.ViewModels.Main
         /// <summary>
         /// 发送输入框中的指令;勾选了重复发送时按间隔重复,直到停止、取消勾选或断开。
         /// 发送后保留输入框内容,便于修改后再次发送;重复发送使用点击时的内容,之后的修改不影响本次重复。
+        /// 发送的内容退出时保存,下次启动时填入输入框。
         /// </summary>
         private Task SendInputAsync()
         {
             // 命令部分转为大写 (数据部分不变),输入框同时显示转换后的内容,即实际发送的指令。
             var command = ManualCommandPolicy.ToUpperCommands(CommandText);
             CommandText = command;
+            _lastSentCommand = command;
             return SendOptions.RunAsync(() => SendAsync(command), () => IsConnected);
         }
 

@@ -116,6 +116,10 @@ namespace Zevision.Core.Settings
         [DataMember(Name = "autoReconnect", Order = 18)]
         public bool AutoReconnect { get; set; }
 
+        /// <summary>上次从指令输入框发送的指令 (发送时输入框的内容,可含换行;默认空)。启动时填入输入框。</summary>
+        [DataMember(Name = "lastCommand", Order = 19)]
+        public string LastCommand { get; set; } = string.Empty;
+
         // TCP 的三项单独保存;为 null 表示文件中没有 (旧版本),取 RS232 的值。
         [DataMember(Name = "tcpChecksumEnabled", Order = 14, EmitDefaultValue = false)]
         private bool? _tcpChecksumEnabled;
@@ -143,6 +147,7 @@ namespace Zevision.Core.Settings
             RepeatIntervalMs = 1000;
             HandshakeEnabled = true;
             AutoReconnect = false;
+            LastCommand = string.Empty;
             _tcpChecksumEnabled = null;
             _tcpLengthEnabled = null;
             _tcpSaveCommunicationData = null;

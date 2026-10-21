@@ -3,10 +3,10 @@
 | 项目 | 内容 |
 |---|---|
 | 文档标识 | ZEV-CPM-02 |
-| 文档版本 | 1.1 |
-| 适用软件 | `Zevision.Core` 1.1.0、`Zevision.Storage` 1.1.0（随 Zevision 1.1.0） |
+| 文档版本 | 1.2 |
+| 适用软件 | `Zevision.Core` 1.2.0、`Zevision.Storage` 1.2.0（随 Zevision 1.2.0） |
 | 编制单位 | INFICON |
-| 日期 | 2026-10-19 |
+| 日期 | 2026-10-21 |
 
 ## 目次
 
@@ -784,6 +784,7 @@ CommunicationText.Describe(error, command);                  // ZevisionError �
 | `RepeatIntervalMs` | `repeatIntervalMs` | 1000 | |
 | `HandshakeEnabled` | `handshakeEnabled` | true | 连接时握手（并启用重发和心跳）；1.0 版的文件中没有此项，读取后为 true |
 | `AutoReconnect` | `autoReconnect` | false | 连接意外中断后自动重连 |
+| `LastCommand` | `lastCommand` | 空 | 最后一次从指令输入框发送的内容（转为大写后，保留换行），启动时填入输入框 |
 
 无法识别的值（如旧版本写入或手工编辑的值）由视图模型按默认值处理。
 
@@ -856,7 +857,7 @@ log.Write("连接", "无法连接 COM3, 115200, 8N1: 对端口“COM3”的访�
 ```
 
 ```
-==== Zevision 1.1.0  |  Microsoft Windows NT 10.0.26200.0  |  .NET CLR 4.0.30319.42000  |  64 位进程 ====
+==== Zevision 1.2.0  |  Microsoft Windows NT 10.0.26200.0  |  .NET CLR 4.0.30319.42000  |  64 位进程 ====
 2026-10-18 23:28:29.123 [连接] 无法连接 COM3, 115200, 8N1: 对端口“COM3”的访问被拒绝。
 System.UnauthorizedAccessException: …（含堆栈）
 ```
@@ -1498,6 +1499,7 @@ var snapshot = await config.ReadSnapshotAsync(ct);          // → IMC300 Ready
 - `string Language { get; set; }`: 界面语言:`auto` (按系统:中国地区或中文系统用中文,其他用英文)、`zh` 或 `en`。
 - `bool HandshakeEnabled { get; set; }`: 连接时是否握手 (默认是):确认设备应答、按设备的实际设置确定帧格式、读取型号,并启用重发和心跳。 关闭时只打开通道 (帧格式按界面设置,不重发、不发心跳),用于调试帧格式不一致等情况。
 - `bool AutoReconnect { get; set; }`: 连接意外中断后是否自动重连 (默认否)。
+- `string LastCommand { get; set; }`: 上次从指令输入框发送的指令 (发送时输入框的内容,可含换行;默认空)。启动时填入输入框。
 
 #### interface `IPreferencesStore`
 读写持久化的通讯配置。
