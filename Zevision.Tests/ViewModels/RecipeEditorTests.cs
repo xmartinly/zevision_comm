@@ -457,7 +457,7 @@ namespace Zevision.Tests
         private static MainViewModel NewMain(IPreferencesStore store)
         {
             var device = NewDevice();
-            return new MainViewModel(device, store, new InstrumentConfigService(device), new RecipeFileStore(), new NoCommunicationRecorders(), new FakeDialogService(), new FakeErrorLog());
+            return new MainViewModel(device, store, new InstrumentConfigService(device), new RecipeFileStore(), new MemoryDesignStore(), new NoCommunicationRecorders(), new FakeDialogService(), new FakeErrorLog());
         }
 
         [Fact]
@@ -548,7 +548,7 @@ namespace Zevision.Tests
             var path = Path.Combine(_directory, "saved.json");
             var dialogs = new FakeDialogService { SaveFilePath = path };
             var log = new LogViewModel(new FakeErrorLog());
-            var config = new ConfigOperationsViewModel(new InstrumentConfigService(NewDevice()), new RecipeFileStore(), dialogs, new FakeErrorLog(), log, () => true);
+            var config = new ConfigOperationsViewModel(new InstrumentConfigService(NewDevice()), new RecipeFileStore(), new MemoryDesignStore(), dialogs, new FakeErrorLog(), log, () => true);
 
             await config.SaveAsync();
 
@@ -564,7 +564,7 @@ namespace Zevision.Tests
             var (_, _, path, _) = NewEditor(device);
             var dialogs = new FakeDialogService { OpenFilePath = path };
             var log = new LogViewModel(new FakeErrorLog());
-            var config = new ConfigOperationsViewModel(new InstrumentConfigService(device), new RecipeFileStore(), dialogs, new FakeErrorLog(), log, () => true);
+            var config = new ConfigOperationsViewModel(new InstrumentConfigService(device), new RecipeFileStore(), new MemoryDesignStore(), dialogs, new FakeErrorLog(), log, () => true);
 
             await config.RestoreAsync();
 
@@ -574,16 +574,33 @@ namespace Zevision.Tests
         }
 
         [Fact]
-        public async Task Restore_Failure_StillShowsError()
+        public async Task Restore_WrongModel_RedLogLine_NoBox()
         {
             var device = NewDevice();
             var (_, _, path, _) = NewEditor(device, recipeDevice: "IMC200");
             var dialogs = new FakeDialogService { OpenFilePath = path };
-            var config = NewConfigOperations(device, dialogs);
+            var log = new LogViewModel(new FakeErrorLog());
+            var config = new ConfigOperationsViewModel(new InstrumentConfigService(device), new RecipeFileStore(), new MemoryDesignStore(), dialogs, new FakeErrorLog(), log, () => true);
 
             await config.RestoreAsync();
 
-            Assert.Contains("IMC200", Assert.Single(dialogs.Errors)); // 型号不同,拒绝恢复
+            // 型号不同,拒绝恢复:设备没有改变,数据显示区写红色错误行 (同时记入 error.txt),不弹窗。
+            Assert.Empty(dialogs.Errors);
+            Assert.Contains(log.Entries, e => e.Kind == LogKind.Error && e.Text.Contains("IMC200"));
+        }
+
+        [Fact]
+        public async Task Restore_DeviceRejectsAWrite_StillShowsErrorBox()
+        {
+            var device = NewDevice();
+            var (_, _, path, _) = NewEditor(device, "IMC300", Entry("M0101", "Al", "Name"), Entry("M0103", "9.999", "Density (g/cm^3)"));
+            var dialogs = new FakeDialogService { OpenFilePath = path };
+            var config = NewConfigOperations(device, dialogs);
+            device.RejectWrites.Add("M0103");
+
+            await config.RestoreAsync();
+
+            Assert.Contains("M0103", Assert.Single(dialogs.Errors)); // 写入被设备拒绝:设备可能已部分改变,弹窗
         }
 
         [Fact]
@@ -610,7 +627,7 @@ namespace Zevision.Tests
         }
 
         private static ConfigOperationsViewModel NewConfigOperations(FakeDeviceService device, FakeDialogService dialogs) =>
-            new ConfigOperationsViewModel(new InstrumentConfigService(device), new RecipeFileStore(), dialogs, new FakeErrorLog(), new LogViewModel(new FakeErrorLog()), () => true);
+            new ConfigOperationsViewModel(new InstrumentConfigService(device), new RecipeFileStore(), new MemoryDesignStore(), dialogs, new FakeErrorLog(), new LogViewModel(new FakeErrorLog()), () => true);
 
         private static FakeDeviceService NewDevice() => new FakeDeviceService()
             .With("C09", "Ready", "Current State")

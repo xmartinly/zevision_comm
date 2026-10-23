@@ -3,7 +3,7 @@
     生成 Zevision 发布包 (见 docs/RELEASE.md "打包"):dist\Zevision-<版本>\、两个 zip、SHA256 和调试符号。
 .DESCRIPTION
     1. Release 重新构建 (0 警告) 并运行全部单元测试 (-SkipBuild 跳过)。
-    2. 组装发布文件夹:程序目录只有 Zevision.exe、Zevision.exe.config (含 probing privatePath="lib")、Texts.json 和使用说明;
+    2. 组装发布文件夹:程序目录只有 Zevision.exe、Zevision.exe.config (含 probing privatePath="lib")、Texts.json、materials.json (材料库) 和使用说明;
        全部 dll 在 lib\;.NET Framework 4.8 离线安装包在 dotnet\ (先核对 Microsoft 数字签名)。
     3. 压缩为两个 zip 并输出各自的 SHA256:Zevision-<版本>_wDotnet.zip (含 dotnet\) 和 Zevision-<版本>_woDotnet.zip
        (不含 dotnet\,用于已有 .NET Framework 4.7.2 或更高版本的计算机);核对两者只差 dotnet\。
@@ -57,9 +57,9 @@ if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notm
     throw ".NET 安装包的数字签名无效: $($signature.Status) $($signature.SignerCertificate.Subject)"
 }
 
-# 发布文件夹:程序目录只放 exe、配置、翻译文件和使用说明,dll 在 lib\ (由 Zevision.exe.config 的 probing 找到)。
+# 发布文件夹:程序目录只放 exe、配置、翻译文件、材料库和使用说明,dll 在 lib\ (由 Zevision.exe.config 的 probing 找到)。
 New-Item -ItemType Directory (Join-Path $pkg 'lib'), (Join-Path $pkg 'dotnet') | Out-Null
-Copy-Item (Join-Path $bin 'Zevision.exe'), (Join-Path $bin 'Zevision.exe.config'), (Join-Path $bin 'Texts.json') $pkg
+Copy-Item (Join-Path $bin 'Zevision.exe'), (Join-Path $bin 'Zevision.exe.config'), (Join-Path $bin 'Texts.json'), (Join-Path $bin 'materials.json') $pkg
 Get-ChildItem $bin -Filter '*.dll' | Copy-Item -Destination (Join-Path $pkg 'lib')
 Copy-Item (Join-Path $root 'docs\USER_GUIDE.md') (Join-Path $pkg '使用说明.md')
 Copy-Item (Join-Path $root 'docs\USER_GUIDE.en.md') (Join-Path $pkg 'User Guide.md')

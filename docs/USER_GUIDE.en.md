@@ -3,10 +3,10 @@
 | Item | Content |
 |---|---|
 | Document identifier | ZEV-SUM-01-EN |
-| Document version | 1.2 |
-| Applicable software | Zevision 1.2.0 (user interface language: English) |
+| Document version | 1.3 |
+| Applicable software | Zevision 1.3.1 (user interface language: English) |
 | Prepared by | INFICON |
-| Date | 2026-10-21 |
+| Date | 2026-10-23 |
 
 ## 1 Scope
 
@@ -14,8 +14,8 @@
 
 This document applies to the following software:
 
-- Software name: Zevision (window title `IMC300 Communication Test - Zevision 1.2.0`);
-- Software version: 1.2.0;
+- Software name: Zevision (window title `IMC300 Communication Test - Zevision 1.3.1`);
+- Software version: 1.3.1;
 - Contact: martin.liang@inficon.com.
 
 The user manual for the Chinese user interface is ZEV-SUM-01 (docs/USER_GUIDE.md). Its content corresponds to this document section by section.
@@ -69,6 +69,7 @@ Table 2  Contents of the release package
 | `Zevision.exe` | Main program |
 | `Zevision.exe.config` | Program configuration (runtime version, location of the `lib` folder) |
 | `Texts.json` | Chinese and English texts of messages; when it is missing or damaged, the software shows a message and exits |
+| `materials.json` | Material library: the material table of Annex A of the IMC300 operating manual (formula, name, density, Z ratio), selectable in the process editor (see 5.3.12) |
 | `使用说明.md`, `User Guide.md` | User manuals (Chinese, English) |
 | `lib\` | All DLL files used by the program |
 | `dotnet\ndp48-x86-x64-allos-enu.exe` | .NET Framework 4.8 offline installer; included only in the `Zevision-<version>_wDotnet.zip` release package |
@@ -97,7 +98,7 @@ Table 4  Areas of the main window
 |---|---|
 | Left, "Connection" | "RS232" and "TCP" tabs; port and baud rate, or IP address |
 | Left, "Protocol options" | "Response timeout (ms)"; switches "Checksum", "Length bytes", "Handshake on connect", "Reconnect automatically", "Save communication data" |
-| Left, "Instrument configuration" | "Save", "Restore" and "Edit" buttons, the drop-down for the data source to edit, operation progress and "Cancel" button |
+| Left, "Instrument configuration" | "Save", "Restore", "Process" and "Edit" buttons, the drop-down for the data source to edit, operation progress and "Cancel" button |
 | Bottom left | "Connect" and "Disconnect" buttons, status line |
 | Right, "Data display" | Records of the data sent and received, TX, RX and ERR counters, "Clear" button, language button "中" (or "EN" in the Chinese interface) |
 | Bottom right | "Display format", "Repeat send", "Interval (ms)", quick command buttons, command input box, "Send" button |
@@ -159,6 +160,7 @@ Table 5  Capabilities of the software
 | Saving the configuration | Reads the device configuration and saves it as a JSON file with an MD5 checksum | 5.3.9 |
 | Restoring the configuration | Compares file and device, writes the differing settings and reads them back; re-creates objects deleted on the device | 5.3.10 |
 | Editing the configuration | Edits the current device configuration or a configuration file; creates and deletes objects and list items | 5.3.11 |
+| Process editor | Writes materials and processes, saves them locally and uploads them to the device; creates the materials, films, layers and process automatically; lists and deletes the processes and materials on the device | 5.3.12 |
 
 ### 5.2 Conventions
 
@@ -270,16 +272,16 @@ The send options are located to the left of the command input box; they can be c
 - The header shows TX (frames sent), RX (frames received) and ERR (failed commands). A failed command is a command without a successful response: a command answered with a negative response (`-A`, `-B` and so on), and every command of a frame that received no valid response (timeout, invalid response). Commands that succeed after a resend, the handshake and the heartbeat are not counted. ERR is shown in the error color when greater than 0.
 - Select lines and press Ctrl+C to copy them; Ctrl+A selects all. "Clear" clears the display and the TX, RX and ERR counters.
 - The display keeps at most 20000 lines; when this is exceeded, the oldest 2000 lines are removed.
-- While the software is not in the foreground (another program's window is active, or the main window is minimized), the display is refreshed once per second; on returning to the foreground all content is shown at once. Saved communication data and `error.txt` are not affected.
+- While the software is not in the foreground (another program's window is active, or the main window is minimized), the display is refreshed when the communication data is saved: each time the displayed content grows by 50 KB (the moment the communication data file is written; the same 50 KB count applies when "Save communication data" is off), and, with "Save communication data" on, when the connection ends (including a lost connection). On returning to the foreground all content is shown at once. The TX, RX and ERR counters in the header are refreshed together with the display. Saved communication data and `error.txt` are not affected.
 - With "Save communication data" on, the content shown during the connection (in the display format selected at the time) is kept in memory and written to a communication data file in the `logs` folder when it exceeds 50 KB, when the connection ends (including a lost connection) and when the program exits. The file name consists of the device's system serial number (G06) and the date and time of the connection (to the minute), for example `XXXXXXXX_20261021_1337.txt`; with "Handshake on connect" off, or when the device does not return a serial number, the serial number part is `unknown`. A connection within the same minute appends to the same file. When a file exceeds 30 MB, the following content is written to a file named after it with `_1`, `_2`… appended (for example `XXXXXXXX_20261021_1337_1.txt`). Content not yet written is lost if the program terminates abnormally. The switch takes effect on connecting.
 
 #### 5.3.9 Saving the configuration
 
 1. Connect to the device.
 2. Click "Save". The software reads the current device configuration (about 10 s over RS232).
-3. Confirm the file name and location in the save dialog. The default location is the `recipes` folder in the program directory; the default file name is `IMC300_yyyyMMdd_HHmmss.json`.
+3. Confirm the file name and location in the save dialog. The default location is the `configs` folder in the program directory; the default file name is `IMC300_yyyyMMdd_HHmmss.json`.
 
-A successful save shows no message box; the result is recorded in the data display. The reading phase is limited to 60 s and can be stopped with "Cancel".
+A successful save shows no message box; the result is recorded in the data display. When reading the device fails or times out, the reason is shown as a red error line in the data display (and written to `logs\error.txt`) without a message box; a failure to write the file shows a message box. The reading phase is limited to 60 s and can be stopped with "Cancel".
 
 #### 5.3.10 Restoring the configuration
 
@@ -296,7 +298,7 @@ Rules:
 - The reading phase and the execution phase are each limited to 60 s; time with the confirmation box open is not counted. "Cancel" can be clicked at any time.
 - Communication settings (G13, G14) and process control (C) are not restored.
 - If the firmware version differs from the file, the confirmation box shows a notice.
-- A successful restore shows no message box; the result is recorded in the data display. Errors, and a restore that finished with settings that could not be written, show a message box.
+- A successful restore shows no message box; the result is recorded in the data display. Problems that leave the device unchanged (reading the device failed or timed out, an invalid configuration file, a different model, the device not Ready) are shown as red error lines in the data display without a message box; write errors, and a restore that finished with settings that could not be written, show a message box.
 
 #### 5.3.11 Editing the configuration
 
@@ -394,13 +396,108 @@ With "Saved configuration", adding or removing process layers, film pre and post
 - These functions are not available while settings are checked; save or uncheck the settings first.
 - The device shall be in the Ready (idle) state.
 - The software verifies the result and shows a notice if a new object did not appear, a deleted object still exists, or other objects changed.
-- Successful saves, New, Delete and list changes show no message box; the result is shown at the bottom of the window. Errors show a message box.
+- Successful saves, New, Delete and list changes show no message box; the result is shown at the bottom of the window. Problems that leave the device and the files unchanged (for example an object that is referenced and cannot be deleted, no free number, reading the device failed) are shown in red at the bottom of the window without a message box; errors while writing to the device or a file show a message box.
+
+#### 5.3.12 Process editor
+
+The process editor simplifies setting up processes on the instrument: materials and processes are written locally in the way operators work and uploaded to the device with "Upload". Each material a process uses corresponds to one material and one film on the device, each step to one layer, and a new process is created whose layer list follows the order of the steps. Materials, films and layers that already exist on the device with the same name and parameters are reused; new ones are created only when the parameters differ (see 5.3.12.4).
+
+##### 5.3.12.1 Opening the window
+
+1. Connect to the device.
+2. Click "Process" under "Instrument configuration". The software reads the device configuration (about 10 s) and opens the "Process editor" window.
+
+The window has the pages "Materials", "Processes" and "Device". On the "Materials" and "Processes" pages the local list is on the left ("New", "Delete"); under each item a line shows whether the device has objects of the same name, for example "On the device: M10, F0B" (materials of the same name and the films of the same name that refer to them), "On the device: P0209" or "Not on the device". The selected item is edited on the right. The "Device" page lists the processes and materials on the device (see 5.3.12.5). Materials and processes are stored in the `recipes` folder of the program directory (see 5.5).
+
+##### 5.3.12.2 Materials
+
+A material corresponds to a material on the device (density, Z ratio, tooling) and a film of the same name (all other settings). The name is written to the device and is limited to ASCII letters, digits and symbols, at most 30 characters. The Chinese name is taken from the material library, is shown in the Chinese user interface only (for example "Al 铝" in the material list and the material options of the steps), is not written to the device and cannot be entered by hand.
+
+1. On the "Materials" page click "New". A new material has two pre conditions and one post condition; the PID values are P 10, I 0, D 0.
+2. Enter the name, density, Z ratio and tooling, or use "From the material library": typing a keyword (part of the formula, the English name or the Chinese name, not case-sensitive, for example `si`) in the box shows only the matching materials and opens the list; materials whose formula equals the keyword come first, then those whose formula starts with it. Selecting an entry fills in the density, Z ratio and Chinese name, and also the formula as the name when the name is empty or was filled in from the library last time and not changed. The list shows "formula - name". When the name entered is a formula of the material library (case-sensitive, and the formula has only one entry), the software fills in the Chinese name of that entry, and also its density and Z ratio when they are empty or still hold values filled in from an earlier name (typing `SiO2` replaces the values filled in for `Si` on the way). When the name is no longer a formula, the Chinese name, density and Z ratio that were filled in from the name and not changed are cleared; values filled in by selecting from the library are kept when the name is changed.
+3. Select the sensor, source and crucible and enter the crystal position. The crucible options are "0 - Any" and 1 up to the number of crucibles of the selected source; sensors and sources that do not exist on the device are shown as "(missing)".
+4. Enter the P term, I term, D term and maximum power, and select the max power option (action when the maximum power is reached: 0 - Continue, 1 - Post deposit, 2 - End the process, 3 - Suspend process) and the delay option.
+5. When the delay option is not "0 - None", "Delay settings" are shown: enter the control delay time, shutter delay accuracy and shutter delay timeout, select the transfer sensor ("0 - None" or a sensor of the device) and enter the transfer tooling. With delay option 0 these settings are neither shown nor written to the device.
+6. Enter the ramp/rise time, ramp power and hold time of each pre and post condition; times use the format H:MM:SS. "Add pre condition", "Add post condition" and the "×" at the end of a row change the number of conditions.
+
+A material used by a local process cannot be deleted (explained in red at the bottom of the window). When another material is deleted, the software asks whether to delete the matching data on the device as well and lists, according to the last read of the device, the objects to be deleted: the materials of the same name, the films that refer to them and the layers that use these films (whatever their names).
+
+- "Yes": the software reads the materials, films, layers, processes and sources of the device again (`?M`, `?F`, `?L`, `?P`, `?S`, about 8 s). When a process on the device uses these layers (or other settings refer to them), the referring settings are listed at the bottom of the window and nothing is deleted. When the objects to be deleted differ from those listed in the question, the software asks again. The layers, films and materials are deleted in this order (higher numbers first within each kind) and these groups are read again to verify the deletion; when everything succeeded, the local material is deleted. When the device has no matching data, only the local material is deleted. When the device cannot be read, this is explained at the bottom of the window and nothing is deleted.
+- "No": only the local material is deleted.
+- "Cancel": nothing is deleted.
+
+The local deletion is written to the files with "Save"; the deletion on the device takes effect at once and cannot be undone.
+
+##### 5.3.12.3 Processes
+
+1. On the "Processes" page click "New" and enter the name.
+2. Click "Add step". For each step select a material and enter the rate and final thickness. A process can use several materials; a material can be used in several steps.
+3. For a rate ramp, click "+ Rate ramp" of the step and enter the start thickness, ramp time and new rate.
+
+The rate, final thickness, start thickness and new rate have at most 3 decimal places (for example `5.125`) and shall be in the range of the device; the ramp time uses the format H:MM:SS. An invalid entry turns the input box red and the reason is shown below it (for example "At most 3 decimal places"); "Save" also lists these problems and saves nothing.
+4. "↑" and "↓" change the order of the steps; "×" removes a step.
+5. Select whether to "Auto Start Next" layer.
+
+Layers created by an upload are named "material name-process name-step number", for example `Al-AR-1` for Al in step 1 of process AR. Steps of a process with the same values share one layer, named after the first of them. Reused layers keep their names on the device. Process names and generated layer names have at most 30 characters (the device stores up to 31, but reading the device configuration returns only the first 30); when a layer name is too long, "Save" lists the step, and the material or process name shall be shortened.
+
+Deleting a process also deletes the processes of the same name on the device:
+
+1. On the "Processes" page select the process and click "Delete". The software reads the processes and layers of the device (`?P`, `?L`, about 2 s).
+2. When the active process of the device (`P01`) or the linked process of another process (`P02**0A`) is this process, the software lists these settings at the bottom of the window and deletes nothing (not locally either).
+3. The confirmation lists the processes of the same name and the layers only they use, which are deleted on the device; layers that other processes use as well are kept and listed. When the device has no process of this name, only the local deletion is confirmed.
+4. After "OK" the software deletes the processes first, then the layers, and reads both groups again to verify the deletion; when everything succeeded, the local process is deleted. Materials and films are not deleted.
+
+A process without a name is deleted locally only, without reading the device. When the device cannot be read (for example because the connection was lost), the software asks whether to delete only the local process; processes of the same name on the device are not affected.
+
+The local deletion is written to the files with "Save"; the deletion on the device takes effect at once and cannot be undone.
+
+##### 5.3.12.4 Saving and uploading
+
+"Save" saves locally only and does not access the device; "Upload" saves first and then uploads the selected process to the device.
+
+1. Click "Save" (Ctrl+S). The software checks all materials and processes: names shall not be empty or repeated, values shall be in the range of the device, and each process shall have at least one step with a material selected. Problems are listed in red at the bottom of the window and nothing is saved; otherwise the content is saved to the `recipes` folder.
+2. To upload, select the process on the "Processes" page and click "Upload process name". The software saves as in step 1, reads the device configuration (about 10 s), checks that the selected sensors and sources exist on the device and that the crucible numbers do not exceed the number of crucibles of the sources, and assigns free numbers on the device. Failed checks are explained in red at the bottom of the window and nothing is uploaded.
+3. The confirmation lists the materials, films and layers to be created and those to be reused, with their numbers, and the new process; when the device already has a process of the same name, it says that another one is created. "OK" uploads; "Cancel" does not upload (the content is already saved locally).
+4. The software creates the objects, appends the list entries (pre and post conditions, sensors, the film of each layer, the layers of the process), writes all settings of the new objects and reads every setting back for verification (about 30 s).
+
+Rules:
+
+- Reuse: a material on the device with the same name, density, Z ratio and tooling is reused. A film of a reused material with the same name and the same settings (number and values of the pre and post conditions, sensor, crystal position, source, crucible, PID, maximum power, max power option, delay option and delay settings) and exactly one sensor is reused. A layer of a reused film with only this film and the same rate, final thickness and rate ramps is reused; its name is not compared (it may have been created by another process or step). Otherwise a new object is created; new layers are named after this process and step. Numbers are compared by value (`5` equals `5.000`).
+- Steps of a process with the same material, rate, final thickness and rate ramps share one layer.
+- A new process is created on every upload. Reused objects are not written; objects already on the device are not changed. Uploading a process twice creates only a second process.
+- The active process (`P01`) is not set.
+- The device shall be in the Ready (idle) state.
+- "Upload" is not available when no process is selected.
+- When the upload fails (a write is rejected, a setting reads back differently from what was entered, settings still cannot be written after creating the objects, a timeout or a cancel), the software reads the device again, deletes the objects this upload created that are still on the device (processes, layers, films, materials; higher numbers first within a group) and reads again to verify. Reused objects and objects that were already on the device are not touched. This is then explained in red at the bottom of the window, recorded in the data display and shown in a message box with the reason and the deleted objects; the "Last upload" is not recorded. When the deletion fails (for example because the connection was lost) or is cancelled, the message box lists the objects that may still be on the device; they can be deleted on the "Device" page after "Refresh". When the device has not been changed yet (reading the device configuration failed or was cancelled), only the bottom of the window explains it.
+- Problems that leave the device and the files unchanged (failed checks, reading the device failed, an object that is referenced and cannot be deleted) are shown in red at the bottom of the window without a message box; failures of operations that changed the device or a file show a message box. Errors and exceptions are written to `logs\error.txt`.
+- After a successful upload, the process page shows the time and numbers of the "Last upload" (reused objects marked `*`), the data display records one line, and the "Device" page is updated with what was written. Success shows no message box; the result is shown at the bottom of the window. When the upload fails or is cancelled, the "Device" page asks for "Refresh".
+- Reading the device configuration is limited to 60 s, and each stage of the upload (creating objects, reading again, writing, verifying) to 60 s; time with the confirmation open is not counted. Editing is not possible during the upload, and "Close" becomes "Cancel upload".
+- When the window is closed with unsaved changes, the software asks first.
+- The material library is `materials.json` in the program directory (format in Annex A). When the file contains no materials, "From the material library" is not available.
+- The files are stored in four folders under `recipes`, one UTF-8 JSON file per object, named after the object: `material\name.json` (material: name, Chinese name, density, Z ratio, tooling), `film\name.json` (film of the same name: sensor, source, crucible, pre and post conditions, PID, maximum power, delay settings), `layer\material name-process name-step number.json` (layer: material, rate, final thickness, rate ramps; one file per distinct step of a process, steps of a process with the same values share the file of the first one) and `process\name.json` (process: Auto Start Next, the layer files in order, the last upload). Characters not allowed in file names are replaced by `_`; equal names (not case-sensitive) get `_2`, `_3`… Saving rewrites only files whose content changed and deletes the `.json` files in these four folders that this program read or wrote and that no longer belong to an object (for example a deleted or renamed material); other files placed there while the window is open are kept.
+
+##### 5.3.12.5 Device
+
+The "Device" page is read-only and lists the processes and materials on the device; it does not change the local materials and processes:
+
+- Processes: number and name, and below one line per layer in order, for example `1. L01 L1: F01 L1 (M01 M1), 0.000 Å/s, 1.030 kÅ` (layer, film, material, rate, final thickness). The films of a layer with several films are separated by semicolons; layers or films that do not exist on the device are marked "(missing)".
+- Materials: number and name, and below the density, Z ratio and the films that refer to the material.
+
+The top of the page shows the device model and the time of the last update. The page is updated when the window opens, with "Refresh" (reads the device configuration, about 10 s), and after uploads and deletions.
+
+Deleting on the "Device" page:
+
+- Process: select it and click "Delete" above the process list. The software deletes the process and the layers only it uses; the rules are those of 5.3.12.3.
+- Material: select it and click "Delete" above the material list. The software deletes the material, the films that refer to it and the layers that use these films; nothing is deleted when a process on the device uses these layers, as in 5.3.12.2.
+
+The software asks for confirmation first; when an object is referenced or the device cannot be read, this is explained in red at the bottom of the window. The local materials and processes are not affected; the device status under the local items is updated after the deletion.
 
 ### 5.5 Data backup
 
-- Configuration files are stored in the `recipes` folder of the program directory (`Documents\Zevision\recipes` when the program directory is not writable). A backup consists of a copy of this folder.
+- Configuration files are stored in the `configs` folder of the program directory (`Documents\Zevision\configs` when the program directory is not writable). A backup consists of a copy of this folder.
 - Configuration files are UTF-8 JSON files with an MD5 checksum; files changed by hand are refused.
-- Versions earlier than 1.1.0 use the folder `recipe`. The first time a configuration file is saved or opened, the software renames `recipe` to `recipes`; when `recipes` already exists, both folders are kept. If renaming fails (for example because a file in it is open in another program), the old files remain in `recipe` and can be selected in the open dialog.
+- Versions earlier than 1.1.0 use the folder `recipe`, versions 1.1.0 to 1.2.0 the folder `recipes`. The first time the software uses these folders, it renames the old folder to `configs`; when both exist, only `recipes` is renamed and `recipe` is kept; when `configs` already exists, the old folders are kept. If renaming fails (for example because a file in it is open in another program), the old files remain in their folder and can be selected in the open dialog. The `recipes` folder is then used by the process editor.
+- The materials and processes of the process editor are stored in the `recipes` folder of the program directory (`Documents\Zevision\recipes` when the program directory is not writable), in the four folders `material`, `film`, `layer` and `process` (see 5.3.12.4). A backup consists of a copy of the `recipes` folder.
 - `settings.json` holds the connection settings, the send options, the user interface language and the last sent command. When it is damaged, the software uses default values, reports this in the data display and overwrites the file on exit.
 - Annex A lists all file locations.
 
@@ -465,6 +562,8 @@ Table 10  Keyboard shortcuts
 | Edit window | Ctrl+S | Save |
 | Edit window | Ctrl+F | Move to the filter box |
 | Edit window | Esc | Close the window; cancel writing while writing |
+| Process editor | Ctrl+S | Save (and upload the selected process) |
+| Process editor | Esc | Close the window; cancel the upload while uploading |
 
 ## 6 Notes
 
@@ -496,8 +595,11 @@ Table A.1  Data files
 | File | Content |
 |---|---|
 | `settings.json` | Connection settings, send options, user interface language and the last sent command |
-| `recipes\*.json` | Instrument configuration files (`recipe\` before 1.1.0, see 5.5) |
+| `configs\*.json` | Instrument configuration files (`recipe\` before 1.1.0, `recipes\` in 1.1.0 to 1.2.0, see 5.5) |
+| `recipes\material\*.json`, `recipes\film\*.json`, `recipes\layer\*.json`, `recipes\process\*.json` | Materials, films, layers and processes of the process editor, one file per object (see 5.3.12.4) |
 | `logs\error.txt` | Error log, appended; moved to `error.1.txt` above 5 MB |
 | `logs\<serial number>_<date>_<time>.txt` | With "Save communication data" on: the content shown during the connection; written when it exceeds 50 KB, when the connection ends and when the program exits; continued in `_1`, `_2`… files above 30 MB |
 
 These files are located in the program directory, or in `Documents\Zevision\` when the program directory is not writable.
+
+The material library `materials.json` is shipped with the program, is located in the program directory and is only read by the software. It contains the material table of Annex A of the IMC300 operating manual (253 materials; source file `docs\materials.json`) as UTF-8 JSON, for example `{ "materials": [ { "formula": "Al", "material_name": "aluminum", "material_name_zh": "铝", "density": 2.7, "z_ratio": 1.08, "z_ratio_established": true } ] }`. `formula` is the chemical formula (used as the material name when selected), `material_name_zh` the Chinese name, `density` the density (g/cm³) and `z_ratio` the Z ratio; `z_ratio_established` false means the manual gives no established Z ratio (1.000 is used). Other fields are not read.

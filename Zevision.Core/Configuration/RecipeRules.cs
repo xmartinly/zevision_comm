@@ -188,6 +188,32 @@ namespace Zevision.Core.Configuration
         }
 
         /// <summary>
+        /// 一次找出全部引用 (规则同 <see cref="FindReferencesTo"/>):被引用对象的 ID → 引用它的设置项。
+        /// 要检查多个对象时用它,不必对每个对象扫描全部设置项。
+        /// </summary>
+        public static ILookup<string, RecipeEntry> IndexReferences(IEnumerable<RecipeEntry> entries)
+        {
+            if (entries is null)
+            {
+                throw new ArgumentNullException(nameof(entries));
+            }
+
+            var references = new List<(string Target, RecipeEntry Entry)>();
+            foreach (var entry in entries)
+            {
+                foreach (var rule in AllReferences)
+                {
+                    if (rule.TryGetTarget(entry.Id, entry.Value, out var target))
+                    {
+                        references.Add((target, entry));
+                    }
+                }
+            }
+
+            return references.ToLookup(r => r.Target, r => r.Entry, StringComparer.Ordinal);
+        }
+
+        /// <summary>
         /// 设置项的值是否引用了另一个对象,如 <c>F0302 = 3</c> → <c>M03</c>。
         /// </summary>
         /// <returns>值引用了对象时返回 true (值为 0 或不是数字时返回 false)。</returns>

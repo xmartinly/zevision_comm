@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
@@ -309,13 +310,69 @@ namespace Zevision.Tests
         }
 
         [Fact]
+        public void Counters_InBackground_NotifiedWithDisplayRefresh()
+        {
+            var device = new FakeDeviceService();
+            using (Inline())
+            using (var main = NewMain(device))
+            {
+                main.ConnectCommand.Execute(null);
+                var counters = new[] { nameof(MainViewModel.TxCount), nameof(MainViewModel.RxCount), nameof(MainViewModel.ErrorCount), nameof(MainViewModel.HasErrors) };
+                var notified = new List<string>();
+                main.PropertyChanged += (s, e) =>
+                {
+                    if (e.PropertyName is string name && counters.Contains(name))
+                    {
+                        notified.Add(name);
+                    }
+                };
+                main.Log.IsInBackground = true;
+                var shown = main.Log.Entries.Count;
+
+                device.RaiseFrameSent(new FrameSentEventArgs("QG01", Encoding.ASCII.GetBytes("{QG01}")));
+                device.RaiseFrameReceived(new FrameReceivedEventArgs(Frame("QG01-A"), isSolicited: true));
+                device.RaiseCommandsFailed(new CommandsFailedEventArgs("QG01", 1));
+
+                // 计数已更新,界面与显示的记录一样等到刷新。
+                Assert.Equal((1, 1, 1), (main.TxCount, main.RxCount, main.ErrorCount));
+                Assert.True(main.HasErrors);
+                Assert.Empty(notified);
+                Assert.Equal(shown, main.Log.Entries.Count);
+
+                // 显示的内容达到 50 KB (保存数据的时刻):记录和计数一起刷新,计数含刚收到的这一帧。
+                device.RaiseFrameSent(new FrameSentEventArgs("?", Encoding.ASCII.GetBytes("{?}")));
+                device.RaiseFrameReceived(new FrameReceivedEventArgs(Frame("?+:" + new string('x', LogViewModel.BackgroundShowBytes)), isSolicited: true));
+
+                Assert.Equal(counters, notified);
+                Assert.Equal((2, 2), (main.TxCount, main.RxCount));
+                Assert.True(main.Log.Entries.Count > shown + 4);
+
+                // 回到前台时通知一次,之后的改变立即通知。
+                notified.Clear();
+                device.RaiseFrameSent(new FrameSentEventArgs("QG01", Encoding.ASCII.GetBytes("{QG01}")));
+
+                Assert.Empty(notified);
+
+                main.Log.IsInBackground = false;
+
+                Assert.Equal(counters, notified);
+                Assert.Equal(3, main.TxCount);
+
+                notified.Clear();
+                device.RaiseFrameSent(new FrameSentEventArgs("QG01", Encoding.ASCII.GetBytes("{QG01}")));
+
+                Assert.Equal(new[] { nameof(MainViewModel.TxCount) }, notified);
+            }
+        }
+
+        [Fact]
         public void Dispose_WritesCommunicationDataSynchronously()
         {
             var device = new FakeDeviceService();
             var recorder = new TrackingRecorder();
             using (Inline())
             {
-                var main = new MainViewModel(device, new MemoryPreferencesStore(new ConnectionPreferences()), new InstrumentConfigService(device), new RecipeFileStore(), new SingleRecorderFactory(recorder), new FakeDialogService(), new FakeErrorLog());
+                var main = new MainViewModel(device, new MemoryPreferencesStore(new ConnectionPreferences()), new InstrumentConfigService(device), new RecipeFileStore(), new MemoryDesignStore(), new SingleRecorderFactory(recorder), new FakeDialogService(), new FakeErrorLog());
                 main.Connection.SelectedConnectionType = ConnectionType.Tcp;
                 main.Connection.TcpHost = "127.0.0.1";
                 main.Connection.IsSaveCommunicationDataEnabled = true;
@@ -339,7 +396,7 @@ namespace Zevision.Tests
             var factory = new SingleRecorderFactory(new TrackingRecorder());
             using (Inline())
             {
-                var main = new MainViewModel(device, new MemoryPreferencesStore(new ConnectionPreferences()), new InstrumentConfigService(device), new RecipeFileStore(), factory, new FakeDialogService(), new FakeErrorLog());
+                var main = new MainViewModel(device, new MemoryPreferencesStore(new ConnectionPreferences()), new InstrumentConfigService(device), new RecipeFileStore(), new MemoryDesignStore(), factory, new FakeDialogService(), new FakeErrorLog());
                 main.Connection.SelectedConnectionType = ConnectionType.Tcp;
                 main.Connection.TcpHost = "127.0.0.1";
                 main.Connection.IsHandshakeEnabled = handshake;
@@ -360,7 +417,7 @@ namespace Zevision.Tests
             var factory = new SingleRecorderFactory(new TrackingRecorder());
             using (Inline())
             {
-                var main = new MainViewModel(device, new MemoryPreferencesStore(new ConnectionPreferences()), new InstrumentConfigService(device), new RecipeFileStore(), factory, new FakeDialogService(), new FakeErrorLog());
+                var main = new MainViewModel(device, new MemoryPreferencesStore(new ConnectionPreferences()), new InstrumentConfigService(device), new RecipeFileStore(), new MemoryDesignStore(), factory, new FakeDialogService(), new FakeErrorLog());
                 main.Connection.SelectedConnectionType = ConnectionType.Tcp;
                 main.Connection.TcpHost = "127.0.0.1";
                 main.Connection.IsSaveCommunicationDataEnabled = true;
@@ -438,9 +495,13 @@ namespace Zevision.Tests
 
         private static List<string> Texts(MainViewModel main) => main.Log.Entries.Select(e => e.Text).ToList();
 
+        /// <summary>一个包、无长度和校验和的有效帧 <c>{data}</c>。</summary>
+        private static ZevisionFrame Frame(string data) =>
+            new ZevisionFrame(Encoding.ASCII.GetBytes("{" + data + "}"), Encoding.ASCII.GetBytes(data), new[] { new ByteRange(1, data.Length) }, 1, Array.Empty<int>(), FrameError.None);
+
         private static MainViewModel NewMain(FakeDeviceService device, MemoryPreferencesStore? store = null)
         {
-            var main = new MainViewModel(device, store ?? new MemoryPreferencesStore(new ConnectionPreferences()), new InstrumentConfigService(device), new RecipeFileStore(), new NoCommunicationRecorders(), new FakeDialogService(), new FakeErrorLog());
+            var main = new MainViewModel(device, store ?? new MemoryPreferencesStore(new ConnectionPreferences()), new InstrumentConfigService(device), new RecipeFileStore(), new MemoryDesignStore(), new NoCommunicationRecorders(), new FakeDialogService(), new FakeErrorLog());
             if (store == null)
             {
                 main.Connection.SelectedConnectionType = ConnectionType.Tcp;

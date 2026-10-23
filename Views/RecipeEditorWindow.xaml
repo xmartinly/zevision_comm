@@ -196,10 +196,20 @@
             </StackPanel>
             <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
                 <TextBlock Text="{Binding SelectionText}" />
-                <!-- 上一次操作成功的结果 (代替提示框);失败时弹出错误框 -->
+                <!-- 上一次操作的结果 (代替提示框);设备和文件都没有改变的问题为红字,其他失败弹出错误框 -->
                 <TextBlock Margin="0,6,0,0" Text="{Binding ResultText}" TextWrapping="Wrap"
-                           Foreground="{DynamicResource MaterialDesign.Brush.Primary}"
-                           Visibility="{Binding HasResultText, Converter={StaticResource BooleanToVisibility}}" />
+                           Visibility="{Binding HasResultText, Converter={StaticResource BooleanToVisibility}}">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="{DynamicResource MaterialDesign.Brush.Primary}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ResultIsError}" Value="True">
+                                    <Setter Property="Foreground" Value="{DynamicResource MaterialDesign.Brush.ValidationError}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
                 <StackPanel Margin="0,6,0,0" Visibility="{Binding IsBusy, Converter={StaticResource BooleanToVisibility}}">
                     <TextBlock Text="{Binding Operation.Text}" Foreground="{DynamicResource MaterialDesign.Brush.ForegroundLight}" />
                     <ProgressBar Height="4" Margin="0,4,0,0"

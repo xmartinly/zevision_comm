@@ -180,7 +180,8 @@ namespace Zevision.Core.Configuration
             return null;
         }
 
-        private static int DecimalPlaces(string number)
+        /// <summary>数字的小数位数 (小数点后的字符数),如 <c>5.600</c> 为 3;没有小数点时为 0。</summary>
+        internal static int DecimalPlaces(string number)
         {
             var dot = number.Trim().IndexOf('.');
             return dot < 0 ? 0 : number.Trim().Length - dot - 1;

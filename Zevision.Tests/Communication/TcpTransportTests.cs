@@ -233,7 +233,7 @@ namespace Zevision.Tests
         public async Task Main_TcpMode_ConnectsAndShowsEndpoint()
         {
             using (var device = new ZevisionDeviceService(DeviceTransports.Create))
-            using (var main = new MainViewModel(device, new MemoryPreferencesStore(new ConnectionPreferences()), new InstrumentConfigService(device), new RecipeFileStore(), new NoCommunicationRecorders(), new FakeDialogService(), new FakeErrorLog()))
+            using (var main = new MainViewModel(device, new MemoryPreferencesStore(new ConnectionPreferences()), new InstrumentConfigService(device), new RecipeFileStore(), new MemoryDesignStore(), new NoCommunicationRecorders(), new FakeDialogService(), new FakeErrorLog()))
             {
                 main.Connection.SelectedConnectionType = ConnectionType.Tcp;
                 main.Connection.TcpHost = "127.0.0.1";
@@ -320,7 +320,7 @@ namespace Zevision.Tests
         private static MainViewModel NewMain(IPreferencesStore store)
         {
             var device = new FakeDeviceService();
-            return new MainViewModel(device, store, new InstrumentConfigService(device), new RecipeFileStore(), new NoCommunicationRecorders(), new FakeDialogService(), new FakeErrorLog());
+            return new MainViewModel(device, store, new InstrumentConfigService(device), new RecipeFileStore(), new MemoryDesignStore(), new NoCommunicationRecorders(), new FakeDialogService(), new FakeErrorLog());
         }
 
         private static async Task<T> WithTimeout<T>(Task<T> task)

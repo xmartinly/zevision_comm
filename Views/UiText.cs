@@ -1,3 +1,4 @@
+using Zevision.Commands;
 using Zevision.Core.Localization;
 using Zevision.ViewModels.Display;
 
@@ -220,5 +221,216 @@ namespace Zevision.Views
 
         /// <summary>取消勾选,还原值</summary>
         public static string ClearChecksToolTip => Lang.T("取消勾选,还原值", "Uncheck all and restore the values");
+
+        // ---- 工艺编辑 (标签取自指令集,与修改窗口一致)
+
+        /// <summary>工艺 (主窗口按钮)</summary>
+        public static string Design => Lang.T("工艺", "Process");
+
+        /// <summary>编辑工艺并上传到设备</summary>
+        public static string DesignToolTip => Lang.T("编辑工艺并上传到设备", "Edit processes and upload them to the device");
+
+        /// <summary>材料 (页)</summary>
+        public static string DesignMaterialsTab => Lang.T("材料", "Materials");
+
+        /// <summary>工艺 (页)</summary>
+        public static string DesignProcessesTab => Lang.T("工艺", "Processes");
+
+        /// <summary>新建</summary>
+        public static string DesignNew => Lang.T("新建", "New");
+
+        /// <summary>设备 (页:设备上的工艺和材料)</summary>
+        public static string DesignDeviceTab => Lang.T("设备", "Device");
+
+        /// <summary>刷新 (设备页)</summary>
+        public static string DesignRefresh => Lang.T("刷新", "Refresh");
+
+        /// <summary>重新读取设备配置</summary>
+        public static string DesignRefreshToolTip => Lang.T("重新读取设备配置 (约 10 秒)", "Read the device configuration again (about 10 s)");
+
+        /// <summary>删除设备上的工艺 (提示)</summary>
+        public static string DesignDeleteDeviceProcessToolTip => Lang.T("删除工艺和只被它使用的膜层", "Delete the process and the layers only it uses");
+
+        /// <summary>删除设备上的材料 (提示)</summary>
+        public static string DesignDeleteDeviceMaterialToolTip => Lang.T("删除材料及用到它的膜系、膜层", "Delete the material and the films and layers that use it");
+
+        /// <summary>删除</summary>
+        public static string DesignDelete => Lang.T("删除", "Delete");
+
+        /// <summary>在左边选择或新建一项</summary>
+        public static string DesignNoSelection => Lang.T("在左边选择或新建一项", "Select or create an item on the left");
+
+        /// <summary>检查并保存到本地</summary>
+        public static string DesignSaveToolTip => Lang.T("检查并保存到本地,不访问设备", "Check and save locally; the device is not accessed");
+
+        /// <summary>上传 (工艺编辑的按钮,后面是选中的工艺名称)</summary>
+        public static string DesignUpload => Lang.T("上传", "Upload");
+
+        /// <summary>保存并上传选中的工艺</summary>
+        public static string DesignUploadToolTip => Lang.T("保存并把选中的工艺上传到设备", "Save and upload the selected process to the device");
+
+        /// <summary>取消上传</summary>
+        public static string DesignCancelUpload => Lang.T("取消上传", "Cancel upload");
+
+        /// <summary>材料 (节)</summary>
+        public static string DesignMaterialSection => Lang.T("材料", "Material");
+
+        /// <summary>传感器与输出源</summary>
+        public static string DesignSensorSection => Lang.T("传感器与输出源", "Sensor and source");
+
+        /// <summary>控制</summary>
+        public static string DesignControlSection => Lang.T("控制", "Control");
+
+        /// <summary>预熔</summary>
+        public static string DesignPreConditions => Lang.T("预熔", "Pre conditions");
+
+        /// <summary>后处理</summary>
+        public static string DesignPostConditions => Lang.T("后处理", "Post conditions");
+
+        /// <summary>添加预熔</summary>
+        public static string DesignAddPreCondition => Lang.T("添加预熔", "Add pre condition");
+
+        /// <summary>添加后处理</summary>
+        public static string DesignAddPostCondition => Lang.T("添加后处理", "Add post condition");
+
+        /// <summary>名称</summary>
+        public static string DesignName => Lang.T("名称", "Name");
+
+        /// <summary>写入设备,只能用英文字母、数字和符号,最多 30 个字符</summary>
+        public static string DesignNameToolTip => Lang.T("写入设备,只能用英文字母、数字和符号,最多 30 个字符", "Written to the device; ASCII letters, digits and symbols, at most 30 characters");
+
+        /// <summary>工艺名称 (最多 30 个字符,膜层名称含工艺名称)</summary>
+        public static string DesignProcessNameToolTip => Lang.T("最多 30 个字符,生成的膜层名称也是", "At most 30 characters, generated layer names too");
+
+        /// <summary>从材料库选择</summary>
+        public static string DesignLibrary => Lang.T("从材料库选择 (可输入关键字)", "From the material library (type to search)");
+
+        /// <summary>按化学式、名称搜索,选择后填入名称、密度、Z 比</summary>
+        public static string DesignLibraryToolTip => Lang.T("按化学式、名称搜索,选择后填入名称、密度、Z 比", "Search by formula or name; fills in the name, density and Z ratio");
+
+        /// <summary>密度 (g/cm³)</summary>
+        public static string DesignDensity => Label("M0103");
+
+        /// <summary>Z 比</summary>
+        public static string DesignZRatio => Label("M0104");
+
+        /// <summary>工具因子 (%)</summary>
+        public static string DesignTooling => Label("M0107");
+
+        /// <summary>传感器</summary>
+        public static string DesignSensor => Lang.T("传感器", "Sensor");
+
+        /// <summary>晶振位置</summary>
+        public static string DesignCrystalPosition => Label("F01070102");
+
+        /// <summary>输出源</summary>
+        public static string DesignSource => Lang.T("输出源", "Source");
+
+        /// <summary>坩埚</summary>
+        public static string DesignCrucible => Label("F010902");
+
+        /// <summary>P 项</summary>
+        public static string DesignPTerm => Label("F010903");
+
+        /// <summary>I 项 (秒)</summary>
+        public static string DesignITerm => Label("F010904");
+
+        /// <summary>D 项 (秒)</summary>
+        public static string DesignDTerm => Label("F010905");
+
+        /// <summary>最大功率 (%)</summary>
+        public static string DesignMaxPower => Label("F010906");
+
+        /// <summary>延迟选项</summary>
+        public static string DesignDelayOption => Label("F010401");
+
+        /// <summary>最大功率处理</summary>
+        public static string DesignMaxPowerOption => Label("F010907");
+
+        /// <summary>延迟设置</summary>
+        public static string DesignDelaySection => Lang.T("延迟设置", "Delay settings");
+
+        /// <summary>控制延迟时间 (H:MM:SS)</summary>
+        public static string DesignControlDelayTime => Label("F010402") + TimeFormat;
+
+        /// <summary>挡板延迟精度 (%)</summary>
+        public static string DesignShutterDelayAccuracy => Label("F010403");
+
+        /// <summary>挡板延迟超时 (H:MM:SS)</summary>
+        public static string DesignShutterDelayTimeout => Label("F010404") + TimeFormat;
+
+        /// <summary>传输传感器</summary>
+        public static string DesignTransferSensor => Lang.T("传输传感器", "Transfer sensor");
+
+        /// <summary>传输工具因子 (%)</summary>
+        public static string DesignTransferTooling => Label("F010406");
+
+        /// <summary>起始斜坡/上升时间 (H:MM:SS)</summary>
+        public static string DesignPreRampTime => Label("F01030101") + TimeFormat;
+
+        /// <summary>斜坡功率 (%)</summary>
+        public static string DesignPreRampPower => Label("F01030102");
+
+        /// <summary>保持时间 (H:MM:SS)</summary>
+        public static string DesignPreHoldTime => Label("F01030103") + TimeFormat;
+
+        /// <summary>后处理斜坡/上升时间 (H:MM:SS)</summary>
+        public static string DesignPostRampTime => Label("F01050101") + TimeFormat;
+
+        /// <summary>后处理斜坡功率 (%)</summary>
+        public static string DesignPostRampPower => Label("F01050102");
+
+        /// <summary>后处理保持时间 (H:MM:SS)</summary>
+        public static string DesignPostHoldTime => Label("F01050103") + TimeFormat;
+
+        /// <summary>自动启动下一膜层</summary>
+        public static string DesignAutoStartNext => Label("P020104");
+
+        /// <summary>上次上传: </summary>
+        public static string DesignLastUpload => Lang.T("上次上传: ", "Last upload: ");
+
+        /// <summary>步骤 (每一步在设备上是一个膜层)</summary>
+        public static string DesignSteps => Lang.T("步骤 (每一步在设备上是一个膜层)", "Steps (each step is a layer on the device)");
+
+        /// <summary>材料 (步骤)</summary>
+        public static string DesignStepMaterial => Lang.T("材料", "Material");
+
+        /// <summary>速率 (Å/s)</summary>
+        public static string DesignRate => Label("L01020102");
+
+        /// <summary>最终厚度 (kÅ)</summary>
+        public static string DesignThickness => Label("L01020103");
+
+        /// <summary>添加步骤</summary>
+        public static string DesignAddStep => Lang.T("添加步骤", "Add step");
+
+        /// <summary>速率斜坡 (添加)</summary>
+        public static string DesignAddRamp => Lang.T("速率斜坡", "Rate ramp");
+
+        /// <summary>添加速率斜坡</summary>
+        public static string DesignAddRampToolTip => Lang.T("添加速率斜坡", "Add a rate ramp");
+
+        /// <summary>起始厚度 (kÅ)</summary>
+        public static string DesignRampStart => Label("L010201060101");
+
+        /// <summary>斜坡时间 (H:MM:SS)</summary>
+        public static string DesignRampDuration => Label("L010201060102") + TimeFormat;
+
+        /// <summary>新速率 (Å/s)</summary>
+        public static string DesignNewRate => Label("L010201060103");
+
+        /// <summary>上移</summary>
+        public static string DesignMoveUp => Lang.T("上移", "Move up");
+
+        /// <summary>下移</summary>
+        public static string DesignMoveDown => Lang.T("下移", "Move down");
+
+        /// <summary>删除这一项</summary>
+        public static string DesignRemove => Lang.T("删除这一项", "Remove");
+
+        private static string TimeFormat => " (H:MM:SS)";
+
+        /// <summary>指令集中的标签 (名称和单位),如"密度 (g/cm³)"。</summary>
+        private static string Label(string id) => ZevisionCommandSet.Find(id)?.Label() ?? id;
     }
 }

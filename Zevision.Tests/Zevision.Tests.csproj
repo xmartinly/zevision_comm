@@ -42,6 +42,7 @@
   <ItemGroup>
     <Compile Include="Fakes\FakeDeviceService.cs" />
     <Compile Include="Fakes\FakeDialogService.cs" />
+    <Compile Include="Fakes\MemoryDesignStore.cs" />
     <Compile Include="Fakes\MemoryPreferencesStore.cs" />
     <Compile Include="Fakes\NoCommunicationRecorders.cs" />
     <Compile Include="Fakes\SimulatedImc300.cs" />
@@ -53,6 +54,9 @@
     <Compile Include="Architecture\BindingSourceTests.cs" />
     <Compile Include="Architecture\ProtocolSpecTests.cs" />
     <Compile Include="Core\CrucibleRuleTests.cs" />
+    <Compile Include="Core\DesignBuilderTests.cs" />
+    <Compile Include="Core\DeviceContentsTests.cs" />
+    <Compile Include="Core\DeviceDeletionTests.cs" />
     <Compile Include="Core\FramingCheckTests.cs" />
     <Compile Include="Localization\TextCatalogTests.cs" />
     <Compile Include="Storage\TextFileTests.cs" />
@@ -68,6 +72,7 @@
     <Compile Include="ViewModels\ResponseLogFormatterTests.cs" />
     <Compile Include="ViewModels\SendOptionsTests.cs" />
     <Compile Include="Communication\TcpTransportTests.cs" />
+    <Compile Include="ViewModels\ProcessDesignerTests.cs" />
     <Compile Include="ViewModels\RecipeEditorTests.cs" />
     <Compile Include="Fakes\FakeSerialTransport.cs" />
     <Compile Include="Storage\FileErrorLogTests.cs" />
@@ -77,6 +82,7 @@
     <Compile Include="ViewModels\RestoreMessagesTests.cs" />
     <Compile Include="Communication\HelpTableParserTests.cs" />
     <Compile Include="Core\InstrumentConfigServiceTests.cs" />
+    <Compile Include="Storage\DesignFileStoreTests.cs" />
     <Compile Include="Storage\JsonFilePreferencesStoreTests.cs" />
     <Compile Include="ViewModels\OperationTimeoutTests.cs" />
     <Compile Include="Core\ManualCommandPolicyTests.cs" />

@@ -4,12 +4,12 @@ using Zevision.Core.Configuration;
 namespace Zevision.Storage
 {
     /// <summary>
-    /// <see cref="IRecipeStore"/> 的实现:文件格式见 <see cref="RecipeFile"/>,默认目录见 <see cref="AppFolders.GetRecipeFolder"/>。
+    /// <see cref="IRecipeStore"/> 的实现:文件格式见 <see cref="RecipeFile"/>,默认目录见 <see cref="AppFolders.GetConfigFolder"/>。
     /// </summary>
     public sealed class RecipeFileStore : IRecipeStore
     {
         /// <inheritdoc />
-        public string Folder => _folder ??= AppFolders.GetRecipeFolder(); // 判断程序目录是否可写要创建临时文件,只做一次
+        public string Folder => _folder ??= AppFolders.GetConfigFolder(); // 判断程序目录是否可写要创建临时文件,只做一次
 
         private string? _folder;
 

@@ -52,7 +52,7 @@ namespace Zevision.ViewModels.Display
                 }
                 else if (multiple)
                 {
-                    var text = response.Data != null ? $"{label} = {response.Data}" : $"{label} ✓";
+                    var text = response.Data != null ? $"{label} = {Shorten(response.Data)}" : $"{label} ✓";
                     entries.Add(new LogEntry(timestamp, LogKind.Info, text + echoNote, isContinuation: true));
                 }
             }
@@ -64,5 +64,28 @@ namespace Zevision.ViewModels.Display
 
             return entries;
         }
+
+        /// <summary>
+        /// 一行显示的数据:多行或超过 <see cref="FrameLogFormatter.MaxLineLength"/> 的数据 (如与其他指令同帧的 <c>?</c> 帮助表,约 116 KB)
+        /// 只显示第一行的开头和总字符数。一个很长的换行条目会使列表无法虚拟化,完整内容已在上面的 RX 行中。
+        /// </summary>
+        internal static string Shorten(string data)
+        {
+            var end = data.IndexOfAny(LineBreaks);
+            if (end < 0 && data.Length <= FrameLogFormatter.MaxLineLength)
+            {
+                return data;
+            }
+
+            var first = end < 0 ? data : data.Substring(0, end);
+            if (first.Length > FrameLogFormatter.MaxLineLength)
+            {
+                first = first.Substring(0, FrameLogFormatter.MaxLineLength);
+            }
+
+            return first + Lang.T($"… (共 {data.Length} 个字符,见上面的 RX 行)", $"… ({data.Length} characters, see the RX lines above)");
+        }
+
+        private static readonly char[] LineBreaks = { '\r', '\n' };
     }
 }

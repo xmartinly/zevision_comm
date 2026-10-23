@@ -145,21 +145,31 @@
                 <StackPanel DockPanel.Dock="Bottom" Margin="16,8,16,8">
                     <TextBlock Text="{x:Static t:UiText.InstrumentConfig}" FontWeight="SemiBold" Margin="0,0,0,8"
                                Foreground="{DynamicResource MaterialDesign.Brush.Primary}" />
-                    <UniformGrid Columns="2">
-                        <Button Command="{Binding Config.SaveCommand}" Margin="0,0,4,0" Padding="6,4"
+                    <!-- 三个按钮并排:内边距较小,英文 "Restore"、"Process" 也能放下 -->
+                    <UniformGrid Columns="3">
+                        <Button Command="{Binding Config.SaveCommand}" Margin="0,0,3,0" Padding="3,4"
                                 Style="{StaticResource MaterialDesignOutlinedButton}"
                                 ToolTip="{x:Static t:UiText.SaveConfigToolTip}">
                             <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="ContentSave" VerticalAlignment="Center" />
-                                <TextBlock Text="{x:Static t:UiText.Save}" Margin="4,0,0,0" />
+                                <TextBlock Text="{x:Static t:UiText.Save}" Margin="3,0,0,0" />
                             </StackPanel>
                         </Button>
-                        <Button Command="{Binding Config.RestoreCommand}" Margin="4,0,0,0" Padding="6,4"
+                        <Button Command="{Binding Config.RestoreCommand}" Margin="1,0,1,0" Padding="3,4"
                                 Style="{StaticResource MaterialDesignOutlinedButton}"
                                 ToolTip="{x:Static t:UiText.RestoreConfigToolTip}">
                             <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="Upload" VerticalAlignment="Center" />
-                                <TextBlock Text="{x:Static t:UiText.Restore}" Margin="4,0,0,0" />
+                                <TextBlock Text="{x:Static t:UiText.Restore}" Margin="3,0,0,0" />
+                            </StackPanel>
+                        </Button>
+                        <!-- 工艺编辑:编辑材料和工艺,保存时上传到设备 -->
+                        <Button Command="{Binding Config.DesignCommand}" Margin="3,0,0,0" Padding="3,4"
+                                Style="{StaticResource MaterialDesignOutlinedButton}"
+                                ToolTip="{x:Static t:UiText.DesignToolTip}">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="FormatListNumbered" VerticalAlignment="Center" />
+                                <TextBlock Text="{x:Static t:UiText.Design}" Margin="3,0,0,0" />
                             </StackPanel>
                         </Button>
                     </UniformGrid>

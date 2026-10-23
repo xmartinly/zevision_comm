@@ -81,6 +81,7 @@ namespace Zevision
                     preferences,
                     new InstrumentConfigService(_deviceService),
                     new RecipeFileStore(),
+                    DesignFileStore.CreateDefault(),
                     new CommunicationLogFiles(_errorLog),
                     new DialogService(),
                     _errorLog);

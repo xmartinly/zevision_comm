@@ -39,6 +39,14 @@ namespace Zevision.Storage
 
         public static string RecipeFormatUnsupported(int version, int supported) => TextCatalog.Format(nameof(RecipeFormatUnsupported), version, supported);
 
+        public static string DesignReadFailed(string path, string reason) => TextCatalog.Format(nameof(DesignReadFailed), path, reason);
+
+        public static string DesignSaveFailed(string reason) => TextCatalog.Format(nameof(DesignSaveFailed), reason);
+
+        public static string DesignFormatUnsupported(string path, int version, int supported) => TextCatalog.Format(nameof(DesignFormatUnsupported), path, version, supported);
+
+        public static string MaterialLibraryReadFailed(string path, string reason) => TextCatalog.Format(nameof(MaterialLibraryReadFailed), path, reason);
+
         public static string Md5Missing => TextCatalog.Get(nameof(Md5Missing));
 
         public static string Md5Malformed => TextCatalog.Get(nameof(Md5Malformed));

@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using System.Text;
 using Zevision.ViewModels.Common;
 
 namespace Zevision.ViewModels.Display
@@ -56,7 +57,29 @@ namespace Zevision.ViewModels.Display
         /// </summary>
         public string ToDisplayLine() =>
             IsContinuation
-                ? new string(' ', 18) + Text
-                : Timestamp.ToString("HH:mm:ss.fff", CultureInfo.InvariantCulture) + " " + Kind.ToString().ToUpperInvariant().PadRight(5) + Text;
+                ? ContinuationPrefix + Text
+                : Timestamp.ToString("HH:mm:ss.fff", CultureInfo.InvariantCulture) + " " + KindPrefix(Kind) + Text;
+
+        /// <summary><see cref="ToDisplayLine"/> 的 UTF-8 字节数 (不生成这一行):前缀是 ASCII,再加内容的字节数。</summary>
+        public int DisplayLineByteCount => PrefixLength + Encoding.UTF8.GetByteCount(Text);
+
+        /// <summary><see cref="ToDisplayLine"/> 中内容之前的字符数:时间 12、空格 1、类型 5。</summary>
+        private const int PrefixLength = 18;
+
+        /// <summary>接续行的前缀 (与时间和类型同宽的空格)。</summary>
+        private static readonly string ContinuationPrefix = new string(' ', PrefixLength);
+
+        /// <summary>类型的前缀 (大写,补足 5 个字符),如 <c>"TX   "</c>:保存通讯数据时每行都要用,不每次生成。</summary>
+        private static string KindPrefix(LogKind kind)
+        {
+            switch (kind)
+            {
+                case LogKind.Tx: return "TX   ";
+                case LogKind.Rx: return "RX   ";
+                case LogKind.Info: return "INFO ";
+                case LogKind.Error: return "ERROR";
+                default: return kind.ToString().ToUpperInvariant().PadRight(5);
+            }
+        }
     }
 }

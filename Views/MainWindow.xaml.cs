@@ -14,7 +14,7 @@ namespace Zevision.Views
 {
     /// <summary>
     /// 主窗口。代码隐藏只处理纯视图行为:数据显示区自动滚动 (仅当停在底部时)、复制选中行、
-    /// 程序不在前台时降低数据显示区的刷新率 (<see cref="LogViewModel.IsInBackground"/>)。
+    /// 程序不在前台时数据显示区在保存数据的时刻统一刷新 (<see cref="LogViewModel.IsInBackground"/>)。
     /// </summary>
     public partial class MainWindow : Window
     {
@@ -63,7 +63,7 @@ namespace Zevision.Views
             UpdateLogRefresh();
         }
 
-        /// <summary>其他程序在前台或主窗口最小化时,数据显示区每秒刷新一次;回到前台时立即显示。</summary>
+        /// <summary>其他程序在前台或主窗口最小化时,数据显示区在保存数据的时刻统一刷新;回到前台时立即显示。</summary>
         private void UpdateLogRefresh()
         {
             if (DataContext is MainViewModel viewModel)
@@ -146,7 +146,7 @@ namespace Zevision.Views
                 Dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, new System.Action(() => _logChanging = false));
             }
 
-            // 大响应一次会添加几百行,合并为一次滚动,在本批添加完成后执行。多行一次添加时是 Reset 通知。
+            // 一批记录合并为一次滚动,在本批添加完成后执行。少量行逐行添加 (多个 Add 通知),大响应的几百行一次添加 (Reset 通知)。
             if ((e.Action != NotifyCollectionChangedAction.Add && e.Action != NotifyCollectionChangedAction.Reset) || _scrollPending || !_followTail)
             {
                 return;

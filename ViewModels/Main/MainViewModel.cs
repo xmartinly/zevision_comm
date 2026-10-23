@@ -6,6 +6,7 @@ using System.Windows.Input;
 using Zevision.Communication;
 using Zevision.Core;
 using Zevision.Core.Configuration;
+using Zevision.Core.Design;
 using Zevision.Core.Devices;
 using Zevision.Core.Localization;
 using Zevision.Core.Settings;
@@ -38,6 +39,9 @@ namespace Zevision.ViewModels.Main
         private int _rxCount;
         private int _errorCount;
 
+        /// <summary>程序不在前台时计数改变了,还没有通知界面 (随数据显示区一起刷新)。</summary>
+        private bool _countsPending;
+
         /// <summary>
         /// 创建视图模型,扫描可用串口并恢复上次保存的通讯配置。必须在 UI 线程上创建,以便捕获其同步上下文。
         /// </summary>
@@ -45,6 +49,7 @@ namespace Zevision.ViewModels.Main
         /// <param name="preferences">界面设置的存储。</param>
         /// <param name="config">仪器配置的读写。</param>
         /// <param name="recipes">配置文件的存储。</param>
+        /// <param name="designs">工艺编辑的存储。</param>
         /// <param name="recorders">保存通讯数据时为每次连接创建记录。</param>
         /// <param name="dialogs">对话框。</param>
         /// <param name="errorLog">错误日志。</param>
@@ -53,6 +58,7 @@ namespace Zevision.ViewModels.Main
             IPreferencesStore preferences,
             IInstrumentConfigService config,
             IRecipeStore recipes,
+            IDesignStore designs,
             ICommunicationRecorderFactory recorders,
             IDialogService dialogs,
             IErrorLog errorLog)
@@ -68,10 +74,11 @@ namespace Zevision.ViewModels.Main
             }
 
             Log = new LogViewModel(errorLog ?? throw new ArgumentNullException(nameof(errorLog)));
+            Log.Refreshed += OnLogRefreshed;
             SendOptions = new SendOptionsViewModel();
 
             // 重复发送期间不开始配置操作:两者的指令会交错。
-            Config = new ConfigOperationsViewModel(config, recipes, dialogs, errorLog, Log, () => IsConnected && !SendOptions.IsRepeating);
+            Config = new ConfigOperationsViewModel(config, recipes, designs, dialogs, errorLog, Log, () => IsConnected && !SendOptions.IsRepeating);
 
             _link = new ConnectionLifecycle(device, recorders, Log, Connection);
             _link.StateChanged += OnLinkStateChanged;
@@ -164,18 +171,18 @@ namespace Zevision.ViewModels.Main
             set => SetProperty(ref _commandText, value);
         }
 
-        /// <summary>已发送帧数。</summary>
+        /// <summary>已发送帧数。程序不在前台时界面随数据显示区一起刷新 (见 <see cref="SetCount"/>)。</summary>
         public int TxCount
         {
             get => _txCount;
-            private set => SetProperty(ref _txCount, value);
+            private set => SetCount(ref _txCount, value, nameof(TxCount));
         }
 
         /// <summary>已接收帧数。</summary>
         public int RxCount
         {
             get => _rxCount;
-            private set => SetProperty(ref _rxCount, value);
+            private set => SetCount(ref _rxCount, value, nameof(RxCount));
         }
 
         /// <summary>
@@ -184,13 +191,7 @@ namespace Zevision.ViewModels.Main
         public int ErrorCount
         {
             get => _errorCount;
-            private set
-            {
-                if (SetProperty(ref _errorCount, value))
-                {
-                    OnPropertiesChanged(nameof(HasErrors));
-                }
-            }
+            private set => SetCount(ref _errorCount, value, nameof(ErrorCount), nameof(HasErrors));
         }
 
         /// <summary>是否有错误指令 (计数醒目显示)。</summary>
@@ -281,6 +282,8 @@ namespace Zevision.ViewModels.Main
         /// <inheritdoc />
         public void Dispose()
         {
+            // 关闭记录器时会显示暂存的行并触发 Refreshed:退出时不再通知界面。
+            Log.Refreshed -= OnLogRefreshed;
             _device.FrameSent -= OnFrameSent;
             _device.FrameReceived -= OnFrameReceived;
             _device.ConnectionLost -= OnConnectionLost;
@@ -441,14 +444,44 @@ namespace Zevision.ViewModels.Main
             ErrorCount = 0;
         }
 
+        /// <summary>
+        /// 改变收发计数。程序不在前台时 (<see cref="LogViewModel.IsInBackground"/>) 只记下数值,与数据显示区一起
+        /// 在保存数据的时刻或回到前台时通知界面 (<see cref="OnLogRefreshed"/>),不为每次收发刷新界面。
+        /// </summary>
+        private void SetCount(ref int field, int value, params string[] propertyNames)
+        {
+            if (field == value)
+            {
+                return;
+            }
+
+            field = value;
+            if (Log.IsInBackground)
+            {
+                _countsPending = true;
+                return;
+            }
+
+            OnPropertiesChanged(propertyNames);
+        }
+
+        private void OnLogRefreshed(object? sender, EventArgs e)
+        {
+            if (_countsPending)
+            {
+                _countsPending = false;
+                OnPropertiesChanged(nameof(TxCount), nameof(RxCount), nameof(ErrorCount), nameof(HasErrors));
+            }
+        }
+
         private void OnFrameSent(object? sender, FrameSentEventArgs e)
         {
-            // 格式化在后台线程完成,UI 线程只负责添加记录。
+            // 格式化在后台线程完成,UI 线程只负责添加记录。先计数:这些记录使数据显示区刷新时,计数已包含这一帧。
             var entries = FrameLogFormatter.FromSent(e.Raw, DateTime.Now, SendOptions.DisplayFormat);
             Post(() =>
             {
-                Log.AddRange(entries);
                 TxCount++;
+                Log.AddRange(entries);
             });
         }
 

@@ -1,0 +1,2301 @@
+{
+  "document": {
+    "title": "Appendix A: Material Table",
+    "source": "INFICON GmbH — IMC300 Operating Manual",
+    "manual_part": "074-786-P1A",
+    "pages": "167-174 of 181 (Manual Appendix A, pages 12.x)",
+    "description": "Density and Z-Ratio for various materials, listed alphabetically by chemical formula. Z-Ratio values are normalized for AT-cut quartz crystals.",
+    "warnings": [
+      "Some of these materials are hazardous. Consult the material safety data sheet and safety instructions before use.",
+      "An asterisk (*) indicates that a Z-Ratio has not been established for a certain material; a value of 1.000 is defaulted in these situations."
+    ]
+  },
+  "column_definitions": {
+    "formula": "Chemical formula (sort key)",
+    "material_name": "English material name",
+    "material_name_zh": "Chinese material name (added for the Zevision process editor)",
+    "density": "Density (g/cm3)",
+    "z_ratio": "Z-Ratio (normalized for AT-cut quartz crystals)",
+    "z_ratio_established": "false when the manual shows * (no established Z-Ratio; defaulted to 1.000)"
+  },
+  "record_count": 253,
+  "materials": [
+    {
+      "formula": "Ag",
+      "material_name": "silver",
+      "material_name_zh": "银",
+      "density": 10.5,
+      "z_ratio": 0.529,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "AgBr",
+      "material_name": "silver bromide",
+      "material_name_zh": "溴化银",
+      "density": 6.47,
+      "z_ratio": 1.18,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "AgCl",
+      "material_name": "silver chloride",
+      "material_name_zh": "氯化银",
+      "density": 5.56,
+      "z_ratio": 1.32,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Al",
+      "material_name": "aluminum",
+      "material_name_zh": "铝",
+      "density": 2.7,
+      "z_ratio": 1.08,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Al2O3",
+      "material_name": "aluminum oxide",
+      "material_name_zh": "氧化铝",
+      "density": 3.97,
+      "z_ratio": 0.336,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Al4C3",
+      "material_name": "aluminum carbide",
+      "material_name_zh": "碳化铝",
+      "density": 2.36,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "AlF3",
+      "material_name": "aluminum fluoride",
+      "material_name_zh": "氟化铝",
+      "density": 3.07,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "AlN",
+      "material_name": "aluminum nitride",
+      "material_name_zh": "氮化铝",
+      "density": 3.26,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "AlSb",
+      "material_name": "aluminum antimonide",
+      "material_name_zh": "锑化铝",
+      "density": 4.36,
+      "z_ratio": 0.743,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "As",
+      "material_name": "arsenic",
+      "material_name_zh": "砷",
+      "density": 5.73,
+      "z_ratio": 0.966,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "As2Se3",
+      "material_name": "arsenic selenide",
+      "material_name_zh": "硒化砷",
+      "density": 4.75,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Au",
+      "material_name": "gold",
+      "material_name_zh": "金",
+      "density": 19.3,
+      "z_ratio": 0.381,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "B",
+      "material_name": "boron",
+      "material_name_zh": "硼",
+      "density": 2.37,
+      "z_ratio": 0.389,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "B2O3",
+      "material_name": "boron oxide",
+      "material_name_zh": "氧化硼",
+      "density": 1.82,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "B4C",
+      "material_name": "boron carbide",
+      "material_name_zh": "碳化硼",
+      "density": 2.37,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "BN",
+      "material_name": "boron nitride",
+      "material_name_zh": "氮化硼",
+      "density": 1.86,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Ba",
+      "material_name": "barium",
+      "material_name_zh": "钡",
+      "density": 3.5,
+      "z_ratio": 2.1,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "BaF2",
+      "material_name": "barium fluoride",
+      "material_name_zh": "氟化钡",
+      "density": 4.886,
+      "z_ratio": 0.793,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "BaN2O6",
+      "material_name": "barium nitrate",
+      "material_name_zh": "硝酸钡",
+      "density": 3.244,
+      "z_ratio": 1.261,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "BaO",
+      "material_name": "barium oxide",
+      "material_name_zh": "氧化钡",
+      "density": 5.72,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "BaTiO3",
+      "material_name": "barium titanate (tetragonal)",
+      "material_name_zh": "钛酸钡（四方）",
+      "density": 5.999,
+      "z_ratio": 0.464,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "BaTiO3",
+      "material_name": "barium titanate (cubic)",
+      "material_name_zh": "钛酸钡（立方）",
+      "density": 6.035,
+      "z_ratio": 0.412,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Be",
+      "material_name": "beryllium",
+      "material_name_zh": "铍",
+      "density": 1.82,
+      "z_ratio": 0.543,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "BeF2",
+      "material_name": "beryllium fluoride",
+      "material_name_zh": "氟化铍",
+      "density": 1.99,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "BeO",
+      "material_name": "beryllium oxide",
+      "material_name_zh": "氧化铍",
+      "density": 3.01,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Bi",
+      "material_name": "bismuth",
+      "material_name_zh": "铋",
+      "density": 9.8,
+      "z_ratio": 0.79,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Bi2O3",
+      "material_name": "bismuth oxide",
+      "material_name_zh": "氧化铋",
+      "density": 8.9,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Bi2S3",
+      "material_name": "bismuth trisulfide",
+      "material_name_zh": "三硫化二铋",
+      "density": 7.39,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Bi2Se3",
+      "material_name": "bismuth selenide",
+      "material_name_zh": "硒化铋",
+      "density": 6.82,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Bi2Te3",
+      "material_name": "bismuth telluride",
+      "material_name_zh": "碲化铋",
+      "density": 7.7,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "BiF3",
+      "material_name": "bismuth fluoride",
+      "material_name_zh": "氟化铋",
+      "density": 5.32,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "C",
+      "material_name": "carbon (graphite)",
+      "material_name_zh": "碳（石墨）",
+      "density": 2.25,
+      "z_ratio": 3.26,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "C",
+      "material_name": "carbon (diamond)",
+      "material_name_zh": "碳（金刚石）",
+      "density": 3.52,
+      "z_ratio": 0.22,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "C8H8",
+      "material_name": "parlyene (union carbide)",
+      "material_name_zh": "聚对二甲苯（派瑞林）",
+      "density": 1.1,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Ca",
+      "material_name": "calcium",
+      "material_name_zh": "钙",
+      "density": 1.55,
+      "z_ratio": 2.62,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "CaF2",
+      "material_name": "calcium fluoride",
+      "material_name_zh": "氟化钙",
+      "density": 3.18,
+      "z_ratio": 0.775,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "CaO",
+      "material_name": "calcium oxide",
+      "material_name_zh": "氧化钙",
+      "density": 3.35,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "CaO-SiO2",
+      "material_name": "calcium silicate (3)",
+      "material_name_zh": "硅酸钙（3）",
+      "density": 2.9,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "CaSO4",
+      "material_name": "calcium sulfate",
+      "material_name_zh": "硫酸钙",
+      "density": 2.962,
+      "z_ratio": 0.955,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "CaTiO3",
+      "material_name": "calcium titanate",
+      "material_name_zh": "钛酸钙",
+      "density": 4.1,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "CaWO4",
+      "material_name": "calcium tungstate",
+      "material_name_zh": "钨酸钙",
+      "density": 6.06,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Cd",
+      "material_name": "cadmium",
+      "material_name_zh": "镉",
+      "density": 8.64,
+      "z_ratio": 0.682,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "CdF2",
+      "material_name": "cadmium fluoride",
+      "material_name_zh": "氟化镉",
+      "density": 6.64,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "CdO",
+      "material_name": "cadmium oxide",
+      "material_name_zh": "氧化镉",
+      "density": 8.15,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "CdS",
+      "material_name": "cadmium sulfide",
+      "material_name_zh": "硫化镉",
+      "density": 4.83,
+      "z_ratio": 1.02,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "CdSe",
+      "material_name": "cadmium selenide",
+      "material_name_zh": "硒化镉",
+      "density": 5.81,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "CdTe",
+      "material_name": "cadmium telluride",
+      "material_name_zh": "碲化镉",
+      "density": 6.2,
+      "z_ratio": 0.98,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Ce",
+      "material_name": "cerium",
+      "material_name_zh": "铈",
+      "density": 6.78,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "CeF3",
+      "material_name": "cerium (III) fluoride",
+      "material_name_zh": "氟化铈（III）",
+      "density": 6.16,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "CeO2",
+      "material_name": "cerium (IV) dioxide",
+      "material_name_zh": "二氧化铈",
+      "density": 7.13,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Co",
+      "material_name": "cobalt",
+      "material_name_zh": "钴",
+      "density": 8.9,
+      "z_ratio": 0.343,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "CoO",
+      "material_name": "cobalt oxide",
+      "material_name_zh": "氧化钴",
+      "density": 6.44,
+      "z_ratio": 0.412,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Cr",
+      "material_name": "chromium",
+      "material_name_zh": "铬",
+      "density": 7.2,
+      "z_ratio": 0.305,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Cr2O3",
+      "material_name": "chromium (III) oxide",
+      "material_name_zh": "三氧化二铬",
+      "density": 5.21,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Cr3C2",
+      "material_name": "chromium carbide",
+      "material_name_zh": "碳化铬",
+      "density": 6.68,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "CrB",
+      "material_name": "chromium boride",
+      "material_name_zh": "硼化铬",
+      "density": 6.17,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Cs",
+      "material_name": "cesium",
+      "material_name_zh": "铯",
+      "density": 1.87,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Cs2SO4",
+      "material_name": "cesium sulfate",
+      "material_name_zh": "硫酸铯",
+      "density": 4.243,
+      "z_ratio": 1.212,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "CsBr",
+      "material_name": "cesium bromide",
+      "material_name_zh": "溴化铯",
+      "density": 4.456,
+      "z_ratio": 1.41,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "CsCl",
+      "material_name": "cesium chloride",
+      "material_name_zh": "氯化铯",
+      "density": 3.988,
+      "z_ratio": 1.399,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "CsI",
+      "material_name": "cesium iodide",
+      "material_name_zh": "碘化铯",
+      "density": 4.516,
+      "z_ratio": 1.542,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Cu",
+      "material_name": "copper",
+      "material_name_zh": "铜",
+      "density": 8.93,
+      "z_ratio": 0.437,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Cu2O",
+      "material_name": "copper oxide",
+      "material_name_zh": "氧化亚铜",
+      "density": 6.0,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Cu2S",
+      "material_name": "copper (I) sulfide (alpha)",
+      "material_name_zh": "硫化亚铜（α）",
+      "density": 5.6,
+      "z_ratio": 0.69,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Cu2S",
+      "material_name": "copper (I) sulfide (beta)",
+      "material_name_zh": "硫化亚铜（β）",
+      "density": 5.8,
+      "z_ratio": 0.67,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "CuS",
+      "material_name": "copper (II) sulfide",
+      "material_name_zh": "硫化铜",
+      "density": 4.6,
+      "z_ratio": 0.82,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Dy",
+      "material_name": "dysprosium",
+      "material_name_zh": "镝",
+      "density": 8.55,
+      "z_ratio": 0.6,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Dy2O3",
+      "material_name": "dysprosium oxide",
+      "material_name_zh": "氧化镝",
+      "density": 7.81,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Er",
+      "material_name": "erbium",
+      "material_name_zh": "铒",
+      "density": 9.05,
+      "z_ratio": 0.74,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Er2O3",
+      "material_name": "erbium oxide",
+      "material_name_zh": "氧化铒",
+      "density": 8.64,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Eu",
+      "material_name": "europium",
+      "material_name_zh": "铕",
+      "density": 5.26,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "EuF2",
+      "material_name": "europium fluoride",
+      "material_name_zh": "氟化铕",
+      "density": 6.5,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Fe",
+      "material_name": "iron",
+      "material_name_zh": "铁",
+      "density": 7.86,
+      "z_ratio": 0.349,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Fe2O3",
+      "material_name": "iron oxide",
+      "material_name_zh": "三氧化二铁",
+      "density": 5.24,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "FeO",
+      "material_name": "iron oxide",
+      "material_name_zh": "氧化亚铁",
+      "density": 5.7,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "FeS",
+      "material_name": "iron sulfide",
+      "material_name_zh": "硫化亚铁",
+      "density": 4.84,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Ga",
+      "material_name": "gallium",
+      "material_name_zh": "镓",
+      "density": 5.93,
+      "z_ratio": 0.593,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Ga2O3",
+      "material_name": "gallium oxide (beta)",
+      "material_name_zh": "氧化镓（β）",
+      "density": 5.88,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "GaAs",
+      "material_name": "gallium arsenide",
+      "material_name_zh": "砷化镓",
+      "density": 5.31,
+      "z_ratio": 1.59,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "GaN",
+      "material_name": "gallium nitride",
+      "material_name_zh": "氮化镓",
+      "density": 6.1,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "GaP",
+      "material_name": "gallium phosphide",
+      "material_name_zh": "磷化镓",
+      "density": 4.1,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "GaSb",
+      "material_name": "gallium antimonide",
+      "material_name_zh": "锑化镓",
+      "density": 5.6,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Gd",
+      "material_name": "gadolinium",
+      "material_name_zh": "钆",
+      "density": 7.89,
+      "z_ratio": 0.67,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Gd2O3",
+      "material_name": "gadolinium oxide",
+      "material_name_zh": "氧化钆",
+      "density": 7.41,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Ge",
+      "material_name": "germanium",
+      "material_name_zh": "锗",
+      "density": 5.35,
+      "z_ratio": 0.516,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Ge3N2",
+      "material_name": "germanium nitride",
+      "material_name_zh": "氮化锗",
+      "density": 5.2,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "GeO2",
+      "material_name": "germanium oxide",
+      "material_name_zh": "二氧化锗",
+      "density": 6.24,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "GeTe",
+      "material_name": "germanium telluride",
+      "material_name_zh": "碲化锗",
+      "density": 6.2,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Hf",
+      "material_name": "hafnium",
+      "material_name_zh": "铪",
+      "density": 13.09,
+      "z_ratio": 0.36,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "HfB2",
+      "material_name": "hafnium boride",
+      "material_name_zh": "硼化铪",
+      "density": 10.5,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "HfC",
+      "material_name": "hafnium carbide",
+      "material_name_zh": "碳化铪",
+      "density": 12.2,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "HfN",
+      "material_name": "hafnium nitride",
+      "material_name_zh": "氮化铪",
+      "density": 13.8,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "HfO2",
+      "material_name": "hafnium oxide",
+      "material_name_zh": "二氧化铪",
+      "density": 9.68,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "HfSi2",
+      "material_name": "hafnium silicide",
+      "material_name_zh": "硅化铪",
+      "density": 7.2,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Hg",
+      "material_name": "mercury",
+      "material_name_zh": "汞",
+      "density": 13.46,
+      "z_ratio": 0.74,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Ho",
+      "material_name": "holmium",
+      "material_name_zh": "钬",
+      "density": 8.8,
+      "z_ratio": 0.58,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Ho2O3",
+      "material_name": "holmium oxide",
+      "material_name_zh": "氧化钬",
+      "density": 8.41,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "In",
+      "material_name": "indium",
+      "material_name_zh": "铟",
+      "density": 7.3,
+      "z_ratio": 0.841,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "In2O3",
+      "material_name": "indium sesquioxide",
+      "material_name_zh": "三氧化二铟",
+      "density": 7.18,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "In2Se3",
+      "material_name": "indium selenide",
+      "material_name_zh": "硒化铟",
+      "density": 5.7,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "In2Te3",
+      "material_name": "indium telluride",
+      "material_name_zh": "碲化铟",
+      "density": 5.8,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "InAs",
+      "material_name": "indium arsenide",
+      "material_name_zh": "砷化铟",
+      "density": 5.7,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "InP",
+      "material_name": "indium phosphide",
+      "material_name_zh": "磷化铟",
+      "density": 4.8,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "InSb",
+      "material_name": "indium antimonide",
+      "material_name_zh": "锑化铟",
+      "density": 5.76,
+      "z_ratio": 0.769,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Ir",
+      "material_name": "iridium",
+      "material_name_zh": "铱",
+      "density": 22.4,
+      "z_ratio": 0.129,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "K",
+      "material_name": "potassium",
+      "material_name_zh": "钾",
+      "density": 0.86,
+      "z_ratio": 10.189,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "KBr",
+      "material_name": "potassium bromide",
+      "material_name_zh": "溴化钾",
+      "density": 2.75,
+      "z_ratio": 1.893,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "KCl",
+      "material_name": "potassium chloride",
+      "material_name_zh": "氯化钾",
+      "density": 1.98,
+      "z_ratio": 2.05,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "KF",
+      "material_name": "potassium fluoride",
+      "material_name_zh": "氟化钾",
+      "density": 2.48,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "KI",
+      "material_name": "potassium iodide",
+      "material_name_zh": "碘化钾",
+      "density": 3.128,
+      "z_ratio": 2.077,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "La",
+      "material_name": "lanthanum",
+      "material_name_zh": "镧",
+      "density": 6.17,
+      "z_ratio": 0.92,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "La2O3",
+      "material_name": "lanthanum oxide",
+      "material_name_zh": "氧化镧",
+      "density": 6.51,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "LaB6",
+      "material_name": "lanthanum boride",
+      "material_name_zh": "六硼化镧",
+      "density": 2.61,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "LaF3",
+      "material_name": "lanthanum fluoride",
+      "material_name_zh": "氟化镧",
+      "density": 5.94,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Li",
+      "material_name": "lithium",
+      "material_name_zh": "锂",
+      "density": 0.53,
+      "z_ratio": 5.9,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "LiBr",
+      "material_name": "lithium bromide",
+      "material_name_zh": "溴化锂",
+      "density": 3.47,
+      "z_ratio": 1.23,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "LiF",
+      "material_name": "lithium fluoride",
+      "material_name_zh": "氟化锂",
+      "density": 2.638,
+      "z_ratio": 0.778,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "LiNbO3",
+      "material_name": "lithium niobate",
+      "material_name_zh": "铌酸锂",
+      "density": 4.7,
+      "z_ratio": 0.463,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Lu",
+      "material_name": "lutetium",
+      "material_name_zh": "镥",
+      "density": 9.84,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Mg",
+      "material_name": "magnesium",
+      "material_name_zh": "镁",
+      "density": 1.74,
+      "z_ratio": 1.61,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "MgAl2O4",
+      "material_name": "magnesium aluminate",
+      "material_name_zh": "铝酸镁",
+      "density": 3.6,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "MgAl2O6",
+      "material_name": "spinel",
+      "material_name_zh": "尖晶石",
+      "density": 8.0,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "MgF2",
+      "material_name": "magnesium fluoride",
+      "material_name_zh": "氟化镁",
+      "density": 3.18,
+      "z_ratio": 0.637,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "MgO",
+      "material_name": "magnesium oxide",
+      "material_name_zh": "氧化镁",
+      "density": 3.58,
+      "z_ratio": 0.411,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Mn",
+      "material_name": "manganese",
+      "material_name_zh": "锰",
+      "density": 7.2,
+      "z_ratio": 0.377,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "MnO",
+      "material_name": "manganese oxide",
+      "material_name_zh": "氧化锰",
+      "density": 5.39,
+      "z_ratio": 0.467,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "MnS",
+      "material_name": "manganese (II) sulfide",
+      "material_name_zh": "硫化锰（II）",
+      "density": 3.99,
+      "z_ratio": 0.94,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Mo",
+      "material_name": "molybdenum",
+      "material_name_zh": "钼",
+      "density": 10.2,
+      "z_ratio": 0.257,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Mo2C",
+      "material_name": "molybdenum carbide",
+      "material_name_zh": "碳化钼",
+      "density": 9.18,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "MoB2",
+      "material_name": "molybdenum boride",
+      "material_name_zh": "硼化钼",
+      "density": 7.12,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "MoO3",
+      "material_name": "molybdenum trioxide",
+      "material_name_zh": "三氧化钼",
+      "density": 4.7,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "MoS2",
+      "material_name": "molybdenum disulfide",
+      "material_name_zh": "二硫化钼",
+      "density": 4.8,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Na",
+      "material_name": "sodium",
+      "material_name_zh": "钠",
+      "density": 0.97,
+      "z_ratio": 4.8,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Na3AlF6",
+      "material_name": "cryolite",
+      "material_name_zh": "冰晶石",
+      "density": 2.9,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Na5Al3F14",
+      "material_name": "chiolite",
+      "material_name_zh": "锥冰晶石",
+      "density": 2.9,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "NaBr",
+      "material_name": "sodium bromide",
+      "material_name_zh": "溴化钠",
+      "density": 32.0,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "NaCl",
+      "material_name": "sodium chloride",
+      "material_name_zh": "氯化钠",
+      "density": 2.17,
+      "z_ratio": 1.57,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "NaClO3",
+      "material_name": "sodium chlorate",
+      "material_name_zh": "氯酸钠",
+      "density": 2.164,
+      "z_ratio": 1.565,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "NaF",
+      "material_name": "sodium fluoride",
+      "material_name_zh": "氟化钠",
+      "density": 2.558,
+      "z_ratio": 1.645,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "NaNO3",
+      "material_name": "sodium nitrate",
+      "material_name_zh": "硝酸钠",
+      "density": 2.27,
+      "z_ratio": 1.194,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Nb",
+      "material_name": "niobium",
+      "material_name_zh": "铌",
+      "density": 8.578,
+      "z_ratio": 0.492,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Nb2O3",
+      "material_name": "niobium trioxide",
+      "material_name_zh": "三氧化二铌",
+      "density": 7.5,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Nb2O5",
+      "material_name": "niobium (V) oxide",
+      "material_name_zh": "五氧化二铌",
+      "density": 4.47,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "NbB2",
+      "material_name": "niobium boride",
+      "material_name_zh": "硼化铌",
+      "density": 6.97,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "NbC",
+      "material_name": "niobium carbide",
+      "material_name_zh": "碳化铌",
+      "density": 7.82,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "NbN",
+      "material_name": "niobium nitride",
+      "material_name_zh": "氮化铌",
+      "density": 8.4,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Nd",
+      "material_name": "neodymium",
+      "material_name_zh": "钕",
+      "density": 7.0,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Nd2O3",
+      "material_name": "neodymium oxide",
+      "material_name_zh": "氧化钕",
+      "density": 7.24,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "NdF3",
+      "material_name": "neodymium fluoride",
+      "material_name_zh": "氟化钕",
+      "density": 6.506,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Ni",
+      "material_name": "nickel",
+      "material_name_zh": "镍",
+      "density": 8.91,
+      "z_ratio": 0.331,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "NiCr",
+      "material_name": "nichrome",
+      "material_name_zh": "镍铬合金",
+      "density": 8.5,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "NiCrFe",
+      "material_name": "Inconel",
+      "material_name_zh": "因科镍合金",
+      "density": 8.5,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "NiFe",
+      "material_name": "permalloy",
+      "material_name_zh": "坡莫合金",
+      "density": 8.7,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "NiFeMo",
+      "material_name": "supermalloy",
+      "material_name_zh": "超坡莫合金",
+      "density": 8.9,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "NiO",
+      "material_name": "nickel oxide",
+      "material_name_zh": "氧化镍",
+      "density": 7.45,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "P3N5",
+      "material_name": "phosphorus nitride",
+      "material_name_zh": "五氮化三磷",
+      "density": 2.51,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Pb",
+      "material_name": "lead",
+      "material_name_zh": "铅",
+      "density": 11.3,
+      "z_ratio": 1.13,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "PbCl2",
+      "material_name": "lead chloride",
+      "material_name_zh": "氯化铅",
+      "density": 5.85,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "PbF2",
+      "material_name": "lead fluoride",
+      "material_name_zh": "氟化铅",
+      "density": 8.24,
+      "z_ratio": 0.661,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "PbO",
+      "material_name": "lead oxide",
+      "material_name_zh": "氧化铅",
+      "density": 9.53,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "PbS",
+      "material_name": "lead sulfide",
+      "material_name_zh": "硫化铅",
+      "density": 7.5,
+      "z_ratio": 0.566,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "PbSe",
+      "material_name": "lead selenide",
+      "material_name_zh": "硒化铅",
+      "density": 8.1,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "PbSnO3",
+      "material_name": "lead stannate",
+      "material_name_zh": "锡酸铅",
+      "density": 8.1,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "PbTe",
+      "material_name": "lead telluride",
+      "material_name_zh": "碲化铅",
+      "density": 8.16,
+      "z_ratio": 0.651,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Pd",
+      "material_name": "palladium",
+      "material_name_zh": "钯",
+      "density": 12.038,
+      "z_ratio": 0.357,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "PdO",
+      "material_name": "palladium oxide",
+      "material_name_zh": "氧化钯",
+      "density": 8.31,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Po",
+      "material_name": "polonium",
+      "material_name_zh": "钋",
+      "density": 9.4,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Pr",
+      "material_name": "praseodymium",
+      "material_name_zh": "镨",
+      "density": 6.78,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Pr2O3",
+      "material_name": "praseodymium oxide",
+      "material_name_zh": "氧化镨",
+      "density": 6.88,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Pt",
+      "material_name": "platinum",
+      "material_name_zh": "铂",
+      "density": 21.4,
+      "z_ratio": 0.245,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "PtO2",
+      "material_name": "platinum oxide",
+      "material_name_zh": "二氧化铂",
+      "density": 10.2,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Ra",
+      "material_name": "radium",
+      "material_name_zh": "镭",
+      "density": 5.0,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Rb",
+      "material_name": "rubidium",
+      "material_name_zh": "铷",
+      "density": 1.53,
+      "z_ratio": 2.54,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Rbl",
+      "material_name": "rubidium iodide",
+      "material_name_zh": "碘化铷",
+      "density": 3.55,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Re",
+      "material_name": "rhenium",
+      "material_name_zh": "铼",
+      "density": 21.04,
+      "z_ratio": 0.15,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Rh",
+      "material_name": "rhodium",
+      "material_name_zh": "铑",
+      "density": 12.41,
+      "z_ratio": 0.21,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Ru",
+      "material_name": "ruthenium",
+      "material_name_zh": "钌",
+      "density": 12.362,
+      "z_ratio": 0.182,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "S8",
+      "material_name": "sulfur",
+      "material_name_zh": "硫",
+      "density": 2.07,
+      "z_ratio": 2.29,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Sb",
+      "material_name": "antimony",
+      "material_name_zh": "锑",
+      "density": 6.62,
+      "z_ratio": 0.768,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Sb2O3",
+      "material_name": "antimony trioxide",
+      "material_name_zh": "三氧化二锑",
+      "density": 5.2,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Sb2S3",
+      "material_name": "antimony trisulfide",
+      "material_name_zh": "三硫化二锑",
+      "density": 4.64,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Sc",
+      "material_name": "scandium",
+      "material_name_zh": "钪",
+      "density": 3.0,
+      "z_ratio": 0.91,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Sc2O3",
+      "material_name": "scandium oxide",
+      "material_name_zh": "氧化钪",
+      "density": 3.86,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Se",
+      "material_name": "selenium",
+      "material_name_zh": "硒",
+      "density": 4.81,
+      "z_ratio": 0.864,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Si",
+      "material_name": "silicon",
+      "material_name_zh": "硅",
+      "density": 2.32,
+      "z_ratio": 0.712,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Si3N4",
+      "material_name": "silicon nitride",
+      "material_name_zh": "氮化硅",
+      "density": 3.44,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "SiC",
+      "material_name": "silicon carbide",
+      "material_name_zh": "碳化硅",
+      "density": 3.22,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "SiO",
+      "material_name": "silicon (II) oxide",
+      "material_name_zh": "一氧化硅",
+      "density": 2.13,
+      "z_ratio": 0.87,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "SiO2",
+      "material_name": "silicon dioxide",
+      "material_name_zh": "二氧化硅",
+      "density": 2.648,
+      "z_ratio": 1.0,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Sm",
+      "material_name": "samarium",
+      "material_name_zh": "钐",
+      "density": 7.54,
+      "z_ratio": 0.89,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Sm2O3",
+      "material_name": "samarium oxide",
+      "material_name_zh": "氧化钐",
+      "density": 7.43,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Sn",
+      "material_name": "tin",
+      "material_name_zh": "锡",
+      "density": 7.3,
+      "z_ratio": 0.724,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "SnO2",
+      "material_name": "tin oxide",
+      "material_name_zh": "二氧化锡",
+      "density": 6.95,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "SnS",
+      "material_name": "tin sulfide",
+      "material_name_zh": "硫化亚锡",
+      "density": 5.08,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "SnSe",
+      "material_name": "tin selenide",
+      "material_name_zh": "硒化锡",
+      "density": 6.18,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "SnTe",
+      "material_name": "tin telluride",
+      "material_name_zh": "碲化锡",
+      "density": 6.44,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Sr",
+      "material_name": "strontium",
+      "material_name_zh": "锶",
+      "density": 2.6,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "SrF2",
+      "material_name": "strontium fluoride",
+      "material_name_zh": "氟化锶",
+      "density": 4.277,
+      "z_ratio": 0.727,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "SrO",
+      "material_name": "strontium oxide",
+      "material_name_zh": "氧化锶",
+      "density": 4.99,
+      "z_ratio": 0.517,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Ta",
+      "material_name": "tantalum",
+      "material_name_zh": "钽",
+      "density": 16.6,
+      "z_ratio": 0.262,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Ta2O5",
+      "material_name": "tantalum (V) oxide",
+      "material_name_zh": "五氧化二钽",
+      "density": 8.2,
+      "z_ratio": 0.3,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "TaB2",
+      "material_name": "tantalum boride",
+      "material_name_zh": "硼化钽",
+      "density": 11.15,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "TaC",
+      "material_name": "tantalum carbide",
+      "material_name_zh": "碳化钽",
+      "density": 13.9,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "TaN",
+      "material_name": "tantalum nitride",
+      "material_name_zh": "氮化钽",
+      "density": 16.3,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Tb",
+      "material_name": "terbium",
+      "material_name_zh": "铽",
+      "density": 8.27,
+      "z_ratio": 0.66,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Tc",
+      "material_name": "technetium",
+      "material_name_zh": "锝",
+      "density": 11.5,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Te",
+      "material_name": "tellurium",
+      "material_name_zh": "碲",
+      "density": 6.25,
+      "z_ratio": 0.9,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "TeO2",
+      "material_name": "tellurium oxide",
+      "material_name_zh": "二氧化碲",
+      "density": 5.99,
+      "z_ratio": 0.862,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Th",
+      "material_name": "thorium",
+      "material_name_zh": "钍",
+      "density": 11.694,
+      "z_ratio": 0.484,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "ThF4",
+      "material_name": "thorium (IV) fluoride",
+      "material_name_zh": "四氟化钍",
+      "density": 6.32,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "ThO2",
+      "material_name": "thorium dioxide",
+      "material_name_zh": "二氧化钍",
+      "density": 9.86,
+      "z_ratio": 0.284,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "ThOF2",
+      "material_name": "thorium oxyfluoride",
+      "material_name_zh": "氟氧化钍",
+      "density": 9.1,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Ti",
+      "material_name": "titanium",
+      "material_name_zh": "钛",
+      "density": 4.5,
+      "z_ratio": 0.628,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Ti2O3",
+      "material_name": "titanium sesquioxide",
+      "material_name_zh": "三氧化二钛",
+      "density": 4.6,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "TiB2",
+      "material_name": "titanium boride",
+      "material_name_zh": "硼化钛",
+      "density": 4.5,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "TiC",
+      "material_name": "titanium carbide",
+      "material_name_zh": "碳化钛",
+      "density": 4.93,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "TiN",
+      "material_name": "titanium nitride",
+      "material_name_zh": "氮化钛",
+      "density": 5.43,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "TiO",
+      "material_name": "titanium oxide",
+      "material_name_zh": "一氧化钛",
+      "density": 4.9,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "TiO2",
+      "material_name": "titanium (IV) oxide",
+      "material_name_zh": "二氧化钛",
+      "density": 4.26,
+      "z_ratio": 0.4,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Tl",
+      "material_name": "thallium",
+      "material_name_zh": "铊",
+      "density": 11.85,
+      "z_ratio": 1.55,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "TlBr",
+      "material_name": "thallium bromide",
+      "material_name_zh": "溴化铊",
+      "density": 7.56,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "TlCl",
+      "material_name": "thallium chloride",
+      "material_name_zh": "氯化铊",
+      "density": 7.0,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "TlI",
+      "material_name": "thallium iodide (beta)",
+      "material_name_zh": "碘化铊（β）",
+      "density": 7.09,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "U",
+      "material_name": "uranium",
+      "material_name_zh": "铀",
+      "density": 19.05,
+      "z_ratio": 0.238,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "U3O8",
+      "material_name": "tri uranium octoxide",
+      "material_name_zh": "八氧化三铀",
+      "density": 8.3,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "U4O9",
+      "material_name": "uranium oxide",
+      "material_name_zh": "九氧化四铀",
+      "density": 10.969,
+      "z_ratio": 0.348,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "UO2",
+      "material_name": "uranium dioxide",
+      "material_name_zh": "二氧化铀",
+      "density": 10.97,
+      "z_ratio": 0.286,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "V",
+      "material_name": "vanadium",
+      "material_name_zh": "钒",
+      "density": 5.96,
+      "z_ratio": 0.53,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "V2O5",
+      "material_name": "vanadium pentoxide",
+      "material_name_zh": "五氧化二钒",
+      "density": 3.36,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "VB2",
+      "material_name": "vanadium boride",
+      "material_name_zh": "硼化钒",
+      "density": 5.1,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "VC",
+      "material_name": "vanadium carbide",
+      "material_name_zh": "碳化钒",
+      "density": 5.77,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "VN",
+      "material_name": "vanadium nitride",
+      "material_name_zh": "氮化钒",
+      "density": 6.13,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "VO2",
+      "material_name": "vanadium dioxide",
+      "material_name_zh": "二氧化钒",
+      "density": 4.34,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "W",
+      "material_name": "tungsten",
+      "material_name_zh": "钨",
+      "density": 19.3,
+      "z_ratio": 0.163,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "WB2",
+      "material_name": "tungsten boride",
+      "material_name_zh": "硼化钨",
+      "density": 10.77,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "WC",
+      "material_name": "tungsten carbide",
+      "material_name_zh": "碳化钨",
+      "density": 15.6,
+      "z_ratio": 0.151,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "WO3",
+      "material_name": "tungsten trioxide",
+      "material_name_zh": "三氧化钨",
+      "density": 7.16,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "WS2",
+      "material_name": "tungsten disulfide",
+      "material_name_zh": "二硫化钨",
+      "density": 7.5,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "WSi2",
+      "material_name": "tungsten silicide",
+      "material_name_zh": "硅化钨",
+      "density": 9.4,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Y",
+      "material_name": "yttrium",
+      "material_name_zh": "钇",
+      "density": 4.34,
+      "z_ratio": 0.835,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Y2O3",
+      "material_name": "yttrium oxide",
+      "material_name_zh": "氧化钇",
+      "density": 5.01,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Yb",
+      "material_name": "ytterbium",
+      "material_name_zh": "镱",
+      "density": 6.98,
+      "z_ratio": 1.13,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Yb2O3",
+      "material_name": "ytterbium oxide",
+      "material_name_zh": "氧化镱",
+      "density": 9.17,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "Zn",
+      "material_name": "zinc",
+      "material_name_zh": "锌",
+      "density": 7.04,
+      "z_ratio": 0.514,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Zn3Sb2",
+      "material_name": "zinc antimonide",
+      "material_name_zh": "锑化锌",
+      "density": 6.3,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "ZnF2",
+      "material_name": "zinc fluoride",
+      "material_name_zh": "氟化锌",
+      "density": 4.95,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "ZnO",
+      "material_name": "zinc oxide",
+      "material_name_zh": "氧化锌",
+      "density": 5.61,
+      "z_ratio": 0.556,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "ZnS",
+      "material_name": "zinc sulfide",
+      "material_name_zh": "硫化锌",
+      "density": 4.09,
+      "z_ratio": 0.775,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "ZnSe",
+      "material_name": "zinc selenide",
+      "material_name_zh": "硒化锌",
+      "density": 5.26,
+      "z_ratio": 0.722,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "ZnTe",
+      "material_name": "zinc telluride",
+      "material_name_zh": "碲化锌",
+      "density": 6.34,
+      "z_ratio": 0.77,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "Zr",
+      "material_name": "zirconium",
+      "material_name_zh": "锆",
+      "density": 6.49,
+      "z_ratio": 0.6,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    },
+    {
+      "formula": "ZrB2",
+      "material_name": "zirconium boride",
+      "material_name_zh": "硼化锆",
+      "density": 6.08,
+      "z_ratio": 1.0,
+      "z_ratio_established": false,
+      "z_ratio_note": "Z-Ratio not established; default 1.000 applied in manual"
+    },
+    {
+      "formula": "ZrC",
+      "material_name": "zirconium carbide",
+      "material_name_zh": "碳化锆",
+      "density": 6.73,
+      "z_ratio": 0.264,
+      "z_ratio_established": true,
+      "z_ratio_note": null
+    }
+  ]
+}

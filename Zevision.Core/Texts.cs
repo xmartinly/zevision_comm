@@ -271,5 +271,35 @@ namespace Zevision.Core
         public static string RestoreNotReady(string state, string readyState) => TextCatalog.Format(nameof(RestoreNotReady), state, readyState);
 
         public static string UnknownValue => TextCatalog.Get(nameof(UnknownValue));
+
+        public static string DesignNoFreeNumber(string kind) => TextCatalog.Format(nameof(DesignNoFreeNumber), kind);
+
+        public static string DesignUnnamed => TextCatalog.Get(nameof(DesignUnnamed));
+
+        public static string DesignMaterialContext(string name) => TextCatalog.Format(nameof(DesignMaterialContext), name);
+
+        public static string DesignProcessContext(string name) => TextCatalog.Format(nameof(DesignProcessContext), name);
+
+        public static string DesignStepContext(string process, int step) => TextCatalog.Format(nameof(DesignStepContext), process, step);
+
+        public static string DesignRampContext(string process, int step, int ramp) => TextCatalog.Format(nameof(DesignRampContext), process, step, ramp);
+
+        public static string DesignNoSteps => TextCatalog.Get(nameof(DesignNoSteps));
+
+        public static string DesignStepNoMaterial => TextCatalog.Get(nameof(DesignStepNoMaterial));
+
+        public static string DesignNameEmpty => TextCatalog.Get(nameof(DesignNameEmpty));
+
+        public static string DesignTooManyDecimals(int decimals) => TextCatalog.Format(nameof(DesignTooManyDecimals), decimals);
+
+        public static string DesignNameTooLong(int max) => TextCatalog.Format(nameof(DesignNameTooLong), max);
+
+        public static string DesignLayerNameTooLong(string name, int length, int max) => TextCatalog.Format(nameof(DesignLayerNameTooLong), name, length, max);
+
+        public static string DesignNameDuplicate => TextCatalog.Get(nameof(DesignNameDuplicate));
+
+        public static string DesignSensorMissing(int sensor) => TextCatalog.Format(nameof(DesignSensorMissing), sensor);
+
+        public static string DesignSourceMissing(int source) => TextCatalog.Format(nameof(DesignSourceMissing), source);
     }
 }

@@ -46,6 +46,7 @@
     <Compile Include="AppFolders.cs" />
     <Compile Include="CommunicationLogFiles.cs" />
     <Compile Include="CommunicationLogWriter.cs" />
+    <Compile Include="DesignFileStore.cs" />
     <Compile Include="FileErrorLog.cs" />
     <Compile Include="JsonFile.cs" />
     <Compile Include="JsonFilePreferencesStore.cs" />

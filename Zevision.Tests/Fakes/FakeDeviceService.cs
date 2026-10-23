@@ -20,9 +20,9 @@ namespace Zevision.Tests
         private readonly List<KeyValuePair<string, (string Value, string Description)>> _entries =
             new List<KeyValuePair<string, (string Value, string Description)>>();
 
-        public event EventHandler<FrameSentEventArgs>? FrameSent { add { } remove { } }
+        public event EventHandler<FrameSentEventArgs>? FrameSent;
 
-        public event EventHandler<FrameReceivedEventArgs>? FrameReceived { add { } remove { } }
+        public event EventHandler<FrameReceivedEventArgs>? FrameReceived;
 
         public event EventHandler<ConnectionLostEventArgs>? ConnectionLost;
 
@@ -106,6 +106,12 @@ namespace Zevision.Tests
 
         /// <summary>模拟一次有指令失败的发送。</summary>
         public void RaiseCommandsFailed(CommandsFailedEventArgs e) => CommandsFailed?.Invoke(this, e);
+
+        /// <summary>模拟发送一帧 (发送指令本身不触发收发事件)。</summary>
+        public void RaiseFrameSent(FrameSentEventArgs e) => FrameSent?.Invoke(this, e);
+
+        /// <summary>模拟收到一帧。</summary>
+        public void RaiseFrameReceived(FrameReceivedEventArgs e) => FrameReceived?.Invoke(this, e);
 
         public Task DisconnectAsync() => Task.CompletedTask;
 

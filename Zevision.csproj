@@ -74,6 +74,14 @@
       <DependentUpon>RecipeEditorWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Page Include="Views\ProcessDesignerWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Compile Include="Views\ProcessDesignerWindow.xaml.cs">
+      <DependentUpon>ProcessDesignerWindow.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
@@ -87,6 +95,11 @@
     <Compile Include="AppInfo.cs" />
     <Compile Include="Properties\IsExternalInit.cs" />
     <Compile Include="SingleInstance.cs" />
+    <Compile Include="ViewModels\Design\DesignMessages.cs" />
+    <Compile Include="ViewModels\Design\DevicePageViewModel.cs" />
+    <Compile Include="ViewModels\Design\MaterialDesignViewModel.cs" />
+    <Compile Include="ViewModels\Design\ProcessDesignerViewModel.cs" />
+    <Compile Include="ViewModels\Design\ProcessDesignViewModel.cs" />
     <Compile Include="ViewModels\Display\FrameDisplayFormatter.cs" />
     <Compile Include="ViewModels\Display\DisplayFormat.cs" />
     <Compile Include="ViewModels\Display\LogEntry.cs" />

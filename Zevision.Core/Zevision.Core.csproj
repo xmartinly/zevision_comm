@@ -48,6 +48,13 @@
     <Compile Include="IErrorLog.cs" />
     <Compile Include="Result.cs" />
     <Compile Include="Texts.cs" />
+    <Compile Include="Design\DesignBuilder.cs" />
+    <Compile Include="Design\DesignDevice.cs" />
+    <Compile Include="Design\DesignDocument.cs" />
+    <Compile Include="Design\DesignRules.cs" />
+    <Compile Include="Design\DeviceContents.cs" />
+    <Compile Include="Design\DeviceDeletion.cs" />
+    <Compile Include="Design\IDesignStore.cs" />
     <Compile Include="Configuration\CrucibleRule.cs" />
     <Compile Include="Configuration\DeviceIds.cs" />
     <Compile Include="Configuration\IInstrumentConfigService.cs" />
@@ -84,6 +91,11 @@
     <!-- 业务层和存储层的中英文文本 (翻译文件),复制到输出目录 (程序旁边),键见 Texts.cs。 -->
     <Content Include="Localization\Texts.json">
       <Link>Texts.json</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <!-- 材料库 (IMC300 操作手册附录 A 的材料表;工艺编辑中选择材料时填入名称、密度、Z 比),复制到程序旁边;格式见 DesignFileStore。 -->
+    <Content Include="..\docs\materials.json">
+      <Link>materials.json</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

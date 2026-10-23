@@ -163,7 +163,9 @@ namespace Zevision.Tests
 
             await editor.DeleteObjectAsync("M03");
 
-            var error = Assert.Single(dialogs.Errors);
+            Assert.Empty(dialogs.Errors); // 设备和文件都没有改变:窗口底部的红字
+            Assert.True(editor.ResultIsError);
+            var error = editor.ResultText!;
             Assert.Contains("不能删除材料 M03 (Au)", error);
             Assert.Contains("膜系 F01  Film1", error);   // 引用它的对象
             Assert.Contains("F0102 = 3", error);         // 引用它的设置项
@@ -196,7 +198,8 @@ namespace Zevision.Tests
 
             await editor.DeleteObjectAsync("P0201");
 
-            var error = Assert.Single(dialogs.Errors);
+            Assert.Empty(dialogs.Errors);
+            var error = editor.ResultText!;
             Assert.Contains("P01 = 1", error);
             Assert.DoesNotContain("或 0", error); // 活动工艺不能为 0,只能改为其他工艺
         }
@@ -209,7 +212,8 @@ namespace Zevision.Tests
 
             await editor.DeleteObjectAsync("F01");
 
-            Assert.Contains("L01020101 = 1", Assert.Single(dialogs.Errors));
+            Assert.Empty(dialogs.Errors);
+            Assert.Contains("L01020101 = 1", editor.ResultText);
         }
 
         [Fact]
@@ -221,7 +225,8 @@ namespace Zevision.Tests
 
             await editor.DeleteObjectAsync("L01");
 
-            var error = Assert.Single(dialogs.Errors);
+            Assert.Empty(dialogs.Errors);
+            var error = editor.ResultText!;
             Assert.Contains("工艺 P0201  Process1", error);
             Assert.Contains("P02010701 = 1", error);
             Assert.DoesNotContain("P020107FE", error); // 数量项不算引用

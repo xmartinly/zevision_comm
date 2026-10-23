@@ -41,6 +41,7 @@ namespace Zevision.ViewModels.Editor
         private IReadOnlyList<RecipeTabViewModel> _tabs = Array.Empty<RecipeTabViewModel>();
         private int _selectedTabIndex;
         private string? _resultText;
+        private bool _resultIsError;
         private SelectionStats _stats;
 
         /// <summary>
@@ -193,7 +194,16 @@ namespace Zevision.ViewModels.Editor
                 {
                     OnPropertyChanged(nameof(HasResultText));
                 }
+
+                ResultIsError = false;
             }
+        }
+
+        /// <summary><see cref="ResultText"/> 是问题 (红字,设备和文件都没有改变),不是成功的结果。</summary>
+        public bool ResultIsError
+        {
+            get => _resultIsError;
+            private set => SetProperty(ref _resultIsError, value);
         }
 
         /// <summary>是否显示 <see cref="ResultText"/> (操作进行中不显示)。</summary>
@@ -316,7 +326,18 @@ namespace Zevision.ViewModels.Editor
         void IRecipeChangePage.RecordChange(string done) => AddChange(done);
 
         /// <inheritdoc />
-        void IRecipeChangePage.ShowResult(string? text) => ResultText = text;
+        void IRecipeChangePage.ShowResult(string? text) => ShowResult(text, isError: false);
+
+        /// <inheritdoc />
+        void IRecipeChangePage.ShowProblem(string text, bool writeLog)
+        {
+            if (writeLog)
+            {
+                _errorLog.Write(M.LogSource, text);
+            }
+
+            ShowResult(text, isError: true);
+        }
 
         /// <inheritdoc />
         void IRecipeChangePage.ReportFailure(string message) => ReportFailure(message);
@@ -402,6 +423,13 @@ namespace Zevision.ViewModels.Editor
             DateTimeOffset.TryParse(savedAt, CultureInfo.InvariantCulture, DateTimeStyles.None, out var time)
                 ? time.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
                 : savedAt;
+
+        /// <summary>窗口底部的结果;<paramref name="isError"/> 时为红字。</summary>
+        private void ShowResult(string? text, bool isError)
+        {
+            ResultText = text;
+            ResultIsError = isError && text != null;
+        }
 
         private void ReportFailure(string message)
         {

@@ -3,10 +3,10 @@
 | 项目 | 内容 |
 |---|---|
 | 文档标识 | ZEV-CPM-02 |
-| 文档版本 | 1.2 |
-| 适用软件 | `Zevision.Core` 1.2.0、`Zevision.Storage` 1.2.0（随 Zevision 1.2.0） |
+| 文档版本 | 1.3 |
+| 适用软件 | `Zevision.Core` 1.3.1、`Zevision.Storage` 1.3.1（随 Zevision 1.3.1） |
 | 编制单位 | INFICON |
-| 日期 | 2026-10-21 |
+| 日期 | 2026-10-23 |
 
 ## 目次
 
@@ -109,9 +109,10 @@ Zevision.Commands.dll ─► Zevision.Communication.dll     指令集、协议�
 | `Zevision.Core` | `Result`、`Result<T>`、`IErrorLog`、`ICommunicationRecorder`、`ICommunicationRecorderFactory` | 结果类型；错误日志和通信数据记录的接口 |
 | `Zevision.Core.Devices` | `IDeviceService`、`ZevisionDeviceService`、`DeviceServiceExtensions`、`DeviceIdentity`、`FrameFormatDetector`、`FrameSettings`、`ReconnectPolicy`、`ManualCommandPolicy`、`FramingCheck` | 设备连接、握手与收发 |
 | `Zevision.Core.Configuration` | `InstrumentConfigService`（`IInstrumentConfigReader`/`Writer`/`Service`）、`InstrumentSnapshot`、`InstrumentRecipe`、`RestorePlanner`、`RecipeRules`、`CrucibleRule`、`ObjectTypes`、`DeviceIds`、`ParameterValue`、`RecipeDocument`、`RecipeEditSession`、`IRecipeStore` | 仪器配置 |
+| `Zevision.Core.Design` | `DesignDocument`、`MaterialDesign`、`ProcessDesign`、`DesignRules`、`DesignBuilder`、`DesignDevice`、`DeviceContents`、`DeviceDeletion`、`IDesignStore` | 工艺编辑：材料和工艺的检查，转换为设备上新建的对象；设备上的工艺和材料；删除时设备上一起删除的对象 |
 | `Zevision.Core.Localization` | `Lang`、`TextCatalog`、`CommandText`、`CommunicationText` | 中英文文本 |
 | `Zevision.Core.Settings` | `ConnectionPreferences`、`IPreferencesStore` | 通信配置 |
-| `Zevision.Storage` | `AppFolders`、`TextFile`、`JsonFilePreferencesStore`、`RecipeFileStore`、`FileErrorLog`、`CommunicationLogFiles` | 文件实现 |
+| `Zevision.Storage` | `AppFolders`、`TextFile`、`JsonFilePreferencesStore`、`RecipeFileStore`、`DesignFileStore`、`FileErrorLog`、`CommunicationLogFiles` | 文件实现 |
 
 ### 3.3 组装与启动
 
@@ -526,7 +527,7 @@ if (!report.IsSuccess)
 
 - `ApplyEditsAsync`：先检查每一项均可写入（`RecipeRules.IsRestorable`）、不含协议字符，且膜系的坩埚号不超过所选输出源的坩埚数量（同时修改的输出源和坩埚数量按新值计算，见 4.2.5.5）；任何一项不合格时不发送任何指令。按恢复的顺序写入，逐项读回。不创建对象：设备上不存在的项由设备拒绝。
 - `CreateObjectAsync` 按 `type.NewDefault`（见 4.2.5.2）设置默认引用：膜系写入材料项 `F..02`；膜层先追加膜系列表一项（`AL..0200`），再写入其膜系（`L..02nn01`）；工艺追加膜层列表一项并写入（`AP02..0700` → `UP02..07nn`）。`defaultValue` 为 null 时只创建对象。对象创建成功但默认引用设置失败时，`Error` 为 null，`DefaultsError` 为原因（对象保留在设备上）。
-- 只有 `M**`、`F**`、`L**`、`P02**` 可按编号新建和删除（由指令集检查，其他 ID 抛出 `ArgumentException`）。协议译稿未说明按编号删除（`DM03`）；按编号新建已在实机上确认材料和膜系，膜层和工艺为推断。
+- 只有 `M**`、`F**`、`L**`、`P02**` 可按编号新建和删除（由指令集检查，其他 ID 抛出 `ArgumentException`）。协议译稿未说明按编号删除（`DM03`）。按编号新建和删除材料、膜系、膜层、工艺已在实机上确认（ZEV-STR-01 的 STR-2026-10-23-01）：删除后该对象不再出现，其他对象的编号不变。
 - 修改后调用方应重新读取该组（`ReadGroupAsync`）确认结果；编辑会话按此方式处理（见 4.3）。
 
 #### 4.2.5 规则与 ID 工具
@@ -807,16 +808,17 @@ var saved = store.Save(preferences);
 | 方法 | 位置 |
 |---|---|
 | `GetSettingsFilePath()` | `<程序目录>\settings.json` |
-| `GetRecipeFolder()` | `<程序目录>\recipes` |
+| `GetConfigFolder()` | `<程序目录>\configs`（仪器配置文件） |
+| `GetDesignFolder()` | `<程序目录>\recipes`（工艺编辑，其下为 `material`、`film`、`layer`、`process` 四个目录） |
 | `GetLogsFolder()` | `<程序目录>\logs`（`error.txt`、通信数据文件 `<序列号>_*.txt`） |
 
 程序目录不可写时（如安装在 Program Files 下）改用 `文档\Zevision\…`；日志目录仍不可写时使用系统临时目录。目录不存在时自动创建。每次调用都探测一次可写性（创建并删除一个临时文件），不宜在循环中调用。
 
-配置文件目录在 1.1.0 之前名为 `recipe`。`GetRecipeFolder()` 在实际尝试的每个位置（先程序目录；程序目录不可写时再 `文档\Zevision`）检查：存在旧的 `recipe` 目录而 `recipes` 尚不存在时，把 `recipe` 改名为 `recipes`。`recipes` 已存在，或改名失败（目录只读，或其中的文件被其他程序打开）时，保留旧目录。该行为由 `AppFoldersTests` 测试。
+配置文件目录在 1.1.0 之前名为 `recipe`，1.1.0～1.2.0 名为 `recipes`（之后用于工艺编辑）。`GetConfigFolder()` 和 `GetDesignFolder()` 在实际尝试的每个位置（先程序目录；程序目录不可写时再 `文档\Zevision`）先调用 `MoveLegacyConfigFolder`：`configs` 尚不存在时，把 `recipes`（其中没有工艺编辑的四个目录，`DesignFileStore.HasDesignFolders`）改名为 `configs`，没有 `recipes` 时把 `recipe` 改名为 `configs`。`configs` 已存在，或改名失败（目录只读，或其中的文件被其他程序打开）时，保留旧目录。两个方法都先迁移，工艺文件不会与旧的配置文件混在 `recipes` 中。该行为由 `AppFoldersTests` 测试。
 
 ##### 4.2.9.2 RecipeFileStore：仪器配置文件
 
-`RecipeFileStore` 实现 `IRecipeStore`。`Folder` 为 `AppFolders.GetRecipeFolder()`（第一次使用时确定），`FileExtension` 为 `.json`。
+`RecipeFileStore` 实现 `IRecipeStore`。`Folder` 为 `AppFolders.GetConfigFolder()`（第一次使用时确定），`FileExtension` 为 `.json`。
 
 文件格式（`formatVersion` 2）为缩进的 UTF-8 JSON：
 
@@ -893,6 +895,45 @@ recorder.Dispose();                                            // 程序退出�
 ##### 4.2.9.6 TextFile
 
 `TextFile.Load(path)` 读取并检查 `Texts.json`：格式应为 `{ "键": { "zh": "…", "en": "…" } }`，每条都有 zh 和 en。失败说明为原因本身（英文或系统语言的异常消息），因为此时文本尚未读取。`TextFile.DefaultPath` 为程序目录中的 `Texts.json`。
+
+#### 4.2.10 工艺编辑（Zevision.Core.Design）
+
+工艺编辑窗口（`ViewModels/Design/ProcessDesignerViewModel`）编辑的内容是 `DesignDocument`：材料（`MaterialDesign`，设备上的一个材料和一个同名膜系）和工艺（`ProcessDesign`，按顺序的步骤 `ProcessStepDesign`，每一步在设备上是一个膜层）。数值都是设备的文本格式。上传一个工艺时：
+
+1. `DesignBuilder.Build(document, process, snapshot)` 先按 `DesignRules.ValidateUpload` 检查工艺、用到的材料和设备（传感器、输出源是否存在，坩埚号是否超过输出源的坩埚数量），再取设备上空闲的最小编号（`ObjectType.NextFreeId`），生成只含新对象设置项的 `InstrumentRecipe`（文件头取自设备）和新建对象的列表 `DesignObject`。
+2. `RestorePlanner.Plan(recipe, snapshot)` 得到新建对象的 `A` 指令；新对象的设置项在新建、重新读取之后写入。
+3. `IInstrumentConfigWriter.ExecuteRestoreAsync` 新建对象、追加子列表条目（预熔、后处理、传感器、膜层的膜系、工艺的膜层），写入并逐项读回校验。
+
+```csharp
+var designs = DesignFileStore.CreateDefault();                 // recipes\{material,film,layer,process}、程序目录的 materials.json
+var document = designs.Load().Value;
+var al = new MaterialDesign { Name = "Al", Density = "2.700", ZRatio = "1.080", Sensor = 1, Source = 1 };
+var process = new ProcessDesign { Name = "AR" };
+process.Steps.Add(new ProcessStepDesign { MaterialId = al.Id, Rate = "5.0", Thickness = "1.000" });
+document.Materials.Add(al);
+document.Processes.Add(process);
+
+var errors = DesignRules.Validate(document);                   // 保存前:名称、范围、步骤
+if (errors.Count == 0 && designs.Save(document).IsSuccess)
+{
+    var snapshot = (await config.ReadSnapshotAsync(ct)).Value;    // ? 约 10 s
+    var build = DesignBuilder.Build(document, process, snapshot);  // 复用或新建 M、F、L,新建 P02
+    if (build.IsSuccess)
+    {
+        var plan = RestorePlanner.Plan(build.Value.Recipe, snapshot).Value;
+        var report = await config.ExecuteRestoreAsync(build.Value.Recipe, plan, null, ct);
+    }
+}
+```
+
+- 映射：材料名称写入 `M**01` 和 `F**01`；密度、Z 比、工具因子写入 `M**03`、`M**04`、`M**07`；膜系的材料 `F**02` 为材料的编号（十进制）；传感器和晶振位置写入传感器列表第 1 项 `F**070101`、`F**070102`；输出源、坩埚、P、I、D、最大功率、最大功率选项写入 `F**0901`～`F**0907`；延迟选项写入 `F**0401`，不为 0 时（`MaterialDesign.HasDelaySettings`）还写入控制延迟时间、挡板延迟精度、挡板延迟超时、传输传感器（0 = 无，非 0 时上传前检查设备上有该传感器）、传输工具因子 `F**0402`～`F**0406`；预熔、后处理写入 `F**03**01`～`03`、`F**05**01`～`03`。新建的膜层名称为 `材料名称-工艺名称-步骤号`（`DesignBuilder.LayerName`，如 `Al-AR-1`；同一工艺中参数相同的步骤共用一个膜层，名称取第一步的），膜系列表第 1 项为该材料的膜系、速率、最终厚度（`L**020101`～`03`），速率斜坡为 `L**020106**01`～`03`。工艺写入名称、活动膜层 1（`P02**02`）、自动启动下一膜层（`P02**04`）和膜层列表 `P02**07**`（膜层的编号）。不写 `P01`（活动工艺）。
+- 复用：设备上第一个（按编号）所有设置项都与要写入的值相同（`ParameterValue.AreEquivalent`：名称按字符串，数值、时间按值）、子列表条数也相同的对象被复用，不写入（`DesignObject.IsNew` 为 false）。材料比较名称、密度、Z 比、工具因子；膜系只在材料被复用时查找，比较上面的全部膜系设置项（含 `F**02` 为该材料），预熔、后处理条数相同，传感器 1 个；膜层只在膜系被复用时查找，比较膜系 1 个且为该膜系、速率、最终厚度、速率斜坡（条数和数值），不比较名称（`StepFields` 不带名称），复用的膜层在 `DesignObject.Name` 中为设备上的名称。同一工艺中材料、速率、最终厚度、速率斜坡都相同的步骤共用一个膜层（`P02**07**` 中出现多次）。工艺总是新建。
+- 每次上传都新建对象，不修改设备上已有的对象；检查用的取值范围、选项和字符规则都来自指令集（`ParameterValue.Validate`）。名称（材料、工艺和生成的膜层名称）最多 `DesignRules.MaxNameLength`（30）个字符：设备最多保存 31 个字符，帮助表 `?` 只显示前 30 个，复用和删除按 `?` 读到的名称比较。
+- 上传失败（`RestoreReport` 不成功、有 `AdditionalSkipped`、取消、超时）时，窗口删除本次新建的对象（`DesignObject.IsNew`，编号在上传开始时空闲）：用 `ReadGroupAsync` 读取这几组，按工艺、膜层、膜系、材料的顺序（组内编号大的在前）对仍在设备上的对象调用 `DeleteObjectAsync`，再读取确认。这一步在视图模型中（`ProcessDesignerViewModel`），Core 不回滚；`ExecuteRestoreAsync` 本身仍在第一个错误处停止，不回滚。
+- `DesignDevice.EntriesOf(snapshot)` 把 `?` 快照的全部设置项转换为 `RecipeEntry`；`DesignDevice.Objects(entries, group)` 从中取出传感器和输出源（编号、名称、坩埚数量 `S**07`），用于窗口的下拉框。窗口打开时读取一次 `?`（约 10 s）。
+- 设备上的内容：`DeviceContents.From(entries)`（纯函数）取出材料（名称、密度、Z 比）、膜系（名称、材料编号 `F**02`）、膜层（名称、膜系列表 `L**02**01`～`03`）和工艺（名称、膜层列表 `P02**07**`）。列表按条目 ID 取，不用数量项 `…FE`，所以分组帮助（`ReadGroupAsync` 只返回可恢复项）也可以。窗口的“设备”页和本地项的设备状态（同名的对象，`MaterialsNamed`、`ProcessesNamed`）用它；删除时用分组帮助重新读取相关的组，替换这几组的设置项（`RecipeDocument.ReplaceGroup`）；上传成功后把新建对象的设置项加入（`RecipeDocument.AddObject`），不再读取。
+- 删除：`DeviceDeletion`（纯函数）找出设备上一起删除的对象，按删除顺序排列（引用别人的组在前，组内编号大的在前：按编号删除的指令协议文档没有规定，设备万一在删除后重新编号也不会删到后面的对象）。引用按 `RecipeRules.IndexReferences` 一次找出。`ForMaterialNamed`/`ForMaterials`：这些材料、`F**02` 引用它们的膜系、膜系列表含这些膜系的膜层（不论名称和膜系数量），顺序为膜层、膜系、材料；`ForProcessNamed`/`ForProcesses`：这些工艺和只被它们使用的膜层，其他工艺（或其他设置）也引用的膜层放在 `Kept`，不删除。`References` 列出要删除的集合之外对它们的引用（`RecipeRules.FindReferencesTo`），属于对象的写为“工艺 P0202 P2: P02020701 = 1”，其他写为“设置活动工艺 P01 = 2”；`IsBlocked` 时窗口不删除。窗口读取相关的组（材料：`?M`、`?F`、`?L`、`?P`、`?S`；工艺：`?P`、`?L`），确认后逐个调用 `IInstrumentConfigWriter.DeleteObjectAsync`，再用 `ReadGroupAsync` 读取删除的对象所在的组，确认对象已不在，全部成功后才删除本地的材料或工艺。
+- 存储接口 `IDesignStore`（实现 `DesignFileStore`）：`recipes` 下按对象分目录，每个对象一个缩进的 UTF-8 JSON 文件（`formatVersion` 1，先写临时文件再替换）：`material\名称.json`（`id`、名称、中文名、密度、Z 比、工具因子）、`film\名称.json`（`materialId`、传感器、晶振位置、输出源、坩埚、预熔、后处理、PID、最大功率及其选项、延迟选项和延迟设置）、`layer\材料名称-工艺名称-步骤号.json`（工艺中每个不同的步骤一个文件，同一工艺中相同的步骤 `DesignBuilder.IsSameLayer` 共用第一步的文件：`name` 为上传时新建的膜层名称、`materialId`、速率、最终厚度、速率斜坡）、`process\名称.json`（`id`、名称、自动启动下一膜层、按顺序的膜层文件名 `layers`、上次上传的记录）。文件名由名称得到（不允许的字符换成 `_`，空名称为 `unnamed`，系统保留名前加 `_`，重名时不区分大小写加 `_2`、`_3`…）；读取时膜系按 `materialId`（没有时按文件名）对应材料，工艺按文件名找膜层（找不到的膜层读为没有材料的步骤，保存前的检查会指出），缺少的字段取默认值。`Save` 写入全部对象（内容与现有文件相同时不重写，`JsonFile.WriteIfChanged`），再删除四个目录中这次没有写、以前读取或写入过的 `.json` 文件（窗口打开期间别处放进来的文件和其他文件不动）；第一个点之前是系统保留名的名称（如 `CON.1`）前加 `_`。`Load` 在没有文件时返回空内容，有文件损坏或格式版本高于 `DesignFileStore.CurrentFormatVersion` 时失败，原因中有该文件的路径；`LoadMaterialLibrary` 读取程序目录的 `materials.json`（IMC300 操作手册附录 A 的材料表，源文件 `docs\materials.json`：`{ "materials": [ { "formula", "material_name", "material_name_zh", "density", "z_ratio", "z_ratio_established" } ] }`，数值是 JSON 数字），密度和 Z 比转为三位小数的文本（`2.700`），没有化学式或数值的行跳过；文件不存在时为空。
 
 ### 4.3 程序设计实例
 
@@ -1010,7 +1051,7 @@ var snapshot = await config.ReadSnapshotAsync(ct);          // → IMC300 Ready
 | 帮助表 | `?` 指令返回的全部设置项列表（ID、当前值、说明） |
 | 组帮助 | `?M` 等只返回一组设置项的帮助指令 |
 | 快照 | `InstrumentSnapshot`，一次读取得到的帮助表 |
-| 配置文件 | 保存的仪器配置，即 `InstrumentRecipe` 的 JSON 文件，位于 `recipes` 目录 |
+| 配置文件 | 保存的仪器配置，即 `InstrumentRecipe` 的 JSON 文件，位于 `configs` 目录 |
 | 实机数据 / 保存的配置 | 修改窗口的两种数据来源：设备当前配置 / 配置文件 |
 | 帧格式 | 帧是否带长度字节和校验和（RS232：G1304/G1305；TCP：G1407/G1408） |
 | 握手 | 连接后确认设备应答、确定帧格式并读取型号的过程 |
@@ -1273,6 +1314,7 @@ var snapshot = await config.ReadSnapshotAsync(ct);          // → IMC300 Ready
 - `static bool IsSystemSetting(string id)`: 是否是系统设置 (传感器、源、输入输出、逻辑、系统偏好)。系统设置不需要创建对象,恢复时最先写入。
 - `static bool IsRestorable(string id, string value, out string reason)`: 判断帮助表中的一项是否保存到 recipe。
 - `static List<RecipeEntry> SelectRestorable(IEnumerable<HelpTableEntry> entries)`: 从帮助表中挑出保存到 recipe 的项 (`IsRestorable`);ID 重复时只取第一次出现的。
+- `static ILookup<string, RecipeEntry> IndexReferences(IEnumerable<RecipeEntry> entries)`: 一次找出全部引用 (规则同 `FindReferencesTo`):被引用对象的 ID → 引用它的设置项;检查多个对象时用它。
 - `static IReadOnlyList<RecipeEntry> FindReferencesTo(IEnumerable<RecipeEntry> entries, string objectId)`: 找出引用了 `objectId` 的设置项 (删除前检查)。层级关系:工艺包含膜层,膜层包含膜系,膜系包含材料, 即膜系的材料 (F??02)、膜层中的膜系 (L??02??01)、工艺中的膜层 (P02??07??),以及活动工艺 (P01)、链接工艺 (P02??0A) 和输出源的坩埚材料 (S??09??)。值为 0 (未选择) 的不算。
 - `static bool TryGetReference(string id, string value, out string targetId, out string kind)`: 设置项的值是否引用了另一个对象,如 `F0302 = 3` → `M03`。
 - `static int GroupRank(string id)`: 恢复时的排序键:先按组顺序,组内保持设备帮助表中的原始顺序 (由调用方稳定排序保证)。
@@ -1335,6 +1377,85 @@ var snapshot = await config.ReadSnapshotAsync(ct);          // → IMC300 Ready
 - `string CurrentValue { get; init; }`: 设备当前值。
 - `string Description { get; init; }`: 说明。
 - `string Command { get; }`: 写入指令,如 `UF0101:L1` (由 `Update` 生成)。
+
+#### class `DesignDocument`
+工艺编辑的内容:用户定义的材料和工艺。上传一个工艺时由 `DesignBuilder` 转换为设备上的材料、膜系、膜层和工艺。保存的位置和格式由 `IDesignStore` 决定。
+- `List<MaterialDesign> Materials { get; set; }`: 材料。
+- `List<ProcessDesign> Processes { get; set; }`: 工艺。
+- `MaterialDesign FindMaterial(string id)`: 按 `Id` 找材料;没有时为 null。
+
+#### class `MaterialDesign`
+一种材料:设备上的材料加膜系,两者同名。新建时有两段预熔、一段后处理,PID 为 10/0/0,坩埚为 0 (任意)。
+- `string Id`、`Name`、`Density`、`ZRatio`、`Tooling`、`CrystalPosition`、`PTerm`、`ITerm`、`DTerm`、`MaxPower`、`MaxPowerOption`、`DelayOption`、`ControlDelayTime`、`ShutterDelayAccuracy`、`ShutterDelayTimeout`、`TransferTooling { get; set; }`: 设置项 (设备的文本格式)。
+- `string ChineseName { get; set; }`: 中文名 (从材料库填入),只在本地显示,不写入设备。
+- `int Sensor`、`Source`、`Crucible`、`TransferSensor { get; set; }`: 传感器、输出源编号,坩埚号,传输传感器编号 (0 = 无)。
+- `bool HasDelaySettings { get; }`: 延迟选项不为 0:上传时写入延迟设置 (`F**0402`~`F**0406`),窗口显示这些设置。
+- `List<ConditionStep> PreConditions`、`PostConditions { get; set; }`: 预熔、后处理 (`RampTime`、`RampPower`、`HoldTime`)。
+- `static string NewId()`: 新的标识。
+
+#### class `ProcessDesign`
+一个工艺。
+- `string Id`、`Name { get; set; }`: 标识、名称。
+- `bool AutoStartNext { get; set; }`: 自动启动下一膜层,默认 true。
+- `List<ProcessStepDesign> Steps { get; set; }`: 步骤 (`MaterialId`、`Rate`、`Thickness`、`RateRamps`:`StartThickness`、`RampTime`、`NewRate`)。
+- `string LastUpload { get; set; }`: 上次上传的记录 (时间和新建的对象),只用于显示。
+
+#### record `MaterialLibraryEntry`
+材料库中的一项 (IMC300 操作手册附录 A 的材料表)。
+- `MaterialLibraryEntry(string Formula, string Name, string ChineseName, string Density, string ZRatio, bool ZRatioEstablished)`: 化学式 (选择后作为材料名称)、英文名称、中文名称、密度和 Z 比 (三位小数的文本)、Z 比是否已确定 (手册中标 * 的为 false,按 1.000)。
+
+#### record `DesignObject`
+上传一个工艺用到的设备对象。
+- `DesignObject(string Id, char Group, string Name, bool IsNew)`: 对象 ID (如 `M0B`)、组字母 (M、F、L、P)、名称、是否新建 (false 为复用设备上已有、名称和参数都相同的对象)。
+
+#### record `DeviceDeletion`
+在设备上一起删除的对象 (工艺编辑中删除材料或工艺时)。纯函数。
+- `DeviceDeletion(IReadOnlyList<DesignObject> Objects, IReadOnlyList<DesignObject> Kept, IReadOnlyList<string> References)`: 要删除的对象 (按删除顺序:工艺、膜层、膜系、材料,组内编号大的在前);删除工艺时保留的膜层 (其他工艺也在用);设备上其他设置对要删除的对象的引用。
+- `bool IsBlocked { get; }`: 有引用,不能删除。
+- `static DeviceDeletion ForMaterialNamed(string name, IReadOnlyList<RecipeEntry> entries)`、`ForMaterials(IEnumerable<string> materialIds, IReadOnlyList<RecipeEntry> entries)`: 这些材料 (按名称时为同名的全部材料)、引用它们的膜系、用到这些膜系的膜层。
+- `static DeviceDeletion ForProcessNamed(string name, IReadOnlyList<RecipeEntry> entries)`、`ForProcesses(IEnumerable<string> processIds, IReadOnlyList<RecipeEntry> entries)`: 这些工艺和只被它们使用的膜层。
+
+#### class `DeviceContents`
+设备上的材料、膜系、膜层和工艺,从帮助表的设置项中取出 (列表按条目 ID,不用数量项)。纯函数。
+- `static DeviceContents From(IEnumerable<RecipeEntry> entries)`、`static DeviceContents Empty { get; }`: 创建;空的内容。
+- `IReadOnlyList<DeviceMaterial> Materials`、`IReadOnlyList<DeviceFilm> Films`、`IReadOnlyList<DeviceLayer> Layers`、`IReadOnlyList<DeviceProcess> Processes { get; }`: 按 ID 排列。`DeviceMaterial(Id, Name, Density, ZRatio)`、`DeviceFilm(Id, Name, int Material)`、`DeviceLayer(Id, Name, IReadOnlyList<DeviceLayerFilm> Films)` (`DeviceLayerFilm(int Film, string Rate, string Thickness)`)、`DeviceProcess(Id, Name, IReadOnlyList<int> Layers)`;编号为十进制,0 = 未选择。
+- `DeviceMaterial? FindMaterial(int number)`、`DeviceFilm? FindFilm(int number)`、`DeviceLayer? FindLayer(int number)`: 按编号找对象;没有时为 null。
+- `IReadOnlyList<DeviceFilm> FilmsOf(DeviceMaterial material)`: 引用该材料的膜系。
+- `IReadOnlyList<DeviceMaterial> MaterialsNamed(string? name)`、`IReadOnlyList<DeviceProcess> ProcessesNamed(string? name)`: 同名的材料、工艺 (去掉首尾空格,区分大小写;空名称时没有)。
+
+#### record `DesignBuild`
+一个工艺的上传内容。
+- `DesignBuild(InstrumentRecipe Recipe, IReadOnlyList<DesignObject> Objects)`: 只含新建对象的配置;用到的对象 (新建和复用的),按材料、膜系、膜层、工艺排列。
+
+#### static class `DesignBuilder`
+把工艺转换为设备上的对象:复用名称和参数都相同的材料、膜系、膜层,其余新建。纯函数。
+- `const string LayerNameSeparator`: `-`。
+- `static Result<DesignBuild> Build(DesignDocument document, ProcessDesign process, InstrumentSnapshot snapshot)`: 检查 (`ValidateUpload`)、找可复用的对象、为其余对象分配空闲编号、生成设置项;失败时原因每行一条。
+- `static IReadOnlyList<MaterialDesign> MaterialsOf(DesignDocument document, ProcessDesign process)`: 工艺用到的材料,按第一次出现的顺序。
+- `static string LayerName(MaterialDesign material, ProcessDesign process, int stepNumber)`: 新建的膜层名称 `材料名称-工艺名称-步骤号`,如 `Al-AR-1`。
+- `static bool IsSameLayer(ProcessStepDesign a, ProcessStepDesign b)`: 两步是否是同一个膜层 (材料、速率、最终厚度、速率斜坡都相同,数值按值比较);上传时共用一个膜层,保存时共用一个膜层文件。
+
+#### static class `DesignRules`
+材料和工艺的检查;每条错误为"对象: 设置项: 原因"。
+- `static IReadOnlyList<string> Validate(DesignDocument document)`: 保存前检查全部内容 (名称不能为空、不能重名,数值在设备范围内,工艺至少一步且每步选了材料)。
+- `static IReadOnlyList<string> ValidateUpload(DesignDocument document, ProcessDesign process, InstrumentSnapshot snapshot)`: 上传前检查工艺、用到的材料和设备 (传感器、输出源、坩埚数量)。
+- `static string DisplayName(string name)`: 显示名称 (空时为"(未命名)")。
+- `const int StepDecimals`: 速率和厚度 (步骤的速率、最终厚度,速率斜坡的起始厚度、新速率) 最多的小数位数 (3);`Validate` 和 `ValidateUpload` 也检查。
+- `const int MaxNameLength`: 名称 (材料、膜系、工艺,以及生成的膜层名称) 最多的字符数 (30);`Validate` 检查名称和每个工艺第一次出现的步骤生成的膜层名称。
+- `static string? CheckStepValue(StepField field, string? value)`: 工艺一步中一个输入值的问题 (与保存前的检查相同),用于输入框的提示;合法或为空时为 null。`StepField`:`Rate`、`Thickness`、`RampStartThickness`、`RampTime`、`RampNewRate`。
+
+#### static class `DesignDevice`
+从设备的设置项中取出传感器和输出源。
+- `const char SensorGroup`、`SourceGroup`: `N`、`S`。
+- `static List<RecipeEntry> EntriesOf(InstrumentSnapshot snapshot)`: 快照的全部设置项 (含数量项、只读项);ID 重复时取第一次出现的。
+- `static IReadOnlyList<DeviceObjectInfo> Objects(IEnumerable<RecipeEntry> entries, char group)`: 该组的对象 (`DeviceObjectInfo(int Number, string Name, int CrucibleCount)`),按编号排列。
+
+#### interface `IDesignStore`
+工艺编辑的存储。
+- `string Path { get; }`: 材料和工艺的保存位置 (目录)。
+- `Result<DesignDocument> Load()`: 读取;还没有保存过时为空的内容,有文件损坏或格式版本不受支持时失败。
+- `Result Save(DesignDocument document)`: 保存全部材料和工艺 (每个文件先写临时文件再替换;删除的对象的文件随之删除)。
+- `Result<IReadOnlyList<MaterialLibraryEntry>> LoadMaterialLibrary()`: 读取材料库;文件不存在时为空。
 
 #### class `CommandsFailedEventArgs` : EventArgs
 `CommandsFailed` 的参数:一次发送中没有得到成功响应的指令数。
@@ -1511,14 +1632,24 @@ var snapshot = await config.ReadSnapshotAsync(ct);          // → IMC300 Ready
 #### static class `AppFolders`
 程序数据位置:通讯配置 (settings.json)、仪器配置文件 (recipe)、日志 (logs)。
 - `static string GetSettingsFilePath()`: 通讯配置文件路径。
-- `static string GetRecipeFolder()`: 仪器配置文件目录。
+- `static string GetConfigFolder()`: 仪器配置文件目录 (`configs`);旧版本的 `recipes`、`recipe` 先改名为它。
 - `static string GetLogsFolder()`: 日志目录 (收发记录、error.txt)。
+- `static string GetDesignFolder()`: 工艺编辑的文件目录 (`recipes`,材料和工艺);取用前同样迁移旧的配置文件目录。
 
 #### class `CommunicationLogFiles` : ICommunicationRecorderFactory
 为每次连接在日志目录中创建一个通讯数据文件 (`CommunicationLogWriter`):设备序列号、日期、时间 (到分钟), 如 `XXXXXXXX_20261021_1337.txt`;序列号未知时为 `UnknownSerialNumber`。 同一分钟内再次连接 (含自动重连) 时追加到同一文件。超过 30 MB 时续写到 `XXXXXXXX_20261021_1337_1.txt`、`_2`…。 文件永久保留,不自动清理。
 - `CommunicationLogFiles(IErrorLog errorLog, Func<string> folder = null)`: 创建工厂。
 - `const string UnknownSerialNumber`: 设备序列号未知 (未启用握手、设备未回答 G06) 时文件名中代替它的文字。
 - `Result<ICommunicationRecorder> Create(string deviceSerialNumber)`: 同接口/基类的说明。
+
+#### class `DesignFileStore` : IDesignStore
+工艺编辑的文件,按设备对象分目录保存在 `recipes` 下,每个对象一个 JSON 文件:`material\名称.json`、`film\名称.json`、`layer\材料名称-工艺名称-步骤号.json` (工艺中每个不同的步骤一个)、`process\名称.json`。保存时只重写内容有变化的文件,并删除这四个目录中读取或写入过、不再对应任何对象的 `.json` 文件。材料库是程序旁边的 `materials.json` (只读,源文件 `docs\materials.json`)。
+- `DesignFileStore(string folder, string materialLibraryPath)`: 创建存储;`folder` 为 `recipes` 目录。
+- `static DesignFileStore CreateDefault()`: 默认位置 (`GetDesignFolder`,程序目录的材料库)。
+- `const string MaterialFolder`、`FilmFolder`、`LayerFolder`、`ProcessFolder`、`MaterialLibraryFileName`: `material`、`film`、`layer`、`process`、`materials.json`。
+- `const int CurrentFormatVersion`: 当前的文件格式版本 (1)。
+- `static IReadOnlyList<string> ObjectFolders { get; }`: 四个对象目录的名称。
+- `string Path { get; }`、`Result<DesignDocument> Load()`、`Result Save(DesignDocument document)`、`Result<IReadOnlyList<MaterialLibraryEntry>> LoadMaterialLibrary()`: 同接口的说明。
 
 #### class `FileErrorLog` : IErrorLog
 以追加方式把错误写入文本文件 (UTF-8)。线程安全;写入失败时静默放弃,不影响程序运行。
@@ -1534,7 +1665,7 @@ var snapshot = await config.ReadSnapshotAsync(ct);          // → IMC300 Ready
 - `Result Save(ConnectionPreferences preferences)`: 同接口/基类的说明。
 
 #### class `RecipeFileStore` : IRecipeStore
-`IRecipeStore` 的实现:文件格式见 `RecipeFile`,默认目录见 `GetRecipeFolder`。
+`IRecipeStore` 的实现:文件格式见 `RecipeFile`,默认目录见 `GetConfigFolder`。
 - `RecipeFileStore()`: 默认构造函数。
 - `string Folder { get; }`: 同接口/基类的说明。
 - `string FileExtension { get; }`: 同接口/基类的说明。

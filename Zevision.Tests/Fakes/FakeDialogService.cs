@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Zevision.Core;
 using Zevision.ViewModels.Common;
@@ -36,7 +37,31 @@ namespace Zevision.Tests
 
         public void ShowError(string title, string message) => Errors.Add(message);
 
+        /// <summary>是/否/取消问题的回答 (默认取消)。</summary>
+        public bool? YesNoCancelResult { get; set; }
+
+        /// <summary>问过的是/否/取消问题。</summary>
+        public List<string> Questions { get; } = new List<string>();
+
+        public bool? AskYesNoCancel(string title, string message)
+        {
+            Questions.Add(message);
+            return YesNoCancelResult;
+        }
+
         public void ShowRecipeEditor(object viewModel) => Editors.Add(viewModel);
+
+        /// <summary>打开工艺编辑窗口时执行的操作 (测试在其中编辑并保存);参数为窗口的视图模型。</summary>
+        public Action<object>? OnProcessDesigner { get; set; }
+
+        /// <summary>打开过的工艺编辑窗口的视图模型。</summary>
+        public List<object> Designers { get; } = new List<object>();
+
+        public void ShowProcessDesigner(object viewModel)
+        {
+            Designers.Add(viewModel);
+            OnProcessDesigner?.Invoke(viewModel);
+        }
     }
 
     /// <summary>只记录、不写文件的错误日志。</summary>

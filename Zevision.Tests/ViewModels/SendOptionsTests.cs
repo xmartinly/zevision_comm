@@ -334,7 +334,7 @@ namespace Zevision.Tests
         public void Preferences_RoundTripSendOptions()
         {
             var store = new MemoryPreferencesStore(new ConnectionPreferences { DisplayFormat = "Hex", RepeatSend = true, RepeatIntervalMs = 200 });
-            using (var main = new MainViewModel(new FakeDeviceService(), store, new InstrumentConfigService(new FakeDeviceService()), new RecipeFileStore(), new NoCommunicationRecorders(), new FakeDialogService(), new FakeErrorLog()))
+            using (var main = new MainViewModel(new FakeDeviceService(), store, new InstrumentConfigService(new FakeDeviceService()), new RecipeFileStore(), new MemoryDesignStore(), new NoCommunicationRecorders(), new FakeDialogService(), new FakeErrorLog()))
             {
                 Assert.Equal(DisplayFormat.Hex, main.SendOptions.DisplayFormat);
                 Assert.True(main.SendOptions.IsRepeatEnabled);
@@ -355,7 +355,7 @@ namespace Zevision.Tests
         public void Preferences_InvalidValuesKeepDefaults(string format, int interval)
         {
             var store = new MemoryPreferencesStore(new ConnectionPreferences { DisplayFormat = format, RepeatIntervalMs = 333 });
-            using (var main = new MainViewModel(new FakeDeviceService(), store, new InstrumentConfigService(new FakeDeviceService()), new RecipeFileStore(), new NoCommunicationRecorders(), new FakeDialogService(), new FakeErrorLog()))
+            using (var main = new MainViewModel(new FakeDeviceService(), store, new InstrumentConfigService(new FakeDeviceService()), new RecipeFileStore(), new MemoryDesignStore(), new NoCommunicationRecorders(), new FakeDialogService(), new FakeErrorLog()))
             {
                 Assert.Equal(DisplayFormat.Ascii, main.SendOptions.DisplayFormat);
                 Assert.Equal(interval, main.SendOptions.RepeatInterval);
@@ -372,7 +372,7 @@ namespace Zevision.Tests
             SynchronizationContext.SetSynchronizationContext(new SerialContext());
             try
             {
-                return new MainViewModel(device, new MemoryPreferencesStore(new ConnectionPreferences()), new InstrumentConfigService(device), new RecipeFileStore(), new NoCommunicationRecorders(), new FakeDialogService(), new FakeErrorLog())
+                return new MainViewModel(device, new MemoryPreferencesStore(new ConnectionPreferences()), new InstrumentConfigService(device), new RecipeFileStore(), new MemoryDesignStore(), new NoCommunicationRecorders(), new FakeDialogService(), new FakeErrorLog())
                 {
                     // 这些测试的设备只会固定应答,不握手 (握手见 HandshakeTests)。
                     Connection = { SelectedConnectionType = ConnectionType.Tcp, TcpHost = "127.0.0.1", IsHandshakeEnabled = false },

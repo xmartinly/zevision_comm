@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using System.Text;
@@ -46,13 +47,46 @@ namespace Zevision.Storage
         /// <exception cref="IOException">写入失败。</exception>
         /// <exception cref="UnauthorizedAccessException">没有写权限。</exception>
         /// <exception cref="SerializationException">对象无法序列化。</exception>
-        public static void Write<T>(string path, T value)
+        public static void Write<T>(string path, T value) => WriteBytes(CheckPath(path), Serialize(value));
+
+        /// <summary>
+        /// 写入文件,内容与现有文件完全相同时不写 (不产生临时文件,修改时间不变)。工艺编辑每次保存全部对象,多数文件没有变化。
+        /// </summary>
+        /// <returns>是否写入了。</returns>
+        /// <exception cref="IOException">读取现有文件或写入失败。</exception>
+        /// <exception cref="UnauthorizedAccessException">没有读写权限。</exception>
+        /// <exception cref="SerializationException">对象无法序列化。</exception>
+        public static bool WriteIfChanged<T>(string path, T value)
         {
-            if (string.IsNullOrEmpty(path))
+            var bytes = Serialize(value);
+            if (File.Exists(CheckPath(path)) && File.ReadAllBytes(path).SequenceEqual(bytes))
             {
-                throw new ArgumentException(Texts.PathEmpty, nameof(path));
+                return false;
             }
 
+            WriteBytes(path, bytes);
+            return true;
+        }
+
+        private static string CheckPath(string path) =>
+            string.IsNullOrEmpty(path) ? throw new ArgumentException(Texts.PathEmpty, nameof(path)) : path;
+
+        /// <summary>序列化为缩进的 UTF-8 JSON (无 BOM)。</summary>
+        private static byte[] Serialize<T>(T value)
+        {
+            using (var stream = new MemoryStream())
+            {
+                using (var writer = JsonReaderWriterFactory.CreateJsonWriter(stream, new UTF8Encoding(false), ownsStream: false, indent: true))
+                {
+                    new DataContractJsonSerializer(typeof(T)).WriteObject(writer, value);
+                }
+
+                return stream.ToArray();
+            }
+        }
+
+        private static void WriteBytes(string path, byte[] bytes)
+        {
             var directory = Path.GetDirectoryName(path);
             if (!string.IsNullOrEmpty(directory))
             {
@@ -62,12 +96,7 @@ namespace Zevision.Storage
             var temp = path + ".tmp";
             try
             {
-                using (var stream = new FileStream(temp, FileMode.Create, FileAccess.Write, FileShare.None))
-                using (var writer = JsonReaderWriterFactory.CreateJsonWriter(stream, new UTF8Encoding(false), ownsStream: false, indent: true))
-                {
-                    new DataContractJsonSerializer(typeof(T)).WriteObject(writer, value);
-                }
-
+                File.WriteAllBytes(temp, bytes);
                 if (File.Exists(path))
                 {
                     File.Replace(temp, path, destinationBackupFileName: null);

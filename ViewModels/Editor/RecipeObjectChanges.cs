@@ -65,7 +65,7 @@ namespace Zevision.ViewModels.Editor
                 id = type.NextFreeId(_document.ObjectIds(group));
                 if (id == null)
                 {
-                    _dialogs.ShowError(title, M.NoFreeNumber(type.Kind));
+                    _page.ShowProblem(M.NoFreeNumber(type.Kind));
                     return;
                 }
             }
@@ -99,7 +99,7 @@ namespace Zevision.ViewModels.Editor
             var references = RecipeRules.FindReferencesTo(_document.Entries, objectId);
             if (references.Count > 0)
             {
-                _dialogs.ShowError(title, M.ReferencedObject(type.Kind, display, references, DescribeReference, allowNone: type != ObjectTypes.Process));
+                _page.ShowProblem(M.ReferencedObject(type.Kind, display, references, DescribeReference, allowNone: type != ObjectTypes.Process));
                 return;
             }
 
@@ -173,7 +173,7 @@ namespace Zevision.ViewModels.Editor
                 var next = _document.Entries.FirstOrDefault(e => e.Id == nextId);
                 if (next == null)
                 {
-                    _dialogs.ShowError(title, M.CannotShift(nextId));
+                    _page.ShowProblem(M.CannotShift(nextId));
                     return;
                 }
 
@@ -226,7 +226,8 @@ namespace Zevision.ViewModels.Editor
                 var current = await _session.ReadDeviceGroupAsync(type.Group, token);
                 if (!current.IsSuccess)
                 {
-                    _page.ReportFailure(current.Error);
+                    // 还没有改动设备:红字提示,不弹窗。
+                    _page.ShowProblem(current.Error ?? string.Empty, writeLog: true);
                     return null;
                 }
 
@@ -234,7 +235,7 @@ namespace Zevision.ViewModels.Editor
                 var id = objectId ?? type.NextFreeId(_session.UsedObjectIds(type.Group, before));
                 if (id == null)
                 {
-                    _page.ReportFailure(M.NoFreeNumber(type.Kind));
+                    _page.ShowProblem(M.NoFreeNumber(type.Kind));
                     return null;
                 }
 
@@ -426,7 +427,13 @@ namespace Zevision.ViewModels.Editor
         /// <summary>在窗口底部显示结果;null 时清除。</summary>
         void ShowResult(string? text);
 
-        /// <summary>提示错误 (同时写入错误日志)。</summary>
+        /// <summary>
+        /// 在窗口底部用红字显示问题,不弹窗:设备和文件都没有改变 (如对象被引用、没有空闲编号、读取设备失败)。
+        /// <paramref name="writeLog"/> 时同时写入错误日志。
+        /// </summary>
+        void ShowProblem(string text, bool writeLog = false);
+
+        /// <summary>提示错误 (弹出错误框,同时写入错误日志):设备或文件可能已经改变。</summary>
         void ReportFailure(string message);
     }
 }

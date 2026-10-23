@@ -5,11 +5,11 @@ using Zevision.ViewModels.Common;
 namespace Zevision.Views
 {
     /// <summary>
-    /// <see cref="IDialogService"/> 的 WPF 实现。对话框以当前的顶层窗口为所有者 (主窗口,修改配置窗口打开时是它),保证模态并居中。
+    /// <see cref="IDialogService"/> 的 WPF 实现。对话框以当前的顶层窗口为所有者 (主窗口,修改配置或工艺编辑窗口打开时是它),保证模态并居中。
     /// </summary>
     public sealed class DialogService : IDialogService
     {
-        /// <summary>正在显示的修改配置窗口 (模态);没有时为 null。</summary>
+        /// <summary>正在显示的修改配置或工艺编辑窗口 (模态);没有时为 null。</summary>
         private Window? _editor;
 
         /// <inheritdoc />
@@ -56,9 +56,28 @@ namespace Zevision.Views
         }
 
         /// <inheritdoc />
-        public void ShowRecipeEditor(object viewModel)
+        public bool? AskYesNoCancel(string title, string message)
         {
-            var window = new RecipeEditorWindow { DataContext = viewModel };
+            switch (Show(message, title, MessageBoxButton.YesNoCancel, MessageBoxImage.Question, MessageBoxResult.Cancel))
+            {
+                case MessageBoxResult.Yes:
+                    return true;
+                case MessageBoxResult.No:
+                    return false;
+                default:
+                    return null;
+            }
+        }
+
+        /// <inheritdoc />
+        public void ShowRecipeEditor(object viewModel) => ShowModal(new RecipeEditorWindow { DataContext = viewModel });
+
+        /// <inheritdoc />
+        public void ShowProcessDesigner(object viewModel) => ShowModal(new ProcessDesignerWindow { DataContext = viewModel });
+
+        /// <summary>以模态方式显示窗口;打开期间它是提示框和文件对话框的所有者。</summary>
+        private void ShowModal(Window window)
+        {
             var owner = Owner;
             if (owner != null && owner.IsLoaded)
             {
@@ -77,7 +96,7 @@ namespace Zevision.Views
         }
 
         /// <summary>
-        /// 对话框的所有者。修改配置窗口打开时必须是它:提示框只禁用自己的所有者,属于主窗口时修改配置窗口仍可操作,
+        /// 对话框的所有者。修改配置 (或工艺编辑) 窗口打开时必须是它:提示框只禁用自己的所有者,属于主窗口时修改配置窗口仍可操作,
         /// 点一下就把提示框挡在后面,确认框打开时还能修改值 (不再经过检查就写入) 或再点其他按钮 (两个设备操作同时进行)。
         /// </summary>
         private Window? Owner => _editor ?? Application.Current?.MainWindow;

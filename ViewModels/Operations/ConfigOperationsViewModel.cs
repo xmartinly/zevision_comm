@@ -6,8 +6,10 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using Zevision.Core;
 using Zevision.Core.Configuration;
+using Zevision.Core.Design;
 using Zevision.Core.Localization;
 using Zevision.ViewModels.Common;
+using Zevision.ViewModels.Design;
 using Zevision.ViewModels.Display;
 using Zevision.ViewModels.Editor;
 using Zevision.ViewModels.Main;
@@ -37,6 +39,7 @@ namespace Zevision.ViewModels.Operations
 
         private readonly IInstrumentConfigService _config;
         private readonly IRecipeStore _recipes;
+        private readonly IDesignStore _designs;
         private readonly IDialogService _dialogs;
         private readonly IErrorLog _errorLog;
         private readonly LogViewModel _log;
@@ -50,6 +53,7 @@ namespace Zevision.ViewModels.Operations
         /// </summary>
         /// <param name="config">配置服务。</param>
         /// <param name="recipes">配置文件的存储。</param>
+        /// <param name="designs">工艺编辑的存储 (材料、工艺、材料库)。</param>
         /// <param name="dialogs">对话框。</param>
         /// <param name="errorLog">错误日志。</param>
         /// <param name="log">数据显示区。</param>
@@ -57,6 +61,7 @@ namespace Zevision.ViewModels.Operations
         public ConfigOperationsViewModel(
             IInstrumentConfigService config,
             IRecipeStore recipes,
+            IDesignStore designs,
             IDialogService dialogs,
             IErrorLog errorLog,
             LogViewModel log,
@@ -64,6 +69,7 @@ namespace Zevision.ViewModels.Operations
         {
             _config = config ?? throw new ArgumentNullException(nameof(config));
             _recipes = recipes ?? throw new ArgumentNullException(nameof(recipes));
+            _designs = designs ?? throw new ArgumentNullException(nameof(designs));
             _dialogs = dialogs ?? throw new ArgumentNullException(nameof(dialogs));
             _errorLog = errorLog ?? throw new ArgumentNullException(nameof(errorLog));
             _log = log ?? throw new ArgumentNullException(nameof(log));
@@ -72,6 +78,7 @@ namespace Zevision.ViewModels.Operations
             SaveCommand = new AsyncRelayCommand(_ => TrackAsync(SaveAsync), log.ReportException, _ => CanStart);
             RestoreCommand = new AsyncRelayCommand(_ => TrackAsync(RestoreAsync), log.ReportException, _ => CanStart);
             EditCommand = new AsyncRelayCommand(_ => TrackAsync(EditAsync), log.ReportException, _ => CanStart);
+            DesignCommand = new AsyncRelayCommand(_ => TrackAsync(DesignAsync), log.ReportException, _ => CanStart);
             CancelCommand = new RelayCommand(_ => Operation.Cancel(), _ => Operation.CanCancel);
             Operation.PropertyChanged += (s, e) =>
             {
@@ -93,6 +100,11 @@ namespace Zevision.ViewModels.Operations
         /// (来自文件时同时保存文件)。
         /// </summary>
         public ICommand EditCommand { get; }
+
+        /// <summary>
+        /// 工艺编辑:读取设备的传感器和输出源后打开窗口,编辑材料和工艺,保存时存到本地并把选中的工艺上传到设备。
+        /// </summary>
+        public ICommand DesignCommand { get; }
 
         /// <summary>修改配置来源的选项。</summary>
         public IReadOnlyList<Choice<EditSource>> EditSources { get; } = new[]
@@ -246,6 +258,71 @@ namespace Zevision.ViewModels.Operations
             }
         }
 
+        /// <summary>
+        /// 工艺编辑 (<see cref="DesignCommand"/> 的实现,测试中直接调用以便等待完成):读取材料和工艺 (文件损坏时提示,不打开),
+        /// 材料库 (损坏时记录错误,不用材料库),读取设备配置 (<c>?</c>,约 10 秒:传感器、输出源,以及"设备"页的工艺和材料),然后打开窗口。
+        /// </summary>
+        internal async Task DesignAsync()
+        {
+            var title = Lang.T("工艺编辑", "Process editor");
+            var document = _designs.Load();
+            if (!document.IsSuccess)
+            {
+                ReportProblem(document.Error);
+                return;
+            }
+
+            var library = _designs.LoadMaterialLibrary();
+            if (!library.IsSuccess)
+            {
+                _log.Add(LogKind.Error, library.Error ?? title);
+            }
+
+            InstrumentSnapshot? device = null;
+            await Operation.RunAsync(ReadPhase, Lang.T("读取设备配置 (约 10 秒)…", "Reading the device configuration (about 10 s)…"), async timeout =>
+            {
+                var snapshot = await _config.ReadSnapshotAsync(timeout.Token);
+                if (!snapshot.IsSuccess)
+                {
+                    ReportProblem(snapshot.Error);
+                    return;
+                }
+
+                device = snapshot.Value;
+            }, timeout =>
+            {
+                if (timeout.IsTimedOut)
+                {
+                    ReportProblem(OperationLimits.BuildTimeoutMessage(timeout));
+                }
+                else
+                {
+                    _log.Add(LogKind.Info, Lang.T("已取消。", "Cancelled."));
+                }
+            });
+
+            if (device == null || _quiet)
+            {
+                return;
+            }
+
+            using (var designer = new ProcessDesignerViewModel(
+                document.Value,
+                library.IsSuccess ? library.Value : Array.Empty<MaterialLibraryEntry>(),
+                device,
+                _designs,
+                _config,
+                _dialogs,
+                _errorLog))
+            {
+                _dialogs.ShowProcessDesigner(designer);
+                if (designer.CompletionMessage != null)
+                {
+                    _log.Add(LogKind.Info, designer.CompletionMessage);
+                }
+            }
+        }
+
         /// <summary>恢复配置 (<see cref="RestoreCommand"/> 的实现,测试中直接调用以便等待完成)。</summary>
         internal async Task RestoreAsync()
         {
@@ -260,7 +337,7 @@ namespace Zevision.ViewModels.Operations
                 var planned = RestorePlanner.Plan(recipe, snapshot);
                 if (!planned.IsSuccess)
                 {
-                    ReportFailure(title, planned.Error);
+                    ReportProblem(planned.Error);
                     return;
                 }
 
@@ -309,7 +386,7 @@ namespace Zevision.ViewModels.Operations
             var loaded = _recipes.Load(path);
             if (!loaded.IsSuccess)
             {
-                ReportFailure(title, loaded.Error);
+                ReportProblem(loaded.Error);
                 return null;
             }
 
@@ -332,11 +409,16 @@ namespace Zevision.ViewModels.Operations
                 }
                 else
                 {
-                    ReportFailure(title, snapshot.Error);
+                    ReportProblem(snapshot.Error);
                 }
             }, timeout =>
             {
-                if (timeout.IsTimedOut)
+                if (timeout.IsTimedOut && timeout.Phase == ReadPhase)
+                {
+                    // 读取阶段超时:设备没有改变。
+                    ReportProblem(OperationLimits.BuildTimeoutMessage(timeout));
+                }
+                else if (timeout.IsTimedOut)
                 {
                     ReportFailure(title, OperationLimits.BuildTimeoutMessage(timeout));
                 }
@@ -394,6 +476,13 @@ namespace Zevision.ViewModels.Operations
             }
         }
 
+        /// <summary>
+        /// 设备和文件都没有改变的问题 (读取设备失败或超时、文件无效、不能恢复到这台设备):只在数据显示区写红色错误行
+        /// (同时记入 error.txt),不弹窗。
+        /// </summary>
+        private void ReportProblem(string? error) => _log.Add(LogKind.Error, error ?? Lang.T("未知错误。", "Unknown error."));
+
+        /// <summary>改变了设备或文件的操作失败 (写入、恢复、保存文件):写红色错误行并弹出错误框。</summary>
         private void ReportFailure(string title, string? error)
         {
             var message = error ?? Lang.T("未知错误。", "Unknown error.");
