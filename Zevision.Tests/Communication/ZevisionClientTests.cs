@@ -206,7 +206,9 @@ namespace Zevision.Tests
         public async Task Disconnect_ThenConnectAgain_UsesSameOptions()
         {
             var transport = new FakeSerialTransport { Responder = _ => Ascii("{H01+:x}") };
-            using (var client = Create(transport))
+
+            // 期望成功的发送用 1 s 的超时:150 ms 时,机器繁忙 (整套测试并行) 偶尔在假串口回答之前就超时 (2026-10-23)。
+            using (var client = new ZevisionClient(new ConnectionOptions(new SerialSettings("COM_TEST", 115200), FrameOptions.Plain, TimeSpan.FromSeconds(1)), _ => transport))
             {
                 await ConnectAsync(client);
                 await client.DisconnectAsync();

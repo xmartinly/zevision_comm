@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Input;
 using Zevision.Core.Design;
 using Zevision.Core.Localization;
@@ -11,7 +12,7 @@ namespace Zevision.ViewModels.Design
 {
     /// <summary>
     /// 工艺编辑窗口的"设备"页 (只读):设备上的工艺 (膜层顺序、膜系、材料、速率、厚度) 和材料 (及其膜系)。
-    /// 可以刷新,可以删除选中的工艺或材料;不改动本地的材料和工艺。内容由窗口在读取设备后更新。
+    /// 可以刷新,可以删除一项 (行末的按钮) 或全部工艺、全部材料;不改动本地的材料和工艺。内容由窗口在读取设备后更新。
     /// </summary>
     public sealed class DevicePageViewModel : ViewModelBase
     {
@@ -26,8 +27,17 @@ namespace Zevision.ViewModels.Design
         {
             _owner = owner ?? throw new ArgumentNullException(nameof(owner));
             RefreshCommand = new AsyncRelayCommand(_ => _owner.RefreshDeviceAsync(), _owner.ReportException, _ => _owner.IsEditable);
-            DeleteProcessCommand = new AsyncRelayCommand(_ => _owner.DeleteDeviceProcessAsync(SelectedProcess!), _owner.ReportException, _ => _owner.IsEditable && SelectedProcess != null);
-            DeleteMaterialCommand = new AsyncRelayCommand(_ => _owner.DeleteDeviceMaterialAsync(SelectedMaterial!), _owner.ReportException, _ => _owner.IsEditable && SelectedMaterial != null);
+            // 行末的删除按钮以该项为参数;没有参数时删除选中项。可用与否不看参数 (CommandParameter 可能在 Command 之后才绑定)。
+            DeleteProcessCommand = new AsyncRelayCommand(
+                p => (p as DeviceObjectViewModel ?? SelectedProcess) is { } process ? _owner.DeleteDeviceProcessAsync(process) : Task.CompletedTask,
+                _owner.ReportException,
+                _ => _owner.IsEditable);
+            DeleteMaterialCommand = new AsyncRelayCommand(
+                p => (p as DeviceObjectViewModel ?? SelectedMaterial) is { } material ? _owner.DeleteDeviceMaterialAsync(material) : Task.CompletedTask,
+                _owner.ReportException,
+                _ => _owner.IsEditable);
+            DeleteAllProcessesCommand = new AsyncRelayCommand(_ => _owner.DeleteAllDeviceProcessesAsync(), _owner.ReportException, _ => _owner.IsEditable && Processes.Count > 0);
+            DeleteAllMaterialsCommand = new AsyncRelayCommand(_ => _owner.DeleteAllDeviceMaterialsAsync(), _owner.ReportException, _ => _owner.IsEditable && Materials.Count > 0);
         }
 
         /// <summary>设备上的工艺。</summary>
@@ -86,11 +96,17 @@ namespace Zevision.ViewModels.Design
         /// <summary>重新读取设备配置 (<c>?</c>)。</summary>
         public ICommand RefreshCommand { get; }
 
-        /// <summary>删除设备上选中的工艺和只被它使用的膜层 (确认后)。</summary>
+        /// <summary>删除设备上的工艺 (参数为 <see cref="DeviceObjectViewModel"/>,没有时为选中的工艺) 和只被它使用的膜层 (确认后)。</summary>
         public ICommand DeleteProcessCommand { get; }
 
-        /// <summary>删除设备上选中的材料、引用它的膜系和用到这些膜系的膜层 (确认后;有工艺使用时不删除)。</summary>
+        /// <summary>删除设备上的材料 (参数为 <see cref="DeviceObjectViewModel"/>,没有时为选中的材料)、引用它的膜系和用到这些膜系的膜层 (确认后;有工艺使用时不删除)。</summary>
         public ICommand DeleteMaterialCommand { get; }
+
+        /// <summary>删除设备上的全部工艺和它们用到的膜层 (确认后)。</summary>
+        public ICommand DeleteAllProcessesCommand { get; }
+
+        /// <summary>删除设备上的全部材料、引用它们的膜系和用到这些膜系的膜层 (确认后;有工艺使用这些膜层时不删除)。</summary>
+        public ICommand DeleteAllMaterialsCommand { get; }
 
         /// <summary>是否可以操作 (读取设备或上传期间不可以)。</summary>
         public bool IsEditable => _owner.IsEditable;
@@ -108,6 +124,7 @@ namespace Zevision.ViewModels.Design
                 $"设备 {deviceName} 上的工艺和材料,更新于 {time.ToString("HH:mm:ss", CultureInfo.InvariantCulture)}。",
                 $"Processes and materials on the device {deviceName}, updated at {time.ToString("HH:mm:ss", CultureInfo.InvariantCulture)}.");
             OnPropertiesChanged(nameof(ProcessesTitle), nameof(MaterialsTitle));
+            RefreshCommands();
         }
 
         /// <summary>上传或删除没有完成:设备上的内容可能已改变。</summary>

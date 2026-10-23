@@ -102,6 +102,28 @@ namespace Zevision.Tests
         }
 
         [Fact]
+        public void AllProcesses_EveryProcessAndTheLayersTheyUse_LinksBetweenThemDoNotBlock()
+        {
+            var deletion = DeviceDeletion.ForAllProcesses(Processes(("P02010A", "3")));
+
+            Assert.Equal(new[] { "P0203", "P0202", "P0201", "L03", "L02", "L01" }, deletion.Objects.Select(o => o.Id)); // 膜层 9 不存在
+            Assert.Empty(deletion.Kept);
+            Assert.False(deletion.IsBlocked);
+            Assert.Equal("P0202", deletion.ActiveProcess);
+        }
+
+        [Fact]
+        public void AllMaterials_EveryMaterialFilmAndLayerUsingThem_BlockedByAProcess()
+        {
+            var deletion = DeviceDeletion.ForAllMaterials(Materials());
+
+            // L02 的膜系列表为空,不删除
+            Assert.Equal(new[] { "L04", "L03", "L01", "F04", "F03", "F02", "F01", "M03", "M02", "M01" }, deletion.Objects.Select(o => o.Id));
+            Assert.Equal(new[] { "工艺 P0201 P1: P02010701 = 4" }, deletion.References);
+            Assert.Empty(DeviceDeletion.ForAllMaterials(Entries(("P01", "0"))).Objects);
+        }
+
+        [Fact]
         public void Process_NotOnTheDevice_NothingToDelete()
         {
             var deletion = DeviceDeletion.ForProcessNamed("P9", Processes());

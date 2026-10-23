@@ -396,12 +396,34 @@ namespace Zevision.Tests
         }
 
         [Fact]
+        public async Task ProcessInformation_CurrentTickNotSampledYet_SamplesOnDemand()
+        {
+            var device = BridgeTestDevice.Create(1).Set("C11", "20.00");
+            var harness = await BridgeHarness.ReadyAsync(device);
+            await harness.SampleAsync();
+            var sampled = harness.Engine.Timer;
+            harness.Now += Xtc3Protocol.TickInterval; // 新的 tick 开始,这个 tick 的采样还没有结果
+            device.Set("C11", "30.00");
+            var before = harness.Sent("SC11").Count;
+
+            var current = await harness.RunOneAsync(Xtc3Command.ProcessInformation(harness.Engine.Timer));
+            var previous = await harness.RunOneAsync(Xtc3Command.ProcessInformation(sampled));
+
+            Assert.Equal(30f, current.Values[6].Float); // 功率:当场采样的值
+            Assert.Equal(20f, previous.Values[6].Float);
+            Assert.Equal(before + 1, harness.Sent("SC11").Count); // 只采样一次;之前的 tick 不重新采样
+        }
+
+        [Fact]
         public async Task ProcessInformation_OlderThan256Ticks_E()
         {
             var harness = await BridgeHarness.ReadyAsync(BridgeTestDevice.Create(1));
             await harness.SampleAsync();
             var tick = harness.Engine.Timer;
-            harness.Now += TimeSpan.FromSeconds(64);
+
+            // 257 个 tick 之后,同一个 Timer 指的是上一个 tick (没有采样);缓冲中 257 个 tick 之前的采样不能当作它。
+            // (正好 256 个 tick 时,Timer 就是当前 tick,当场采样后回答。)
+            harness.Now += TimeSpan.FromSeconds(64) + Xtc3Protocol.TickInterval;
 
             Assert.Equal("E", (await harness.RunOneAsync(Xtc3Command.ProcessInformation(tick))).ToString());
         }
@@ -629,12 +651,46 @@ namespace Zevision.Tests
 
             Assert.Equal("ACK", (await harness.RunOneAsync(Xtc3Command.Remote(0))).ToString());
 
-            var sent = device.Commands.Skip(before).Where(c => !c.StartsWith("Q", StringComparison.Ordinal)).ToList();
+            // 查询 (Q) 和采样 (S) 之外发出的指令
+            var sent = device.Commands.Skip(before).Where(c => !c.StartsWith("Q", StringComparison.Ordinal) && !c.StartsWith("S", StringComparison.Ordinal)).ToList();
             Assert.Equal(new[] { "UC01:1", "UC01:0", "RC04", "UC01:1" }, sent);
             Assert.Equal("Precon Rise 1", device.Get("C09"));
+
+            // R0 之后立即采样,层计数在启动时加 1:不等下一个 tick (实测时主机在 R0 之后立即查询,看到的是复位过程中的 S18 = 1)。
+            var results = await harness.RunAsync(Xtc3Command.Status(6), Xtc3Command.Status(17), Xtc3Command.Status(4), Xtc3Command.Status(18));
+            Assert.Equal(new[] { "ACK [Int 2]", "ACK [Byte 0]", "ACK [Byte 2]", "ACK [Byte 0]" }, results.Select(r => r.ToString()));
+
+            // 设备开始运行后的采样不再加 1;复位后回到第 1 层。
             await harness.SampleAsync();
-            var results = await harness.RunAsync(Xtc3Command.Status(6), Xtc3Command.Status(17), Xtc3Command.Status(4));
-            Assert.Equal(new[] { "ACK [Int 2]", "ACK [Byte 0]", "ACK [Byte 2]" }, results.Select(r => r.ToString()));
+            device.Set("C09", "Dep Rate Hold 1");
+            await harness.SampleAsync();
+            Assert.Equal("ACK [Int 2]", (await harness.RunOneAsync(Xtc3Command.Status(6))).ToString());
+            Assert.Equal("ACK", (await harness.RunOneAsync(Xtc3Command.Remote(1))).ToString());
+            Assert.Equal("ACK", (await harness.RunOneAsync(Xtc3Command.Remote(2))).ToString());
+            Assert.Equal("ACK [Int 1]", (await harness.RunOneAsync(Xtc3Command.Status(6))).ToString());
+        }
+
+        [Fact]
+        public async Task Remote_StopResetStart_StatusIsFreshRightAfterwards()
+        {
+            var device = BridgeTestDevice.Create(1).Set("C09", "Dep Rate Hold 1");
+            SimulateProcess(device);
+            var harness = await BridgeHarness.ReadyAsync(device);
+            await harness.SampleAsync();
+            async Task<string[]> StateAndStop() =>
+                (await harness.RunAsync(Xtc3Command.Status(4), Xtc3Command.Status(18))).Select(r => r.ToString()).ToArray();
+            string Byte(Xtc3State state) => "ACK [Byte " + (int)state + "]";
+
+            // 每个动作之后不经 harness.SampleAsync,状态已是设备的新状态。
+            Assert.Equal("ACK", (await harness.RunOneAsync(Xtc3Command.Remote(1))).ToString());
+            Assert.Equal(new[] { Byte(Xtc3State.Deposit), "ACK [Byte 1]" }, await StateAndStop()); // 停止:S4 保持停止前的状态
+
+            Assert.Equal("ACK", (await harness.RunOneAsync(Xtc3Command.Remote(2))).ToString());
+            Assert.Equal(new[] { Byte(Xtc3State.Ready), "ACK [Byte 0]" }, await StateAndStop());
+
+            Assert.Equal("ACK", (await harness.RunOneAsync(Xtc3Command.Remote(0))).ToString());
+            Assert.Equal(new[] { Byte(Xtc3State.Rise1), "ACK [Byte 0]" }, await StateAndStop());
+            Assert.Equal("ACK [Int 1]", (await harness.RunOneAsync(Xtc3Command.Status(6))).ToString()); // 从 Ready 启动:仍是第 1 层
         }
 
         [Fact]

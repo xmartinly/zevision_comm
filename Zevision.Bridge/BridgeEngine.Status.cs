@@ -31,7 +31,9 @@ namespace Zevision.Bridge
         private TimeSpan _stateSince;
         private int _layer = 1;
         private bool _endOfProcess;
-        private bool _continueLayer;
+
+        /// <summary>R0 在一层结束 (Idle) 后启动下一层:层计数已经加 1,设备还没有开始运行 (运行后清除)。</summary>
+        private bool _startPending;
 
         /// <summary>
         /// 采样一次:每个 tick 一帧 <c>SC11;SC12;SC13;SC15;SC16;SNss20;QC09;QC18;QC1F;QNss09</c>,并按 tick 轮流加上
@@ -146,13 +148,17 @@ namespace Zevision.Bridge
                     {
                         if (state == Xtc3State.Ready)
                         {
-                            // 复位回到第 1 层;R0 在一层结束后由中间层停止、复位再启动时 (_continueLayer) 不算复位。
-                            _layer = _continueLayer ? _layer : 1;
+                            // 复位回到第 1 层;R0 已经计入下一层、设备还没有开始运行时 (中间层停止、复位再启动) 不算复位。
+                            _layer = _startPending ? _layer : 1;
                         }
-                        else if (DeviceStates.IsRunning(state) && (last == Xtc3State.Idle || (_continueLayer && last == Xtc3State.Ready)))
+                        else if (DeviceStates.IsRunning(state))
                         {
-                            _layer++; // 一层结束 (空闲) 后再次启动:下一层
-                            _continueLayer = false;
+                            if (last == Xtc3State.Idle && !_startPending)
+                            {
+                                _layer++; // 一层结束 (空闲) 后不经 R0 再次启动 (如前面板):下一层
+                            }
+
+                            _startPending = false;
                         }
 
                         if (state == Xtc3State.Idle && DeviceStates.IsRunning(last) && !sample.IsStopped)
@@ -194,7 +200,7 @@ namespace Zevision.Bridge
             switch (id)
             {
                 case 0:
-                    return ProcessInformation((byte)command.Parameters[0].Integer);
+                    return await ProcessInformationAsync((byte)command.Parameters[0].Integer, cancellationToken).ConfigureAwait(false);
                 case 19:
                     // 数据日志未实现:与 XTC/3 在第一层结束前相同,回答 E (ZEV-FAR-01 的 5.4 f)。
                     return Xtc3CommandResult.Fail(Xtc3ErrorCode.DataNotAvailable);
@@ -275,6 +281,30 @@ namespace Zevision.Bridge
                 default:
                     return Xtc3CommandResult.Fail(Xtc3ErrorCode.IllegalId);
             }
+        }
+
+        /// <summary>
+        /// S0:要的是当前 tick、而这个 tick 还没有采样时,当场采样一次再回答。采样在 tick 开始时发出,经 TCP 约 26 ms 后才有结果
+        /// (经 RS232 更久);主机在同一个 tick 内用刚收到的 Timer 查询时,不这样会回答 E (2026-10-23 实测)。
+        /// </summary>
+        private async Task<Xtc3CommandResult> ProcessInformationAsync(byte tick, CancellationToken cancellationToken)
+        {
+            var now = AbsoluteTick;
+            if (tick == unchecked((byte)now))
+            {
+                BridgeSample? current;
+                lock (_sync)
+                {
+                    current = _buffer[now % BufferSize];
+                }
+
+                if (current == null || current.Tick != now)
+                {
+                    await SampleAsync(cancellationToken).ConfigureAwait(false);
+                }
+            }
+
+            return ProcessInformation(tick);
         }
 
         /// <summary>S0:指定 tick 的过程信息;该 tick 没有采样 (未采到、超过 256 个 tick 或通讯中断期间) 时为 E。</summary>

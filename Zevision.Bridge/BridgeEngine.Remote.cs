@@ -99,10 +99,12 @@ namespace Zevision.Bridge
         /// </summary>
         /// <remarks>
         /// <list type="bullet">
-        /// <item>R0:Idle 时 (影子工艺只有一层,一层已结束) 先停止、复位再启动,层计数接着加 1 (XTC/3S 在 Idle 时启动下一层)。</item>
+        /// <item>R0:Idle 时 (影子工艺只有一层,一层已结束) 先停止、复位再启动;层计数在启动时加 1 (XTC/3S 在 Idle 时启动下一层),不等设备开始运行。</item>
         /// <item>R1:设备回答 <c>-B</c> 且已停止或 Ready 时回答 ACK (已经停止)。</item>
         /// <item>R2:停止时复位;Idle 时先停止再复位;Ready 时回答 ACK;运行中回答 F。</item>
         /// </list>
+        /// 动作成功后立即采样一次:主机紧接着查询的 S4、S6、S18 反映设备的新状态,不用等下一个 tick
+        /// (否则 R0 之后的第一次查询可能还是停止、复位过程中的采样,S18 = 1;2026-10-23 实测)。
         /// </remarks>
         private async Task<Xtc3CommandResult> StartStopResetAsync(int id, CancellationToken cancellationToken)
         {
@@ -114,21 +116,32 @@ namespace Zevision.Bridge
             switch (id)
             {
                 case 0:
-                    error = await ActAsync(ZevisionCommandSet.Update("C01", "1"), cancellationToken).ConfigureAwait(false);
-                    if (error == Xtc3ErrorCode.IllegalValue && state == Xtc3State.Idle && !stopped)
+                    // 一层结束 (Idle) 后启动下一层:层计数先加 1,复位过程中的 Ready 不把它清为 1,设备开始运行时不再加。
+                    var nextLayer = state == Xtc3State.Idle && !stopped;
+                    if (nextLayer)
                     {
                         lock (_sync)
                         {
-                            _continueLayer = true;
+                            _layer++;
+                            _startPending = true;
                         }
+                    }
 
+                    error = await ActAsync(ZevisionCommandSet.Update("C01", "1"), cancellationToken).ConfigureAwait(false);
+                    if (error == Xtc3ErrorCode.IllegalValue && nextLayer)
+                    {
                         error = await StopAndResetAsync(cancellationToken).ConfigureAwait(false)
                             ?? await ActAsync(ZevisionCommandSet.Update("C01", "1"), cancellationToken).ConfigureAwait(false);
-                        if (error.HasValue)
+                    }
+
+                    if (error.HasValue && nextLayer)
+                    {
+                        lock (_sync)
                         {
-                            lock (_sync)
+                            if (_startPending)
                             {
-                                _continueLayer = false;
+                                _layer--;
+                                _startPending = false;
                             }
                         }
                     }
@@ -163,6 +176,7 @@ namespace Zevision.Bridge
             }
 
             AfterRemote(id);
+            await SampleAsync(cancellationToken).ConfigureAwait(false);
             return Xtc3CommandResult.Ok();
         }
 
@@ -264,7 +278,7 @@ namespace Zevision.Bridge
                         if (id == 2)
                         {
                             _layer = 1;
-                            _continueLayer = false;
+                            _startPending = false;
                         }
                     }
 

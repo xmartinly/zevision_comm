@@ -37,11 +37,17 @@ namespace Zevision.Tests
         {
             using var run = await Running.StartAsync(BridgeTestDevice.Create(1));
 
+            // 范围按实际经过的时间算:机器繁忙时 Task.Delay(600) 可能明显超时 (2026-10-23 一次为 5 个 tick)。
             var first = await run.SendAsync(Xtc3Command.Status(4));
+            var clock = System.Diagnostics.Stopwatch.StartNew();
             await Task.Delay(600);
+            var atLeast = clock.Elapsed;
             var second = await run.SendAsync(Xtc3Command.Status(4));
+            var atMost = clock.Elapsed;
 
-            Assert.InRange((byte)(second.Timer - first.Timer), 2, 4);
+            var ticks = (byte)(second.Timer - first.Timer);
+            Assert.InRange(ticks, (int)(atLeast.TotalMilliseconds / 250) - 1, (int)(atMost.TotalMilliseconds / 250) + 2);
+            Assert.True(ticks >= 1);
         }
 
         [Fact]

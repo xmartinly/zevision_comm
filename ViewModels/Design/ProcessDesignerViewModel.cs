@@ -552,12 +552,43 @@ namespace Zevision.ViewModels.Design
         }
 
         /// <summary>删除设备上的一个工艺和只被它使用的膜层 ("设备"页;确认后)。不改动本地的工艺。</summary>
-        internal async Task DeleteDeviceProcessAsync(DeviceObjectViewModel item) =>
-            await DeleteDeviceObjectAsync(item, ProcessGroups, (id, entries) => DeviceDeletion.ForProcesses(new[] { id }, entries));
+        internal Task DeleteDeviceProcessAsync(DeviceObjectViewModel item) =>
+            item is null ? Task.CompletedTask : DeleteDeviceObjectsAsync(
+                ProcessGroups,
+                entries => DeviceDeletion.ForProcesses(new[] { item.Id }, entries),
+                DesignMessages.DeviceObjectSubject(item.Id, item.Name),
+                d => DesignMessages.DeleteDeviceConfirmation(d),
+                DesignMessages.AlreadyGone(item.Id));
 
         /// <summary>删除设备上的一个材料、引用它的膜系和用到这些膜系的膜层 ("设备"页;确认后,有工艺使用这些膜层时不删除)。不改动本地的材料。</summary>
-        internal async Task DeleteDeviceMaterialAsync(DeviceObjectViewModel item) =>
-            await DeleteDeviceObjectAsync(item, MaterialGroups, (id, entries) => DeviceDeletion.ForMaterials(new[] { id }, entries));
+        internal Task DeleteDeviceMaterialAsync(DeviceObjectViewModel item) =>
+            item is null ? Task.CompletedTask : DeleteDeviceObjectsAsync(
+                MaterialGroups,
+                entries => DeviceDeletion.ForMaterials(new[] { item.Id }, entries),
+                DesignMessages.DeviceObjectSubject(item.Id, item.Name),
+                d => DesignMessages.DeleteDeviceConfirmation(d),
+                DesignMessages.AlreadyGone(item.Id));
+
+        /// <summary>删除设备上的全部工艺和它们用到的膜层 ("设备"页;重新读取后确认)。不改动本地的工艺。</summary>
+        internal Task DeleteAllDeviceProcessesAsync() =>
+            DeleteDeviceObjectsAsync(
+                ProcessGroups,
+                DeviceDeletion.ForAllProcesses,
+                DesignMessages.AllOnDeviceSubject(processes: true),
+                d => DesignMessages.DeleteAllConfirmation(processes: true, d),
+                DesignMessages.NoneOnDevice(processes: true));
+
+        /// <summary>
+        /// 删除设备上的全部材料、引用它们的膜系和用到这些膜系的膜层 ("设备"页;重新读取后确认)。
+        /// 有工艺使用这些膜层时不删除 (先删除工艺)。不改动本地的材料。
+        /// </summary>
+        internal Task DeleteAllDeviceMaterialsAsync() =>
+            DeleteDeviceObjectsAsync(
+                MaterialGroups,
+                DeviceDeletion.ForAllMaterials,
+                DesignMessages.AllOnDeviceSubject(processes: false),
+                d => DesignMessages.DeleteAllConfirmation(processes: false, d),
+                DesignMessages.NoneOnDevice(processes: false));
 
         private static IReadOnlyList<Choice<int>> Choices(IReadOnlyList<DeviceObjectInfo> objects) =>
             objects.Select(o => new Choice<int>(o.Number, o.Number.ToString(CultureInfo.InvariantCulture) + " - " + o.Name, string.Empty)).ToList();
@@ -580,18 +611,20 @@ namespace Zevision.ViewModels.Design
         private static bool SameObjects(DeviceDeletion a, DeviceDeletion b) =>
             a.Objects.Select(o => o.Id).OrderBy(id => id, StringComparer.Ordinal).SequenceEqual(b.Objects.Select(o => o.Id).OrderBy(id => id, StringComparer.Ordinal), StringComparer.Ordinal);
 
-        private async Task DeleteDeviceObjectAsync(DeviceObjectViewModel item, IReadOnlyList<char> groups, Func<string, IReadOnlyList<RecipeEntry>, DeviceDeletion> find)
+        /// <summary>"设备"页的删除 (一项或全部):重新读取后找出对象,确认后删除;不改动本地的材料和工艺。</summary>
+        /// <param name="groups">删除前重新读取的组。</param>
+        /// <param name="find">按重新读取的设置项找出要删除的对象。</param>
+        /// <param name="subject">删除的是什么 (被引用时的提示)。</param>
+        /// <param name="confirmation">确认的文本。</param>
+        /// <param name="nothingFound">重新读取后设备上没有要删除的对象时的提示。</param>
+        private async Task DeleteDeviceObjectsAsync(
+            IReadOnlyList<char> groups, Func<IReadOnlyList<RecipeEntry>, DeviceDeletion> find, string subject, Func<DeviceDeletion, string> confirmation, string nothingFound)
         {
-            if (item is null)
-            {
-                return;
-            }
-
             ShowResult(null);
             var outcome = await DeleteOnDeviceAsync(
                 groups,
-                entries => find(item.Id, entries),
-                new DeleteTexts(DesignMessages.DeviceObjectSubject(item.Id, item.Name), d => d.Objects.Count == 0 ? null : DesignMessages.DeleteDeviceConfirmation(d), null));
+                find,
+                new DeleteTexts(subject, d => d.Objects.Count == 0 ? null : confirmation(d), null));
             if (outcome.ReadError != null)
             {
                 ShowFailure(DesignMessages.DeviceNotRead(outcome.ReadError, null));
@@ -600,7 +633,7 @@ namespace Zevision.ViewModels.Design
 
             if (outcome.Deletion is DeviceDeletion deletion)
             {
-                var result = deletion.Objects.Count == 0 ? DesignMessages.AlreadyGone(item.Id) : DesignMessages.DeletedOnDevice(deletion) + ActiveProcessNote(deletion);
+                var result = deletion.Objects.Count == 0 ? nothingFound : DesignMessages.DeletedOnDevice(deletion) + ActiveProcessNote(deletion);
                 ShowResult(result);
                 if (deletion.Objects.Count > 0)
                 {
@@ -660,10 +693,11 @@ namespace Zevision.ViewModels.Design
                     return;
                 }
 
-                timeout.StartPhase(DeletePhase);
                 string? failure = null;
                 foreach (var target in deletion.Objects)
                 {
+                    // 时限按每个对象重新计时:全部删除时对象很多,经 RS232 可能超过一个阶段的时限。
+                    timeout.StartPhase(DeletePhase);
                     Operation.Text = Lang.T($"删除 {target.Id}…", $"Deleting {target.Id}…");
                     var deleted = await _config.DeleteObjectAsync(target.Id, _deviceName, timeout.Token);
                     if (!deleted.IsSuccess)

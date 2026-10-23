@@ -487,10 +487,12 @@ The top of the page shows the device model and the time of the last update. The 
 
 Deleting on the "Device" page:
 
-- Process: select it and click "Delete" above the process list. The software deletes the process and the layers only it uses; the rules are those of 5.3.12.3.
-- Material: select it and click "Delete" above the material list. The software deletes the material, the films that refer to it and the layers that use these films; nothing is deleted when a process on the device uses these layers, as in 5.3.12.2.
+- One process: click the delete button at the end of its row. The software deletes the process and the layers only it uses; the rules are those of 5.3.12.3.
+- One material: click the delete button at the end of its row. The software deletes the material, the films that refer to it and the layers that use these films; nothing is deleted when a process on the device uses these layers, as in 5.3.12.2.
+- All processes: click "Delete all" in the title of the process list. The software reads the processes and layers of the device again and deletes all processes and the layers they use; the active process is deleted too, and the device then has no active process.
+- All materials: click "Delete all" in the title of the material list. The software reads the device again and deletes all materials, the films that refer to them and the layers that use these films; nothing is deleted while a process on the device uses these layers, so delete all processes first. Films that refer to no material and layers without these films are kept.
 
-The software asks for confirmation first; when an object is referenced or the device cannot be read, this is explained in red at the bottom of the window. The local materials and processes are not affected; the device status under the local items is updated after the deletion.
+The software asks for confirmation first (for "Delete all" the question lists every object to be deleted); when an object is referenced or the device cannot be read, this is explained in red at the bottom of the window. The local materials and processes are not affected; the device status under the local items is updated after the deletion.
 
 ### 5.5 Data backup
 

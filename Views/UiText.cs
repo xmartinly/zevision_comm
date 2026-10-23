@@ -254,6 +254,15 @@ namespace Zevision.Views
         /// <summary>删除设备上的材料 (提示)</summary>
         public static string DesignDeleteDeviceMaterialToolTip => Lang.T("删除材料及用到它的膜系、膜层", "Delete the material and the films and layers that use it");
 
+        /// <summary>全部删除 (设备页)</summary>
+        public static string DesignDeleteAll => Lang.T("全部删除", "Delete all");
+
+        /// <summary>删除设备上的全部工艺 (提示)</summary>
+        public static string DesignDeleteAllDeviceProcessesToolTip => Lang.T("删除设备上的全部工艺和它们用到的膜层", "Delete all processes on the device and the layers they use");
+
+        /// <summary>删除设备上的全部材料 (提示)</summary>
+        public static string DesignDeleteAllDeviceMaterialsToolTip => Lang.T("删除设备上的全部材料及用到它们的膜系、膜层", "Delete all materials on the device and the films and layers that use them");
+
         /// <summary>删除</summary>
         public static string DesignDelete => Lang.T("删除", "Delete");
 

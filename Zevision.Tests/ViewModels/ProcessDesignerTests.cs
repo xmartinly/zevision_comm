@@ -730,6 +730,89 @@ namespace Zevision.Tests
         }
 
         [Fact]
+        public async Task DevicePage_DeleteAll_MaterialsBlockedByProcesses_ThenProcesses_ThenMaterials()
+        {
+            var device = DesignBuilderTests.NewDevice(); // P01 = 1:活动工艺是 P0201
+            var dialogs = new FakeDialogService();
+            var store = new MemoryDesignStore();
+            var designer = Filled(store, device, dialogs);
+            await designer.UploadAsync(); // M02 Al、F02、L02、L03、P0202
+            ClearRecords(device, dialogs);
+            ClearActiveProcessOnDelete(device, "P0201");
+
+            await designer.DeleteAllDeviceMaterialsAsync();
+
+            Assert.Empty(dialogs.Confirms);
+            Assert.Empty(dialogs.Errors);
+            Assert.StartsWith("设备上的以下设置引用了设备上的全部材料的数据,没有删除。", designer.ResultText, StringComparison.Ordinal);
+            Assert.Contains("工艺 P0202 P1: P02020701 = 2", designer.ResultText);
+            Assert.Empty(Deletes(device));
+
+            await designer.DeleteAllDeviceProcessesAsync();
+
+            Assert.Equal(
+                string.Join(
+                    Environment.NewLine,
+                    "删除设备上的全部 2 个工艺和它们用到的膜层:",
+                    "  工艺: P0202 P1, P0201 Process 1",
+                    "  膜层: L03 Al-P1-2, L02 Al-P1-1",
+                    "P0201 是设备的活动工艺 (P01),删除后设备没有活动工艺。",
+                    "设备上的删除不能撤销,本地的材料和工艺不受影响。继续吗?"),
+                Assert.Single(dialogs.Confirms));
+            Assert.Equal(new[] { "DP0202", "DP0201", "DL03", "DL02" }, Deletes(device));
+            Assert.Equal("已从设备删除: 工艺 P0202, 工艺 P0201, 膜层 L03, 膜层 L02。 设备的活动工艺已清除 (P01 = 0)。", designer.ResultText);
+            Assert.Empty(designer.Device.Processes);
+            Assert.False(designer.Device.DeleteAllProcessesCommand.CanExecute(null));
+            ClearRecords(device, dialogs);
+
+            await designer.DeleteAllDeviceMaterialsAsync();
+
+            Assert.StartsWith("删除设备上的全部 2 个材料、引用它们的膜系和用到这些膜系的膜层:", Assert.Single(dialogs.Confirms), StringComparison.Ordinal);
+            Assert.Equal(new[] { "DF02", "DM02", "DM01" }, Deletes(device)); // F01 不引用材料,保留
+            Assert.Equal("已从设备删除: 膜系 F02, 材料 M02, 材料 M01。", designer.ResultText);
+            Assert.Empty(designer.Device.Materials);
+            Assert.Single(designer.Materials); // 本地的材料和工艺不动
+            Assert.Single(designer.Processes);
+            Assert.False(designer.IsDirty);
+        }
+
+        [Fact]
+        public async Task DevicePage_DeleteAll_NothingOnTheDevice_SaysSo()
+        {
+            var device = DesignBuilderTests.NewDevice();
+            var dialogs = new FakeDialogService();
+            var designer = NewDesigner(new MemoryDesignStore(), device, dialogs);
+            Assert.True(designer.Device.DeleteAllProcessesCommand.CanExecute(null));
+            device.Remove("P0201");
+
+            await designer.DeleteAllDeviceProcessesAsync();
+
+            Assert.Empty(dialogs.Confirms);
+            Assert.Empty(Deletes(device));
+            Assert.Equal("设备上没有工艺。", designer.ResultText);
+            Assert.False(designer.ResultIsError);
+        }
+
+        [Fact]
+        public async Task DevicePage_RowDeleteButton_DeletesThatRow_NotTheSelectedOne()
+        {
+            var device = DesignBuilderTests.NewDevice();
+            var dialogs = new FakeDialogService();
+            var designer = NewDesigner(new MemoryDesignStore(), device, dialogs);
+            device.With("M02", string.Empty, "Material M02").With("M0201", "M2", "Name").With("MFE", "2", "Number of Materials");
+            await designer.RefreshDeviceAsync();
+            designer.Device.SelectedMaterial = designer.Device.Materials.Single(m => m.Id == "M01");
+            var row = designer.Device.Materials.Single(m => m.Id == "M02");
+
+            // 行末的按钮以这一项为参数 (假设备的操作同步完成,命令返回时删除已结束)。
+            Assert.True(designer.Device.DeleteMaterialCommand.CanExecute(row));
+            designer.Device.DeleteMaterialCommand.Execute(row);
+
+            Assert.Equal(new[] { "DM02" }, Deletes(device));
+            Assert.Equal("已从设备删除: 材料 M02。", designer.ResultText);
+        }
+
+        [Fact]
         public void Steps_MoveRemoveAndRamps_ChangeTheModel()
         {
             var store = new MemoryDesignStore();

@@ -106,17 +106,17 @@ namespace Zevision.Tests
         [Fact]
         public async Task SendAsync_LargeReplyArrivingSlowly_DoesNotTimeOut()
         {
-            // 总传输时间 (约 750 ms) 超过超时 (500 ms),但每段间隔 (150 ms) 都小于超时,应视为仍在接收。
-            // 余量留足:并行运行的测试多时 Task.Delay 可能明显超时。
+            // 总传输时间 (约 1200 ms) 超过超时 (1000 ms),但每段间隔 (150 ms) 都小于超时,应视为仍在接收。
+            // 余量留足:并行运行的测试多时 Task.Delay 可能明显超时 (超时 500 ms 时 2026-10-23 偶尔失败)。
             var transport = new FakeSerialTransport();
             using (var service = new ZevisionDeviceService(transport))
             {
-                await ConnectAsync(service, TimeSpan.FromMilliseconds(500));
+                await ConnectAsync(service, TimeSpan.FromMilliseconds(1000));
                 var help = "?+:" + new string('x', 5000);
                 var frame = Ascii("{" + help + "}");
 
                 var send = service.SendAsync("?", CancellationToken.None);
-                const int chunks = 5;
+                const int chunks = 8;
                 var chunkSize = (frame.Length + chunks - 1) / chunks;
                 for (var offset = 0; offset < frame.Length; offset += chunkSize)
                 {

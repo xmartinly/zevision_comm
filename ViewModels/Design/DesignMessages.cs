@@ -305,8 +305,11 @@ namespace Zevision.ViewModels.Design
             }
 
             var local = localKept == null ? string.Empty : Lang.T(" (本地也未删除)", " (not locally either)");
+
+            // "材料 Al 的数据" 在名称后留空格,"设备上的全部材料的数据" 不留。
+            var space = subject.Length > 0 && char.GetUnicodeCategory(subject[subject.Length - 1]) == UnicodeCategory.OtherLetter ? string.Empty : " ";
             return Lang.T(
-                $"设备上的以下设置引用了{subject} 的数据,没有删除{local}。先在“修改”中删除或修改这些设置:",
+                $"设备上的以下设置引用了{subject}{space}的数据,没有删除{local}。先在“修改”中删除或修改这些设置:",
                 $"These settings on the device refer to the data of {subject}; nothing was deleted{local}. Delete or change them in \"Edit\" first:")
                 + Environment.NewLine + List(deletion.References);
         }
@@ -439,6 +442,38 @@ namespace Zevision.ViewModels.Design
 
         /// <summary>"设备"页:要删除的对象重新读取后已经不在。</summary>
         public static string AlreadyGone(string id) => Lang.T($"设备上已经没有 {id}。", $"{id} is no longer on the device.");
+
+        /// <summary>"设备"页的全部删除,用于提示,如"设备上的全部材料"。</summary>
+        /// <param name="processes">删除的是工艺 (否则是材料)。</param>
+        public static string AllOnDeviceSubject(bool processes) =>
+            processes ? Lang.T("设备上的全部工艺", "all processes on the device") : Lang.T("设备上的全部材料", "all materials on the device");
+
+        /// <summary>"设备"页全部删除前的确认:对象按类型分行。</summary>
+        /// <param name="processes">删除的是工艺 (否则是材料)。</param>
+        /// <param name="deletion">要删除的对象。</param>
+        public static string DeleteAllConfirmation(bool processes, DeviceDeletion deletion)
+        {
+            if (deletion is null)
+            {
+                throw new ArgumentNullException(nameof(deletion));
+            }
+
+            var count = deletion.Objects.Count(o => o.Group == (processes ? ObjectTypes.Process.Group : ObjectTypes.Material.Group));
+            var lines = new List<string>
+            {
+                processes
+                    ? Lang.T($"删除设备上的全部 {count} 个工艺和它们用到的膜层:", $"Delete all {count} processes on the device and the layers they use:")
+                    : Lang.T($"删除设备上的全部 {count} 个材料、引用它们的膜系和用到这些膜系的膜层:", $"Delete all {count} materials on the device, the films that refer to them and the layers that use these films:"),
+            };
+            lines.AddRange(DeletionLines(deletion));
+            lines.Add(Lang.T("设备上的删除不能撤销,本地的材料和工艺不受影响。继续吗?", "Deleting on the device cannot be undone; the local materials and processes are not affected. Continue?"));
+            return string.Join(Environment.NewLine, lines);
+        }
+
+        /// <summary>"设备"页全部删除:重新读取后设备上没有这类对象。</summary>
+        /// <param name="processes">删除的是工艺 (否则是材料)。</param>
+        public static string NoneOnDevice(bool processes) =>
+            processes ? Lang.T("设备上没有工艺。", "The device has no processes.") : Lang.T("设备上没有材料。", "The device has no materials.");
 
         /// <summary>新建和复用的对象,如 <c>新建 材料 M0B Al, 膜系 F0B Al;复用 膜层 L03 Al-AR-1</c>。</summary>
         private static string Objects(DesignBuild build)

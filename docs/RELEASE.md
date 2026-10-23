@@ -3,8 +3,8 @@
 | 项目 | 内容 |
 |---|---|
 | 文档标识 | ZEV-SVD-01 |
-| 文档版本 | 1.3 |
-| 适用软件 | Zevision 1.3.1 |
+| 文档版本 | 1.4 |
+| 适用软件 | Zevision 1.3.1；XTC/3S 中间层 1.0.0 |
 | 编制单位 | INFICON |
 | 日期 | 2026-10-23 |
 
@@ -20,7 +20,8 @@
 | 应用版本 | 1.3.1（2026-10-23） |
 | 上一发布版本 | 1.2.0（2026-10-21 发布；版本号由 1.2.0 直接升为 1.3.1，不存在 1.3.0；1.0.0 为第一个正式版本，0.10.0 未发布，其内容并入 1.0.0；不存在 0.9.2） |
 | 通信库 | `Zevision.Communication` 1.2.0（与 1.1.0、1.2.0 相同） |
-| 指令集库 | `Zevision.Commands` 1.1.0（与 1.1.0、1.2.0 相同） |
+| 指令集库 | `Zevision.Commands` 1.1.1（`P01` 的范围改为 0～250，见 ZEV-CPM-01 第 5 章；应用 1.1.0、1.2.0 使用 1.1.0） |
+| XTC/3S 中间层 | `Zevision.Xtc3`、`Zevision.Bridge`、`Zevision.Bridge.Hosting` 和独立程序 `Zevision.Xtc3Bridge.exe` 1.0.0（第一个发布版本，单独发布，见 4.7 和 ZEV-CPM-03） |
 | 业务层、存储层 | `Zevision.Core` 1.3.1、`Zevision.Storage` 1.3.1（版本与应用相同） |
 | 公司 | INFICON |
 | 作者 | martin.liang@inficon.com |
@@ -29,7 +30,7 @@
 
 ### 1.2 系统概述
 
-Zevision 是 INFICON IMC300 膜厚控制仪的上位机软件，通过 RS232 或以太网（TCP 端口 2101）以 Zevision 协议与设备通信，用于发送协议指令，保存、恢复和修改仪器配置，以及编写工艺并上传到设备。软件由应用程序 `Zevision.exe` 和 4 个程序集组成：通信库 `Zevision.Communication.dll`、指令集库 `Zevision.Commands.dll`、业务层 `Zevision.Core.dll`、存储层 `Zevision.Storage.dll`。两个链接库另行发布，供生产程序使用。
+Zevision 是 INFICON IMC300 膜厚控制仪的上位机软件，通过 RS232 或以太网（TCP 端口 2101）以 Zevision 协议与设备通信，用于发送协议指令，保存、恢复和修改仪器配置，以及编写工艺并上传到设备。软件由应用程序 `Zevision.exe` 和 4 个程序集组成：通信库 `Zevision.Communication.dll`、指令集库 `Zevision.Commands.dll`、业务层 `Zevision.Core.dll`、存储层 `Zevision.Storage.dll`。两个链接库另行发布，供生产程序使用。XTC/3S 中间层另行发布，使按 XTC/3 Standard Protocol 通信的主机软件可以经虚拟串口对使用 IMC300（ZEV-CPM-03）。
 
 ### 1.3 文档概述
 
@@ -54,6 +55,7 @@ Zevision 是 INFICON IMC300 膜厚控制仪的上位机软件，通过 RS232 或
 | ZEV-SUM-01 | 《Zevision 软件用户手册》（`docs/USER_GUIDE.md`）；英文版 ZEV-SUM-01-EN（`docs/USER_GUIDE.en.md`） |
 | ZEV-CPM-01 | 《Zevision 链接库编程手册》（`docs/LIBRARY.md`） |
 | ZEV-CPM-02 | 《Zevision 业务层与存储层编程手册》（`docs/CORE_STORAGE.md`） |
+| ZEV-CPM-03 | 《XTC/3S 协议兼容中间层编程手册》（`docs/XTC3中间层编程手册.md`） |
 
 ## 3 版本说明
 
@@ -66,6 +68,7 @@ Zevision 是 INFICON IMC300 膜厚控制仪的上位机软件，通过 RS232 或
 | 应用发布包（含 .NET 安装包） | `dist\Zevision-<版本>_wDotnet.zip` | 发布对象：程序、.NET Framework 4.8 离线安装包、用户手册（中、英文）；用于未安装 .NET Framework 4.7.2 或更高版本的计算机 |
 | 应用发布包（不含 .NET 安装包） | `dist\Zevision-<版本>_woDotnet.zip` | 发布对象：程序、用户手册（中、英文）；用于已安装 .NET Framework 4.7.2 或更高版本的计算机（Windows 10 1803 及以上已内置）。程序文件与含安装包的发布包相同 |
 | 链接库发布包 | `dist\Zevision.Libraries-<库版本>.zip` | 发布对象：两个链接库、IntelliSense 文档、ZEV-CPM-01、示例程序 |
+| 中间层发布包 | `dist\Zevision.Xtc3Bridge-<版本>.zip` | 发布对象：XTC/3S 中间层的独立程序、7 个 dll 及其 IntelliSense 文档、`Texts.json`、ZEV-CPM-03、示例程序的源代码（见 4.7） |
 | 调试符号 | `dist\symbols\` | 存档，用于分析用户反馈的异常堆栈，不发布 |
 
 表 4  不发布的文件
@@ -173,6 +176,7 @@ Zevision 是 INFICON IMC300 膜厚控制仪的上位机软件，通过 RS232 或
 3. `Zevision.Core` 和 `Zevision.Storage` 的版本与应用相同。
 4. 两个链接库的版本独立于应用，位于各自的 `Properties\AssemblyInfo.cs`。公开接口不兼容的修改应提高主版本号。`AssemblyVersion` 保持 1.0.0.0，引用旧版本的程序替换 dll 即可，不需要重新编译。用法和版本变化见 ZEV-CPM-01。
 5. ZEV-CPM-02 用于维护本软件，不随链接库发布。
+6. XTC/3S 中间层的 `Zevision.Xtc3`、`Zevision.Bridge`、`Zevision.Bridge.Hosting` 和 `Zevision.Xtc3Bridge.exe` 版本相同，独立于应用，位于各自的 `Properties\AssemblyInfo.cs`；1.0.0 为第一个发布版本。
 
 ## 4 构建与打包
 
@@ -290,9 +294,11 @@ powershell -ExecutionPolicy Bypass -File tools\package.ps1
 | 9 | 语言 | 将 `settings.json` 的 `language` 改为 `en` 后重启：界面、对话框和日志为英文，修改配置窗口的名称为设备帮助表的 DESCRIPTION；改回 `auto` 后按系统语言和地区显示。 |
 | 10 | 工艺编辑 | 打开“工艺”：“设备”页列出设备上的工艺和材料。从材料库新建一种材料，新建两步的工艺并上传：确认框列出新建的对象，上传后“设备”页显示新工艺。再次上传：只新建工艺。在写入阶段单击“取消上传”：本次新建的对象被删除。删除工艺和材料并同时删除设备上的数据：设备上的对象数回到测试前。 |
 
+__BRIDGE_SECTION__
+
 ## 5 运行环境
 
-表 14  运行环境
+表 16  运行环境
 
 | 项目 | 要求 |
 |---|---|
@@ -302,7 +308,7 @@ powershell -ExecutionPolicy Bypass -File tools\package.ps1
 
 ## 6 注解
 
-表 15  术语和缩略语
+表 17  术语和缩略语
 
 | 术语或缩略语 | 说明 |
 |---|---|
@@ -316,6 +322,7 @@ powershell -ExecutionPolicy Bypass -File tools\package.ps1
 | 心跳 | 连接空闲时周期发送的 `H01`，用于检测断线 |
 | 复用 | 工艺上传时使用设备上参数相同的已有材料、膜系或膜层，不新建 |
 | 材料库 | 程序目录中的 `materials.json`，工艺编辑中按关键字查找材料的密度和 Z 比 |
+| XTC/3S 中间层 | 按 XTC/3 Standard Protocol 应答主机软件、经 Zevision 协议访问 IMC300 的软件，见 ZEV-CPM-03 |
 
 ## 附录 A（资料性）历史版本更改
 

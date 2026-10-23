@@ -3,8 +3,8 @@
 | 项目 | 内容 |
 |---|---|
 | 文档标识 | ZEV-CPM-03 |
-| 文档版本 | 0.1 |
-| 适用软件 | `Zevision.Xtc3` 0.1.0，`Zevision.Bridge` 0.1.0，`Zevision.Bridge.Hosting` 0.1.0，`Zevision.Xtc3Bridge` 控制台程序 |
+| 文档版本 | 1.0 |
+| 适用软件 | `Zevision.Xtc3` 1.0.0，`Zevision.Bridge` 1.0.0，`Zevision.Bridge.Hosting` 1.0.0，`Zevision.Xtc3Bridge` 1.0.0 |
 | 编制单位 | INFICON |
 | 日期 | 2026-10-23 |
 
@@ -18,12 +18,12 @@
 
 | 标识 | 名称 | 版本 | 文件 |
 |---|---|---|---|
-| `Zevision.Xtc3` | XTC/3 协议库 | 0.1.0 | `Zevision.Xtc3.dll` |
-| `Zevision.Bridge` | 中间层业务库 | 0.1.0 | `Zevision.Bridge.dll` |
-| `Zevision.Bridge.Hosting` | 中间层的组装（设置文件、一步启动） | 0.1.0 | `Zevision.Bridge.Hosting.dll` |
-| `Zevision.Xtc3Bridge` | 中间层独立程序（控制台） | 0.1.0 | `Zevision.Xtc3Bridge.exe` |
+| `Zevision.Xtc3` | XTC/3 协议库 | 1.0.0 | `Zevision.Xtc3.dll` |
+| `Zevision.Bridge` | 中间层业务库 | 1.0.0 | `Zevision.Bridge.dll` |
+| `Zevision.Bridge.Hosting` | 中间层的组装（设置文件、一步启动） | 1.0.0 | `Zevision.Bridge.Hosting.dll` |
+| `Zevision.Xtc3Bridge` | 中间层独立程序（控制台） | 1.0.0 | `Zevision.Xtc3Bridge.exe` |
 
-软件作者：martin.liang@inficon.com。
+1.0.0 为第一个发布版本（2026-10-23），此前的 0.1.0 未发布。四者的版本相同，`AssemblyVersion` 均为 1.0.0.0。软件作者：martin.liang@inficon.com。
 
 ### 1.2 系统概述
 
@@ -43,7 +43,7 @@ flowchart LR
 - 独立程序：`Zevision.Xtc3Bridge.exe` 按设置文件运行，客户软件不修改，只打开 COM1（3.3）；
 - 客户软件进程内：客户软件为 .NET 程序时，引用库文件并调用 `Xtc3BridgeHost.Start` 启动中间层，中间层在客户软件的进程中打开 COM2 和 TCP 连接，客户软件的通信代码照常打开 COM1（4.3）。
 
-本版本（0.1.0）实现的功能：
+本版本（1.0.0）实现的功能：
 
 - XTC/3 Standard Protocol 的包格式、全部 XTC/3S 命令的语法和响应编码；
 - Film 参数（QF/UF，含 ID 255）和通用参数（QG/UG，含 ID 255）的读写；
@@ -85,6 +85,8 @@ flowchart LR
 | `Zevision.Bridge.dll` | 业务库：命令执行、XTC/3 参数与 IMC300 设置项的映射、影子对象、采样和推导状态、本地参数、主机侧串口、与 IMC300 的连接管理 | `Zevision.Communication`、`Zevision.Commands`、`Zevision.Core`、`Zevision.Xtc3`；.NET 的 `System.Runtime.Serialization`、`System.Xml` |
 | `Zevision.Bridge.Hosting.dll` | 组装：设置文件 `xtc3bridge.settings.json`（`Xtc3BridgeSettings`），一步启动（`Xtc3BridgeHost`）：读取 `Texts.json`、错误日志、IMC300 的连接、本地参数文件 | 以上各库和 `Zevision.Storage` |
 | `Zevision.Xtc3Bridge.exe` | 独立程序：运行中间层（不带参数或 `bridge`），生成设置文件（`init`），代替客户软件发送 XTC/3 命令（`client`） | 以上各库；`Texts.json` |
+
+发布包为 `Zevision.Xtc3Bridge-<版本>.zip`（由 `tools\package-bridge.ps1` 生成，SHA256 见 ZEV-SVD-01），文件夹中有：`Zevision.Xtc3Bridge.exe`；表 3 中的 3 个库和它们依赖的 `Zevision.Communication.dll`（1.2.0）、`Zevision.Commands.dll`（1.1.1）、`Zevision.Core.dll`、`Zevision.Storage.dll`（1.3.1），以及这 7 个 dll 的 XML 文档（IntelliSense）；`Texts.json`；本手册；`sample\Program.cs`（独立程序的源代码，也是 4.3 的完整示例）。独立程序和 7 个 dll 应放在同一个文件夹中。客户软件在进程内使用中间层时，引用这 7 个 dll，并把 `Texts.json` 放在客户软件的 exe 旁（`Xtc3BridgeHost.Start` 从程序目录读取）。
 
 源码位于 `Zevision.Xtc3\`、`Zevision.Bridge\`、`Zevision.Bridge.Hosting\` 和 `samples\Zevision.Xtc3Bridge\`，均为 .NET Framework 4.7.2、C# 9、非 SDK 格式的项目文件，属于解决方案 `Zevision.sln`。`LibraryBoundaryTests` 检查 `Zevision.Xtc3` 只引用 .NET Framework、`Zevision.Bridge` 不引用 `Zevision.Storage` 和 WPF，两个库的字符串字面量不含中文。
 
@@ -273,7 +275,7 @@ XTC/3S 的 Film n（1～9）对应 IMC300 上的一组影子对象：材料 `Mkk
 | S19 | 回答 `E`（数据日志未实现，与 XTC/3 在第一层结束前相同） |
 | S21 | 本地参数（5.3） |
 | S30、S35 | 收到时查询设备：S30 为当前传感器各晶振的健康度（`QNss10nn02` 大于 0 为 1），S35 为 `G1402`、`G1403` |
-| R0 | `UC01:1`。设备在 Idle（影子工艺只有一层，一层已结束）时回答 `-B`，中间层先停止（`UC01:0`，等到 `Stopped`）、复位（`RC04`，等到 `Ready`）再启动，层计数接着增加 |
+| R0 | `UC01:1`。设备在 Idle（影子工艺只有一层，一层已结束）时回答 `-B`，中间层先停止（`UC01:0`，等到 `Stopped`）、复位（`RC04`，等到 `Ready`）再启动。从 Idle 启动时层计数在启动时加 1，不等设备开始运行 |
 | R1 | `UC01:0`；设备回答 `-B` 而设备已停止或为 Ready 时回答 ACK |
 | R2 | 停止时 `RC04`；Idle 时先停止再复位；Ready 时回答 ACK；运行中回答 `F` |
 | R3、R4 | `UG0E02:1`、`UG0E02:0`（前面板锁定）并置远程锁定标志 |
@@ -286,7 +288,7 @@ XTC/3S 的 Film n（1～9）对应 IMC300 上的一组影子对象：材料 `Mkk
 | R17、R18 | 输出号 1～20 时回答 `F`（未进入通讯 I/O 模式），否则 `B` |
 | QB、UB、XTC/3M 专用命令 | 回答 `A` |
 
-R0、R1、R2、R11 和 UG0 按当场查询的 `C09`、`C1F` 判断状态（采样可能晚一个 tick，主机在 R0 之后紧接着发 R1、R2 时按采样会判断错），UF 写入 Sensor、Transfer Sensor 时也一样。
+R0、R1、R2、R11 和 UG0 按当场查询的 `C09`、`C1F` 判断状态（采样可能晚一个 tick，主机在 R0 之后紧接着发 R1、R2 时按采样会判断错），UF 写入 Sensor、Transfer Sensor 时也一样。R0、R1、R2 成功后立即采样一次，主机随后查询的 S4、S18 等反映设备的新状态，不等下一个 tick（否则 R0 之后的第一次查询可能还是停止、复位过程中的采样，S18 = 1；ZEV-STR-01 的 STR-2026-10-23-06）。
 
 写入（UF、UG）先查询各项的当前值，与要写入的值相同的项不写（IMC300 对写入与当前值相同的传感器编号回答 `-B`，ZEV-STR-01 的 STR-2026-10-23-04）；其余每一项发送 `U` 并在同一帧中以 `Q` 读回，读回不一致时回答 `B`。数按设备保存的小数位数写出（如密度 3 位、功率 2 位、速率 3 位、速率斜坡起始厚度 4 位），读回的误差为 XTC/3 显示精度的一半；时间在整数秒和 `H:MM:SS` 之间换算。浮点数先取 7 位有效数字。UF255、UG255 先检查全部值的范围，再每 10 项一帧写入，第一项失败时回答该项的错误码，同一帧中其后的项已写入，不回滚。
 
@@ -298,12 +300,12 @@ R0、R1、R2、R11 和 UG0 按当场查询的 `C09`、`C1F` 判断状态（采�
 
 | 命令 | 来源 |
 |---|---|
-| S0 | 指定 tick 的采样：晶振状态（bit0 = `C18`）、状态、传感器、活动晶振（`Nss09`）、速率（1 s 平均，只在沉积和速率斜坡状态且未停止时给出）、厚度 `C15`、功率 `C11`、速率偏差（同速率的条件）、频率（`C16` ÷ 0.0034924596）；该 tick 没有采样或超过 256 个 tick 时为 `E` |
+| S0 | 指定 tick 的采样：晶振状态（bit0 = `C18`）、状态、传感器、活动晶振（`Nss09`）、速率（1 s 平均，只在沉积和速率斜坡状态且未停止时给出）、厚度 `C15`、功率 `C11`、速率偏差（同速率的条件）、频率（`C16` ÷ 0.0034924596）；该 tick 没有采样或超过 256 个 tick 时为 `E`。查询当前 tick 而该 tick 的采样还没有结果时（采样在 tick 开始时发出，经 TCP 约 26 ms 后才有结果），当场采样一次再回答 |
 | S1、S31 | 最近 4 个、25 个 tick 的 `C13` 平均 |
 | S2、S3、S34 | `C11`、`C15`、`C13` |
 | S4 | `C09` 的文本按表 9 对应；`Stopped` 时为停止前的状态；不认识的文本回答 `E`，并记录一次 |
 | S5 | 当前状态开始以来的秒数 |
-| S6 | 层计数：复位回到 Ready 时为 1，从 Idle 再次进入运行状态时加 1（含 R0 在 Idle 时由中间层停止、复位再启动），R2 后为 1 |
+| S6 | 层计数：复位回到 Ready 时为 1；R0 在 Idle 时启动下一层，层计数在启动时加 1（中间层停止、复位再启动的过程中不回到 1，设备开始运行时不再加）；不经 R0 从 Idle 再次进入运行状态（如前面板启动）时加 1；R2 后为 1 |
 | S7、S20 | 活动工艺 `P01` 对应的 Film；不是影子工艺时为 0（QG0 同） |
 | S8、S10 | 当前传感器；当前 Film 的输出源 |
 | S9 | `C17` |
@@ -390,7 +392,7 @@ R0、R1、R2、R11 和 UG0 按当场查询的 `C09`、`C1F` 判断状态（采�
 | 测试类 | 内容 |
 |---|---|
 | `Xtc3ProtocolTests` | 分帧和校验和、跨读取的包和一次读到的多个包、字符间隔超时、长度错误、各类命令的解析、非法 ID 和不认识的命令、缺少字节、命令过多、响应编码与解码、响应过长、参数范围 |
-| `BridgeEngineTests` | 影子对象的核对（可用、占用、结构不符）和经恢复流程创建全部 9 个 Film；Film 参数和通用参数的读写、换算、本地参数、范围和状态限制、设备拒绝和读回不一致、相同值不写入；离线时的回答；采样、S0 的 tick、平均速率、状态历史、实测的状态文本和 `Stopped`、未知状态文本、停止和最大功率、晶振状态和以太网参数、开机次数；远程动作，含按实测行为模拟的 Idle 时 R0（停止、复位、启动）、同一个包中 R0 后的 R2 和 R9 后的 R11 |
+| `BridgeEngineTests` | 影子对象的核对（可用、占用、结构不符）和经恢复流程创建全部 9 个 Film；Film 参数和通用参数的读写、换算、本地参数、范围和状态限制、设备拒绝和读回不一致、相同值不写入；离线时的回答；采样、S0 的 tick（含当前 tick 当场采样）、平均速率、状态历史、实测的状态文本和 `Stopped`、未知状态文本、停止和最大功率、晶振状态和以太网参数、开机次数；远程动作，含按实测行为模拟的 Idle 时 R0（停止、复位、启动，层计数在启动时加 1）、R0、R1、R2 之后不经采样即为新状态、同一个包中 R0 后的 R2 和 R9 后的 R11 |
 | `Xtc3BridgeTests` | 端到端：主机侧串口收发、Timer、包错误、改波特率后重新打开串口、设备未连接、连接中断后重连、后台采样、本地参数文件 |
 | `Xtc3BridgeHostTests` | 设置文件的读写、初值和无效内容，连接目标的解析，`Xtc3BridgeHost.Start` 的组装（主机侧串口、错误日志、本地参数文件）和停止 |
 | `LibraryBoundaryTests` | 两个库的引用和字符串字面量 |

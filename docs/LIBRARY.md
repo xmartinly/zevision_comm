@@ -3,10 +3,10 @@
 | 项目 | 内容 |
 |---|---|
 | 文档标识 | ZEV-CPM-01 |
-| 文档版本 | 1.1 |
-| 适用软件 | `Zevision.Communication` 1.2.0，`Zevision.Commands` 1.1.0 |
+| 文档版本 | 1.2 |
+| 适用软件 | `Zevision.Communication` 1.2.0，`Zevision.Commands` 1.1.1 |
 | 编制单位 | INFICON |
-| 日期 | 2026-10-19 |
+| 日期 | 2026-10-23 |
 
 ## 1 范围
 
@@ -19,7 +19,7 @@
 | 标识 | 名称 | 产品版本 | 程序集版本 | 文件 |
 |---|---|---|---|---|
 | `Zevision.Communication` | 通信库 | 1.2.0 | 1.0.0.0 | `Zevision.Communication.dll` |
-| `Zevision.Commands` | 指令集库 | 1.1.0 | 1.0.0.0 | `Zevision.Commands.dll` |
+| `Zevision.Commands` | 指令集库 | 1.1.1 | 1.0.0.0 | `Zevision.Commands.dll` |
 
 软件作者：martin.liang@inficon.com。
 
@@ -912,6 +912,7 @@ var client = new ZevisionClient(options, _ => new SimulatedDevice(command => com
 
 | 版本 | 日期 | 修改 |
 |---|---|---|
+| 1.1.1（指令集库） | 2026-10-23 | `P01`（设置活动工艺）的范围改为 0～250，0 表示没有活动工艺（实机接受 `UP01:0`，删除活动工艺后设备把 `P01` 改为 0；ZEV-STR-01 的 STR-2026-10-23-05）。随 XTC/3S 中间层 1.0.0 发布；通信库仍为 1.2.0 |
 | 1.2.0（通信库） | 2026-10-19 | 新增传输出错自动重发（`ConnectionOptions.RetryCount`、`Retrying` 事件、`RetryEventArgs`）；新增心跳（`HeartbeatInterval`、`HeartbeatMissLimit`，无应答时 `ConnectionLost` 的 `Reason` 为 `HeartbeatTimeout`）；新增按优先级排队（`SendPriority`、`RequestOptions`、`SendAsync(command, RequestOptions, ct)`）；新增连接后改变帧格式（`ChangeFrameOptionsAsync`、`Frame`）；`FrameOptions` 按值相等（`Equals`、`GetHashCode`、`ToString`）；`DisconnectAsync` 等待心跳结束。默认值下行为与 1.1.0 相同。指令集库仍为 1.1.0 |
 | 1.1.0 | 2026-10-19 | 通信库：连接过程中释放客户端时关闭已打开的连接；连接失败或取消时关闭传输；事件处理程序耗时不导致已收到的响应被判为超时，超时后的响应不再被认领；`FrameReceived` 依次触发；断开时先结束等待中的请求；收到响应后立即释放计时器；大响应只解析一次；空响应返回 `UnparseableResponse`；`Push`、`ComputeChecksum` 检查参数范围。指令集库：ID 匹配不使用正则表达式（`Find` 约快 3 倍且不分配内存，常驻内存由约 600 KB 降至约 220 KB）；新增 `IsWellFormedId`；`F**0902`（坩埚）的说明改为“0=任意，1~所选输出源的坩埚数量（S\*\*07）”（与设备的选项 Any、1~最大数量一致）；`All`、`GetCommands`、`Options` 为只读集合；不接受末尾带换行的 ID；ID 为 null 时抛出 `ArgumentNullException` |
 | 1.0.1 | 2026-10-18 | 通信库：启用长度时，设备偶尔发送不带长度的 `{数据}`（RS232 的 `?`），解码器按无长度格式读出。指令集库：中文术语“预条件”改为“预熔”，“后条件”改为“后处理” |

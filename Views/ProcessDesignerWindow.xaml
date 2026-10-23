@@ -108,6 +108,11 @@
             <Setter Property="Foreground" Value="{DynamicResource MaterialDesign.Brush.ValidationError}" />
             <Setter Property="ToolTip" Value="{x:Static t:UiText.DesignRemove}" />
         </Style>
+        <!-- "设备"页每一项行末的删除按钮 (项目有多行时在第一行) -->
+        <Style x:Key="RowDeleteButton" TargetType="Button" BasedOn="{StaticResource RemoveButton}">
+            <Setter Property="VerticalAlignment" Value="Top" />
+            <Setter Property="Margin" Value="8,0,0,0" />
+        </Style>
         <!-- 分组标题栏中的按钮 (新建、添加、删除、刷新) -->
         <Style x:Key="HeaderButton" TargetType="Button" BasedOn="{StaticResource MaterialDesignFlatButton}">
             <Setter Property="Padding" Value="8,0" />
@@ -135,12 +140,33 @@
         </DataTemplate>
 
         <!-- "设备"页的一项:ID 和名称,下面是膜层或密度、膜系 -->
-        <DataTemplate x:Key="DeviceObjectTemplate" DataType="{x:Type vm:DeviceObjectViewModel}">
+        <DataTemplate x:Key="DeviceObjectBody" DataType="{x:Type vm:DeviceObjectViewModel}">
             <StackPanel Margin="0,2">
                 <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
                 <TextBlock Text="{Binding Details}" TextWrapping="Wrap" Margin="0,2,0,0"
                            Foreground="{DynamicResource MaterialDesign.Brush.ForegroundLight}" />
             </StackPanel>
+        </DataTemplate>
+        <!-- 设备上的工艺、材料:行末是删除这一项的按钮 (命令在"设备"页上,参数为这一项) -->
+        <DataTemplate x:Key="DeviceProcessTemplate" DataType="{x:Type vm:DeviceObjectViewModel}">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Style="{StaticResource RowDeleteButton}" CommandParameter="{Binding}"
+                        Command="{Binding DataContext.DeleteProcessCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                        ToolTip="{x:Static t:UiText.DesignDeleteDeviceProcessToolTip}">
+                    <materialDesign:PackIcon Kind="DeleteOutline" />
+                </Button>
+                <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource DeviceObjectBody}" />
+            </DockPanel>
+        </DataTemplate>
+        <DataTemplate x:Key="DeviceMaterialTemplate" DataType="{x:Type vm:DeviceObjectViewModel}">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Style="{StaticResource RowDeleteButton}" CommandParameter="{Binding}"
+                        Command="{Binding DataContext.DeleteMaterialCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                        ToolTip="{x:Static t:UiText.DesignDeleteDeviceMaterialToolTip}">
+                    <materialDesign:PackIcon Kind="DeleteOutline" />
+                </Button>
+                <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource DeviceObjectBody}" />
+            </DockPanel>
         </DataTemplate>
 
         <!-- 预熔、后处理表格的一行:序号、三个值、删除 (列宽与 ConditionHeader 相同) -->
@@ -563,7 +589,7 @@
                 </Grid>
             </TabItem>
 
-            <!-- 设备:设备上的工艺和材料 (只读,可以刷新、删除;不改动本地的材料和工艺) -->
+            <!-- 设备:设备上的工艺和材料 (只读,可以刷新、逐项删除或全部删除;不改动本地的材料和工艺) -->
             <TabItem Header="{x:Static t:UiText.DesignDeviceTab}">
                 <DockPanel Margin="0,12,0,0" DataContext="{Binding Device}">
                     <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
@@ -586,34 +612,34 @@
                         <HeaderedContentControl Grid.Column="0" Style="{StaticResource ListGroup}">
                             <HeaderedContentControl.Header>
                                 <DockPanel>
-                                    <Button DockPanel.Dock="Right" Command="{Binding DeleteProcessCommand}" Style="{StaticResource HeaderDeleteButton}"
-                                            ToolTip="{x:Static t:UiText.DesignDeleteDeviceProcessToolTip}">
+                                    <Button DockPanel.Dock="Right" Command="{Binding DeleteAllProcessesCommand}" Style="{StaticResource HeaderDeleteButton}"
+                                            ToolTip="{x:Static t:UiText.DesignDeleteAllDeviceProcessesToolTip}">
                                         <StackPanel Orientation="Horizontal">
-                                            <materialDesign:PackIcon Kind="Delete" VerticalAlignment="Center" />
-                                            <TextBlock Text="{x:Static t:UiText.DesignDelete}" Margin="4,0,0,0" />
+                                            <materialDesign:PackIcon Kind="DeleteSweep" VerticalAlignment="Center" />
+                                            <TextBlock Text="{x:Static t:UiText.DesignDeleteAll}" Margin="4,0,0,0" />
                                         </StackPanel>
                                     </Button>
                                     <TextBlock Text="{Binding ProcessesTitle}" Style="{StaticResource GroupTitle}" />
                                 </DockPanel>
                             </HeaderedContentControl.Header>
-                            <ListBox ItemsSource="{Binding Processes}" SelectedItem="{Binding SelectedProcess}" ItemTemplate="{StaticResource DeviceObjectTemplate}"
-                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled" IsEnabled="{Binding IsEditable}" />
+                            <ListBox ItemsSource="{Binding Processes}" SelectedItem="{Binding SelectedProcess}" ItemTemplate="{StaticResource DeviceProcessTemplate}"
+                                     HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled" IsEnabled="{Binding IsEditable}" />
                         </HeaderedContentControl>
                         <HeaderedContentControl Grid.Column="2" Style="{StaticResource ListGroup}">
                             <HeaderedContentControl.Header>
                                 <DockPanel>
-                                    <Button DockPanel.Dock="Right" Command="{Binding DeleteMaterialCommand}" Style="{StaticResource HeaderDeleteButton}"
-                                            ToolTip="{x:Static t:UiText.DesignDeleteDeviceMaterialToolTip}">
+                                    <Button DockPanel.Dock="Right" Command="{Binding DeleteAllMaterialsCommand}" Style="{StaticResource HeaderDeleteButton}"
+                                            ToolTip="{x:Static t:UiText.DesignDeleteAllDeviceMaterialsToolTip}">
                                         <StackPanel Orientation="Horizontal">
-                                            <materialDesign:PackIcon Kind="Delete" VerticalAlignment="Center" />
-                                            <TextBlock Text="{x:Static t:UiText.DesignDelete}" Margin="4,0,0,0" />
+                                            <materialDesign:PackIcon Kind="DeleteSweep" VerticalAlignment="Center" />
+                                            <TextBlock Text="{x:Static t:UiText.DesignDeleteAll}" Margin="4,0,0,0" />
                                         </StackPanel>
                                     </Button>
                                     <TextBlock Text="{Binding MaterialsTitle}" Style="{StaticResource GroupTitle}" />
                                 </DockPanel>
                             </HeaderedContentControl.Header>
-                            <ListBox ItemsSource="{Binding Materials}" SelectedItem="{Binding SelectedMaterial}" ItemTemplate="{StaticResource DeviceObjectTemplate}"
-                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled" IsEnabled="{Binding IsEditable}" />
+                            <ListBox ItemsSource="{Binding Materials}" SelectedItem="{Binding SelectedMaterial}" ItemTemplate="{StaticResource DeviceMaterialTemplate}"
+                                     HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled" IsEnabled="{Binding IsEditable}" />
                         </HeaderedContentControl>
                     </Grid>
                 </DockPanel>

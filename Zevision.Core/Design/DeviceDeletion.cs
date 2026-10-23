@@ -64,6 +64,22 @@ namespace Zevision.Core.Design
         public static DeviceDeletion ForProcesses(IEnumerable<string> processIds, IReadOnlyList<RecipeEntry> entries) =>
             ForProcesses(processIds, entries, DeviceContents.From(entries ?? throw new ArgumentNullException(nameof(entries))));
 
+        /// <summary>删除设备上的全部材料,以及引用它们的膜系、用到这些膜系的膜层 (工艺用到这些膜层时不能删除)。纯函数。</summary>
+        /// <param name="entries">设备的设置项。</param>
+        public static DeviceDeletion ForAllMaterials(IReadOnlyList<RecipeEntry> entries)
+        {
+            var contents = DeviceContents.From(entries ?? throw new ArgumentNullException(nameof(entries)));
+            return ForMaterials(contents.Materials.Select(m => m.Id), entries, contents);
+        }
+
+        /// <summary>删除设备上的全部工艺,以及它们用到的膜层 (没有其他工艺保留它们)。纯函数。</summary>
+        /// <param name="entries">设备的设置项。</param>
+        public static DeviceDeletion ForAllProcesses(IReadOnlyList<RecipeEntry> entries)
+        {
+            var contents = DeviceContents.From(entries ?? throw new ArgumentNullException(nameof(entries)));
+            return ForProcesses(contents.Processes.Select(p => p.Id), entries, contents);
+        }
+
         private static DeviceDeletion ForMaterials(IEnumerable<string> materialIds, IReadOnlyList<RecipeEntry> entries, DeviceContents contents)
         {
             if (materialIds is null)

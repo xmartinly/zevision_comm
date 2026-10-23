@@ -90,7 +90,7 @@ namespace Zevision.Tests
         {
             // RS232 实测:程序未启用长度,连接后第一条的回答仍带长度和校验和,回显对不上 (显示为未请求的数据),随后超时。
             var transport = new FakeSerialTransport { Responder = _ => ZevisionFrameCodec.Encode("H01+:Zevision IMC300 1.8.11", LengthAndChecksum) };
-            using (var service = await ConnectAsync(transport, new SerialSettings("COM_TEST", 115200), FrameOptions.Plain, TimeSpan.FromMilliseconds(100)))
+            using (var service = await ConnectAsync(transport, new SerialSettings("COM_TEST", 115200), FrameOptions.Plain, TimeSpan.FromMilliseconds(500)))
             {
                 var result = await service.SendAsync("H01", CancellationToken.None);
 
@@ -103,7 +103,7 @@ namespace Zevision.Tests
         public async Task Send_PlainReplyInLengthMode_TimeoutSaysSo()
         {
             var transport = new FakeSerialTransport { Responder = _ => Ascii("{H01+:Zevision}") };
-            using (var service = await ConnectAsync(transport, new SerialSettings("COM_TEST", 115200), LengthAndChecksum, TimeSpan.FromMilliseconds(100)))
+            using (var service = await ConnectAsync(transport, new SerialSettings("COM_TEST", 115200), LengthAndChecksum, TimeSpan.FromMilliseconds(500)))
             {
                 var result = await service.SendAsync("H01", CancellationToken.None);
 
@@ -118,7 +118,8 @@ namespace Zevision.Tests
             var replies = new[] { RejectedWithLength, null };
             var count = 0;
             var transport = new FakeSerialTransport { Responder = _ => replies[Math.Min(Interlocked.Increment(ref count) - 1, 1)] };
-            using (var service = await ConnectAsync(transport, new SerialSettings("COM_TEST", 115200), FrameOptions.Plain, TimeSpan.FromMilliseconds(100)))
+            // 超时 500 ms:100 ms 时,机器繁忙 (整套测试并行、刚构建完) 偶尔在假串口送出回复之前就超时 (2026-10-23 的 Release 测试)。
+            using (var service = await ConnectAsync(transport, new SerialSettings("COM_TEST", 115200), FrameOptions.Plain, TimeSpan.FromMilliseconds(500)))
             {
                 var first = await service.SendAsync("H01", CancellationToken.None);
                 var second = await service.SendAsync("H01", CancellationToken.None);
