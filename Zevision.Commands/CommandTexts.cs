@@ -307,7 +307,7 @@ namespace Zevision.Commands
             ["0=任意, 1~所选输出源的坩埚数量 (S**07)"] = "0=Any, 1~number of crucibles of the selected source (S**07)",
             ["0=无"] = "0=None",
             ["1~膜层列表中的膜层数"] = "1~number of layers in the list",
-            ["工艺编号;文档写 P0201~P02C8"] = "process number; the document says P0201~P02C8",
+            ["工艺编号, 0=没有活动工艺 (实机接受 0,删除活动工艺后设备改为 0);文档写 P0201~P02C8"] = "process number, 0 = no active process (the device accepts 0 and sets it after the active process is deleted); the document says P0201~P02C8",
             ["1~坩埚数量 (S**07)"] = "1~number of crucibles (S**07)",
             ["E:数据 → 原样返回数据"] = "E:data → returns the data unchanged",
             ["实机返回 MM-DD-YYYY HH:MM:SS,文档写 YYYY-MM-DD HH:MM:SS;写入格式未验证"] = "device returns MM-DD-YYYY HH:MM:SS, document says YYYY-MM-DD HH:MM:SS; write format not verified",

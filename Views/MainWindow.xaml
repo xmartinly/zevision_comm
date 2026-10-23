@@ -23,7 +23,7 @@
         <sys:Double x:Key="PanelHeaderHeight">48</sys:Double>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibility" />
         <!-- 左侧配置项的统一间距 -->
-        <Style x:Key="ConfigComboBox" TargetType="ComboBox" BasedOn="{StaticResource MaterialDesignOutlinedComboBox}">
+        <Style x:Key="ConfigComboBox" TargetType="ComboBox" BasedOn="{StaticResource Zevision.OutlinedComboBox}">
             <Setter Property="Margin" Value="0,0,0,12" />
         </Style>
 
@@ -86,10 +86,10 @@
         </Grid.ColumnDefinitions>
 
         <!-- ============ 左侧:通讯配置与连接控制 ============ -->
-        <materialDesign:Card Grid.Column="0" Margin="12,12,6,12" UniformCornerRadius="8">
+        <materialDesign:Card Grid.Column="0" Margin="12,12,6,12">
             <DockPanel>
                 <!-- 高度与右侧"数据显示"标题行一致 (共用 PanelHeaderHeight) -->
-                <materialDesign:ColorZone x:Name="LeftHeader" DockPanel.Dock="Top" Mode="PrimaryMid" Padding="16,0" CornerRadius="8,8,0,0"
+                <materialDesign:ColorZone x:Name="LeftHeader" DockPanel.Dock="Top" Mode="PrimaryMid" Padding="16,0" CornerRadius="3,3,0,0"
                                           Height="{StaticResource PanelHeaderHeight}" VerticalContentAlignment="Center">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <materialDesign:PackIcon Kind="SerialPort" Width="22" Height="22" VerticalAlignment="Center" />
@@ -123,11 +123,11 @@
                                     <Setter Property="Fill" Value="{DynamicResource MaterialDesign.Brush.ForegroundLight}" />
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding IsConnected}" Value="True">
-                                            <Setter Property="Fill" Value="{DynamicResource MaterialDesign.Brush.Secondary}" />
+                                            <Setter Property="Fill" Value="{DynamicResource Zevision.Brush.Success}" />
                                         </DataTrigger>
                                         <!-- 正在连接、握手或等待自动重连 -->
                                         <DataTrigger Binding="{Binding IsConnecting}" Value="True">
-                                            <Setter Property="Fill" Value="{DynamicResource MaterialDesign.Brush.Primary}" />
+                                            <Setter Property="Fill" Value="{DynamicResource Zevision.Brush.Warning}" />
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
@@ -227,7 +227,7 @@
 
                         <!-- 两种设置叠放在同一格中,未选中的用 Hidden (仍占位):区域高度固定为较高的一种,
                              切换 tab 时下方"协议选项"等位置不变 -->
-                        <Grid Margin="0,12,0,8">
+                        <Grid Margin="0,12,0,12">
                             <StackPanel>
                                 <StackPanel.Style>
                                     <Style TargetType="StackPanel">
@@ -272,7 +272,7 @@
                                      ToolTip="{x:Static t:UiText.IpAddressToolTip}"
                                      ToolTipService.ShowOnDisabled="True">
                                 <TextBox.Style>
-                                    <Style TargetType="TextBox" BasedOn="{StaticResource MaterialDesignOutlinedTextBox}">
+                                    <Style TargetType="TextBox" BasedOn="{StaticResource Zevision.OutlinedTextBox}">
                                         <Setter Property="Visibility" Value="Hidden" />
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding Connection.IsTcpConnection}" Value="True">
@@ -344,7 +344,7 @@
             </Grid.RowDefinitions>
 
             <!-- 数据显示 -->
-            <materialDesign:Card Grid.Row="0" UniformCornerRadius="8">
+            <materialDesign:Card Grid.Row="0">
                 <DockPanel>
                     <!-- 高度与左侧顶部标题栏一致 (共用 PanelHeaderHeight) -->
                     <DockPanel x:Name="LogHeader" DockPanel.Dock="Top" Margin="16,0,8,0" Height="{StaticResource PanelHeaderHeight}">
@@ -416,7 +416,7 @@
             </materialDesign:Card>
 
             <!-- 指令输入 -->
-            <materialDesign:Card Grid.Row="1" Margin="0,12,0,0" Padding="16,12" UniformCornerRadius="8">
+            <materialDesign:Card Grid.Row="1" Margin="0,12,0,0" Padding="16,12">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
@@ -426,7 +426,7 @@
                     <!-- 发送选项 (连接期间也可修改):显示格式只影响之后的数据;勾选重复发送后,点击发送按间隔重复 -->
                     <!-- 底部对齐:重复间隔下拉框的底边与输入框底边对齐 (右侧输入框拉伸填满剩余高度) -->
                     <StackPanel Grid.Column="0" Width="160" Margin="0,0,16,0" VerticalAlignment="Bottom">
-                        <ComboBox Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                        <ComboBox Style="{StaticResource Zevision.OutlinedComboBox}"
                                   materialDesign:HintAssist.Hint="{x:Static t:UiText.DisplayFormat}"
                                   ItemsSource="{Binding SendOptions.DisplayFormats}"
                                   SelectedValuePath="Value"
@@ -441,7 +441,7 @@
                         <CheckBox Content="{x:Static t:UiText.RepeatSend}" Margin="0,8"
                                   IsChecked="{Binding SendOptions.IsRepeatEnabled}"
                                   ToolTip="{x:Static t:UiText.RepeatSendToolTip}" />
-                        <ComboBox Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                        <ComboBox Style="{StaticResource Zevision.OutlinedComboBox}"
                                   materialDesign:HintAssist.Hint="{x:Static t:UiText.RepeatInterval}"
                                   ItemsSource="{Binding SendOptions.RepeatIntervals}"
                                   SelectedItem="{Binding SendOptions.RepeatInterval}"

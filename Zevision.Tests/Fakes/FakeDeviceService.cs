@@ -60,6 +60,14 @@ namespace Zevision.Tests
         public HashSet<string> RejectCreates { get; } = new HashSet<string>();
 
         /// <summary>
+        /// 在默认处理之前回答一条指令 (模拟设备的状态机,如工艺的启动、停止);返回 null 时按默认处理。在发送锁内调用,可调用 <see cref="Set"/>。
+        /// </summary>
+        public Func<string, string?>? Intercept { get; set; }
+
+        /// <summary>远程动作 (R 指令) 回答的错误码,如 <c>["RN0119"] = 'A'</c>;不在其中的动作都接受。</summary>
+        public Dictionary<string, char> RejectRemotes { get; } = new Dictionary<string, char>(StringComparer.Ordinal);
+
+        /// <summary>
         /// <c>A&lt;列表&gt;00</c> 追加子列表条目时添加的条目;参数为新条目 ID。为 null 时追加指令成功但什么也不添加。
         /// </summary>
         public Func<string, IEnumerable<(string Id, string Value, string Description)>>? AppendTemplate { get; set; }
@@ -67,24 +75,42 @@ namespace Zevision.Tests
         /// <summary>删除对象及其所有设置项 (模拟用户在仪器上删除材料/膜层)。</summary>
         public FakeDeviceService Remove(string itemId)
         {
-            _entries.RemoveAll(e => e.Key.StartsWith(itemId, StringComparison.Ordinal));
+            lock (_entries)
+            {
+                _entries.RemoveAll(e => e.Key.StartsWith(itemId, StringComparison.Ordinal));
+            }
+
             return this;
         }
 
         public FakeDeviceService Set(string id, string value)
         {
-            var index = _entries.FindIndex(e => e.Key == id);
-            _entries[index] = new KeyValuePair<string, (string, string)>(id, (value, _entries[index].Value.Description));
+            lock (_entries)
+            {
+                var index = _entries.FindIndex(e => e.Key == id);
+                _entries[index] = new KeyValuePair<string, (string, string)>(id, (value, _entries[index].Value.Description));
+            }
+
             return this;
         }
 
         public FakeDeviceService With(string id, string value, string description = "")
         {
-            _entries.Add(new KeyValuePair<string, (string, string)>(id, (value, description)));
+            lock (_entries)
+            {
+                _entries.Add(new KeyValuePair<string, (string, string)>(id, (value, description)));
+            }
+
             return this;
         }
 
-        public string? Get(string id) => _entries.Where(e => e.Key == id).Select(e => e.Value.Value).FirstOrDefault();
+        public string? Get(string id)
+        {
+            lock (_entries)
+            {
+                return _entries.Where(e => e.Key == id).Select(e => e.Value.Value).FirstOrDefault();
+            }
+        }
 
         /// <summary>每次连接的参数。</summary>
         public List<ConnectionOptions> Connections { get; } = new List<ConnectionOptions>();
@@ -145,15 +171,19 @@ namespace Zevision.Tests
 
         public Task<Result<ZevisionReply>> SendAsync(string command, TimeSpan minimumResponseTimeout, CancellationToken cancellationToken)
         {
-            MinimumTimeouts.Add(minimumResponseTimeout);
-            cancellationToken.ThrowIfCancellationRequested();
-            Frames.Add(command);
+            // 与实机的发送锁一样一次处理一帧:中间层的后台采样与主机命令同时发送 (_entries 的锁可重入)。
+            lock (_entries)
+            {
+                MinimumTimeouts.Add(minimumResponseTimeout);
+                cancellationToken.ThrowIfCancellationRequested();
+                Frames.Add(command);
 
-            // 与实机一致:一帧中的多条指令 (; 分隔) 逐条执行,响应用 ; 连接。
-            var payload = string.Join(";", command.Split(';').Select(c => Respond(c, cancellationToken)));
-            var data = Encoding.ASCII.GetBytes(payload);
-            var frame = new ZevisionFrame(data, data, Array.Empty<ByteRange>(), 1, Array.Empty<int>(), FrameError.None);
-            return Task.FromResult(Result<ZevisionReply>.Ok(new ZevisionReply(frame, ZevisionResponseParser.Parse(payload))));
+                // 与实机一致:一帧中的多条指令 (; 分隔) 逐条执行,响应用 ; 连接。
+                var payload = string.Join(";", command.Split(';').Select(c => Respond(c, cancellationToken)));
+                var data = Encoding.ASCII.GetBytes(payload);
+                var frame = new ZevisionFrame(data, data, Array.Empty<ByteRange>(), 1, Array.Empty<int>(), FrameError.None);
+                return Task.FromResult(Result<ZevisionReply>.Ok(new ZevisionReply(frame, ZevisionResponseParser.Parse(payload))));
+            }
         }
 
         /// <summary>收到的指令的副本;可以在其他线程发送时调用 (如重复发送的测试)。</summary>
@@ -170,6 +200,11 @@ namespace Zevision.Tests
             lock (Commands)
             {
                 Commands.Add(command);
+            }
+
+            if (Intercept?.Invoke(command) is { } intercepted)
+            {
+                return intercepted;
             }
 
             string payload;
@@ -292,6 +327,18 @@ namespace Zevision.Tests
                 var value = Get(id);
                 payload = value == null ? command + "-A" : command + "+:" + value;
             }
+            else if (command.StartsWith("S", StringComparison.Ordinal))
+            {
+                // 状态 (SC11):实机格式为"同步计数,值" (SC11+:90,0.00),值取同 ID 的项。
+                var value = Get(command.Substring(1));
+                payload = value == null ? command + "-A" : command + "+:01," + value;
+            }
+            else if (command.StartsWith("R", StringComparison.Ordinal))
+            {
+                // 远程动作 (RC04、RG16:1):接受,RejectRemotes 中的回答其错误码。回显与实机相同,不含数据 (RG16+)。
+                var echo = ZevisionResponseParser.EchoOf(command);
+                payload = RejectRemotes.TryGetValue(command, out var code) ? echo + "-" + code : echo + "+";
+            }
             else
             {
                 payload = command + "-A";
@@ -306,6 +353,14 @@ namespace Zevision.Tests
 
         /// <summary>按实测格式 (定宽 30 列、LF 分隔) 生成帮助表;指定 <paramref name="group"/> 时只列该组 (组帮助)。</summary>
         public string BuildHelpTable(char? group = null)
+        {
+            lock (_entries)
+            {
+                return BuildHelpTableCore(group);
+            }
+        }
+
+        private string BuildHelpTableCore(char? group)
         {
             var sb = new StringBuilder("\n");
             sb.Append(Row("[CMD ID]", "[VALUE]", "[DESCRIPTION]"));

@@ -22,6 +22,8 @@ namespace Zevision.Tests
         private static readonly Assembly CommandsAssembly = typeof(ZevisionCommandSet).Assembly;
         private static readonly Assembly CoreAssembly = typeof(Zevision.Core.Result).Assembly;
         private static readonly Assembly StorageAssembly = typeof(Zevision.Storage.RecipeFile).Assembly;
+        private static readonly Assembly Xtc3Assembly = typeof(Zevision.Xtc3.Xtc3Protocol).Assembly;
+        private static readonly Assembly BridgeAssembly = typeof(Zevision.Bridge.Xtc3Bridge).Assembly;
         private static readonly string[] FileTypes = { "File", "FileInfo", "FileStream", "StreamWriter", "Directory", "DirectoryInfo" };
 
         [Fact]
@@ -35,6 +37,31 @@ namespace Zevision.Tests
         {
             Assert.Empty(References(CommandsAssembly).Except(new[] { "mscorlib", "System", "System.Core", "Zevision.Communication" }));
             Assert.Contains("Zevision.Communication", References(CommandsAssembly));
+        }
+
+        [Fact]
+        public void Xtc3_ReferencesOnlyFramework()
+        {
+            Assert.Empty(References(Xtc3Assembly).Except(new[] { "mscorlib", "System", "System.Core" }));
+        }
+
+        [Fact]
+        public void Bridge_ReferencesFrameworkProtocolLibrariesAndCore_NotStorageOrWpf()
+        {
+            var allowed = new[]
+            {
+                "mscorlib", "System", "System.Core", "System.Runtime.Serialization", "System.Xml",
+                "Zevision.Communication", "Zevision.Commands", "Zevision.Core", "Zevision.Xtc3",
+            };
+
+            Assert.Empty(References(BridgeAssembly).Except(allowed));
+            Assert.Contains("Zevision.Xtc3", References(BridgeAssembly));
+        }
+
+        [Fact]
+        public void Xtc3AndBridge_HaveNoChineseStrings()
+        {
+            Assert.DoesNotContain(UserStrings(Xtc3Assembly).Concat(UserStrings(BridgeAssembly)), ContainsCjk);
         }
 
         [Fact]

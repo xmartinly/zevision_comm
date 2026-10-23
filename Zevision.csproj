@@ -78,6 +78,10 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
+    <Page Include="Views\InficonTheme.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Compile Include="Views\ProcessDesignerWindow.xaml.cs">
       <DependentUpon>ProcessDesignerWindow.xaml</DependentUpon>
       <SubType>Code</SubType>

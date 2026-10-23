@@ -467,7 +467,21 @@ namespace Zevision.ViewModels.Design
                     yield return line;
                 }
             }
+
+            if (deletion.ActiveProcess is { } active)
+            {
+                yield return Lang.T(
+                    $"{active} 是设备的活动工艺 (P01),删除后设备没有活动工艺。",
+                    $"{active} is the device's active process (P01); after deleting it the device has no active process.");
+            }
         }
+
+        /// <summary>删除了活动工艺后读回的 P01:为 0 时已清除,否则给出当前的值 (可在“修改”中改为其他工艺)。</summary>
+        /// <param name="value">读回的 P01;没有读到时为 null。</param>
+        public static string ActiveProcessAfterDelete(string? value) =>
+            value?.Trim() == "0"
+                ? Lang.T("设备的活动工艺已清除 (P01 = 0)。", "The device's active process was cleared (P01 = 0).")
+                : Lang.T($"设备的活动工艺 P01 = {value?.Trim() ?? "?"}。", $"The device's active process is P01 = {value?.Trim() ?? "?"}.");
 
         /// <summary>对象的类型和 ID,如 <c>膜层 L02, 材料 M02</c>。</summary>
         private static string ObjectList(IEnumerable<DesignObject> objects) =>

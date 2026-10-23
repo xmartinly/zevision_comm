@@ -535,8 +535,19 @@ namespace Zevision.Tests
             Assert.Single(designer.Processes);
         }
 
+        /// <summary>与实机相同 (2026-10-23 实测):删除活动工艺后设备把 P01 改为 0。</summary>
+        private static void ClearActiveProcessOnDelete(FakeDeviceService device, string processId) => device.Intercept = command =>
+        {
+            if (command == "D" + processId)
+            {
+                device.Set("P01", "0");
+            }
+
+            return null;
+        };
+
         [Fact]
-        public async Task DeleteProcess_ActiveOnTheDevice_DeletesNothing()
+        public async Task DeleteProcess_ActiveOnTheDevice_ConfirmsAndDeletes_ReportsP01()
         {
             var device = DesignBuilderTests.NewDevice();
             var dialogs = new FakeDialogService();
@@ -545,16 +556,32 @@ namespace Zevision.Tests
             await designer.UploadAsync();
             ClearRecords(device, dialogs);
             device.Set("P01", "2"); // 活动工艺是 P0202
+            ClearActiveProcessOnDelete(device, "P0202");
 
             await designer.DeleteProcessAsync();
 
-            Assert.Empty(dialogs.Errors);
-            Assert.True(designer.ResultIsError);
-            Assert.StartsWith("设备上的以下设置引用了工艺 P1 的数据,没有删除 (本地也未删除)。", designer.ResultText, StringComparison.Ordinal);
-            Assert.EndsWith("设置活动工艺 P01 = 2", designer.ResultText, StringComparison.Ordinal);
-            Assert.Empty(dialogs.Confirms);
-            Assert.Empty(Deletes(device));
-            Assert.Single(designer.Processes);
+            var question = Assert.Single(dialogs.Confirms);
+            Assert.Contains("P0202 是设备的活动工艺 (P01),删除后设备没有活动工艺。", question);
+            Assert.Equal(new[] { "DP0202", "DL03", "DL02" }, Deletes(device));
+            Assert.False(designer.ResultIsError);
+            Assert.EndsWith("设备的活动工艺已清除 (P01 = 0)。", designer.ResultText, StringComparison.Ordinal);
+            Assert.Empty(designer.Processes);
+        }
+
+        [Fact]
+        public async Task DeleteDeviceProcess_Active_ReportsP01AfterDelete()
+        {
+            var device = DesignBuilderTests.NewDevice(); // P01 = 1:活动工艺是 P0201
+            var dialogs = new FakeDialogService();
+            var designer = NewDesigner(new MemoryDesignStore(), device, dialogs);
+            ClearActiveProcessOnDelete(device, "P0201");
+            var item = designer.Device.Processes.Single(p => p.Id == "P0201");
+
+            await designer.DeleteDeviceProcessAsync(item);
+
+            Assert.Contains("P0201 是设备的活动工艺 (P01)", Assert.Single(dialogs.Confirms));
+            Assert.Equal(new[] { "DP0201" }, Deletes(device));
+            Assert.Equal("已从设备删除: 工艺 P0201。 设备的活动工艺已清除 (P01 = 0)。", designer.ResultText);
         }
 
         [Fact]

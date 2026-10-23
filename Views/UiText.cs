@@ -302,8 +302,8 @@ namespace Zevision.Views
         /// <summary>工艺名称 (最多 30 个字符,膜层名称含工艺名称)</summary>
         public static string DesignProcessNameToolTip => Lang.T("最多 30 个字符,生成的膜层名称也是", "At most 30 characters, generated layer names too");
 
-        /// <summary>从材料库选择</summary>
-        public static string DesignLibrary => Lang.T("从材料库选择 (可输入关键字)", "From the material library (type to search)");
+        /// <summary>搜索材料库</summary>
+        public static string DesignLibrary => Lang.T("搜索材料库", "Search library");
 
         /// <summary>按化学式、名称搜索,选择后填入名称、密度、Z 比</summary>
         public static string DesignLibraryToolTip => Lang.T("按化学式、名称搜索,选择后填入名称、密度、Z 比", "Search by formula or name; fills in the name, density and Z ratio");

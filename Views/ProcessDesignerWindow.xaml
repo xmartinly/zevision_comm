@@ -27,45 +27,102 @@
         <BooleanToVisibilityConverter x:Key="BooleanToVisibility" />
 
         <!--
-            材料页按列对齐:输入框和下拉框都是一列宽 (Field、Choice:192 + 右边距 12),跨两列的为 396。
-            预熔、后处理的标题也占一列,三个值对齐到第 2~4 列。
+            参数分组:白底细边框的面板,标题栏浅灰底、深蓝字,标题栏右边可放按钮。
+            材料页每组两列输入框 (Field、Choice:192 + 右边距 12),组宽 422;窗口够宽时两组并排,否则上下排列。
         -->
-        <Style x:Key="Field" TargetType="TextBox" BasedOn="{StaticResource MaterialDesignOutlinedTextBox}">
+        <Style x:Key="Group" TargetType="HeaderedContentControl">
+            <Setter Property="Width" Value="422" />
+            <Setter Property="Margin" Value="0,0,12,12" />
+            <Setter Property="Padding" Value="12,14,0,0" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="HeaderedContentControl">
+                        <Border Background="{DynamicResource MaterialDesign.Brush.Card.Background}"
+                                BorderBrush="{DynamicResource MaterialDesign.Brush.Card.Border}" BorderThickness="1" CornerRadius="4">
+                            <DockPanel>
+                                <Border DockPanel.Dock="Top" MinHeight="36" Padding="12,0,4,0" CornerRadius="3,3,0,0"
+                                        Background="{DynamicResource MaterialDesign.Brush.Background}"
+                                        BorderBrush="{DynamicResource MaterialDesign.Brush.Card.Border}" BorderThickness="0,0,0,1">
+                                    <ContentPresenter ContentSource="Header" VerticalAlignment="Center"
+                                                      TextElement.FontWeight="SemiBold"
+                                                      TextElement.Foreground="{DynamicResource MaterialDesign.Brush.Primary}" />
+                                </Border>
+                                <ContentPresenter Margin="{TemplateBinding Padding}" />
+                            </DockPanel>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <!-- 占满宽度的分组 (工艺页、设备页、左边的列表) -->
+        <Style x:Key="WideGroup" TargetType="HeaderedContentControl" BasedOn="{StaticResource Group}">
+            <Setter Property="Width" Value="NaN" />
+            <Setter Property="Margin" Value="0" />
+        </Style>
+        <Style x:Key="ListGroup" TargetType="HeaderedContentControl" BasedOn="{StaticResource WideGroup}">
+            <Setter Property="Padding" Value="0,4" />
+        </Style>
+
+        <!-- 紧凑的输入框 (主题中的 Zevision.Outlined*),一列宽 192 -->
+        <Style x:Key="Field" TargetType="TextBox" BasedOn="{StaticResource Zevision.OutlinedTextBox}">
             <Setter Property="Width" Value="192" />
             <Setter Property="Margin" Value="0,0,12,12" />
         </Style>
-        <Style x:Key="WideField" TargetType="TextBox" BasedOn="{StaticResource Field}">
-            <Setter Property="Width" Value="260" />
-        </Style>
-        <Style x:Key="SmallField" TargetType="TextBox" BasedOn="{StaticResource Field}">
-            <Setter Property="Width" Value="150" />
-            <Setter Property="Margin" Value="0,0,8,8" />
-        </Style>
-        <Style x:Key="Choice" TargetType="ComboBox" BasedOn="{StaticResource MaterialDesignOutlinedComboBox}">
+        <Style x:Key="Choice" TargetType="ComboBox" BasedOn="{StaticResource Zevision.OutlinedComboBox}">
             <Setter Property="Width" Value="192" />
             <Setter Property="Margin" Value="0,0,12,12" />
         </Style>
-        <Style x:Key="RowTitle" TargetType="TextBlock">
-            <Setter Property="Width" Value="192" />
-            <Setter Property="Margin" Value="0,0,12,12" />
+        <!-- 表格中的输入框:列标题代替提示文字,宽度按列设置 -->
+        <Style x:Key="Cell" TargetType="TextBox" BasedOn="{StaticResource Field}">
+            <Setter Property="Margin" Value="0,0,8,0" />
+        </Style>
+        <Style x:Key="ChoiceCell" TargetType="ComboBox" BasedOn="{StaticResource Choice}">
+            <Setter Property="Margin" Value="0,0,8,0" />
+        </Style>
+        <Style x:Key="ColumnHeader" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="VerticalAlignment" Value="Bottom" />
+            <Setter Property="Margin" Value="0,0,8,6" />
+            <Setter Property="Foreground" Value="{DynamicResource MaterialDesign.Brush.ForegroundLight}" />
+        </Style>
+        <Style x:Key="RowNumber" TargetType="TextBlock">
+            <Setter Property="Width" Value="26" />
+            <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
-        <Style x:Key="SectionTitle" TargetType="TextBlock">
+        <!-- 标题栏中带按钮时的标题 (标题栏的字体设置只作用于文字标题) -->
+        <Style x:Key="GroupTitle" TargetType="TextBlock">
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Margin" Value="0,4,0,10" />
+            <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="Foreground" Value="{DynamicResource MaterialDesign.Brush.Primary}" />
         </Style>
+
         <Style x:Key="IconButton" TargetType="Button" BasedOn="{StaticResource MaterialDesignFlatButton}">
             <Setter Property="Padding" Value="6,0" />
             <Setter Property="Height" Value="30" />
-            <Setter Property="VerticalAlignment" Value="Top" />
-            <Setter Property="Margin" Value="0,10,0,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
-        <Style x:Key="AddButton" TargetType="Button" BasedOn="{StaticResource MaterialDesignOutlinedButton}">
-            <Setter Property="HorizontalAlignment" Value="Left" />
-            <Setter Property="Padding" Value="10,0" />
+        <Style x:Key="RemoveButton" TargetType="Button" BasedOn="{StaticResource IconButton}">
+            <Setter Property="Foreground" Value="{DynamicResource MaterialDesign.Brush.ValidationError}" />
+            <Setter Property="ToolTip" Value="{x:Static t:UiText.DesignRemove}" />
+        </Style>
+        <!-- 分组标题栏中的按钮 (新建、添加、删除、刷新) -->
+        <Style x:Key="HeaderButton" TargetType="Button" BasedOn="{StaticResource MaterialDesignFlatButton}">
+            <Setter Property="Padding" Value="8,0" />
             <Setter Property="Height" Value="28" />
-            <Setter Property="Margin" Value="0,0,0,16" />
+            <Setter Property="FontWeight" Value="Normal" />
+        </Style>
+        <Style x:Key="HeaderDeleteButton" TargetType="Button" BasedOn="{StaticResource HeaderButton}">
+            <Setter Property="Foreground" Value="{DynamicResource MaterialDesign.Brush.ValidationError}" />
+        </Style>
+
+        <!-- 没有选中项时的提示 (右边区域) -->
+        <Style x:Key="NoSelection" TargetType="TextBlock">
+            <Setter Property="Margin" Value="4,8" />
+            <Setter Property="Text" Value="{x:Static t:UiText.DesignNoSelection}" />
+            <Setter Property="Foreground" Value="{DynamicResource MaterialDesign.Brush.ForegroundLight}" />
         </Style>
 
         <!-- 本地材料、工艺列表的一项:名称,下面一行是设备上是否已有同名的对象 -->
@@ -86,40 +143,21 @@
             </StackPanel>
         </DataTemplate>
 
-        <!-- 一段预熔或后处理:标题 (第 1 列)、三个值 (第 2~4 列)、删除 -->
-        <DataTemplate x:Key="PreStepTemplate" DataType="{x:Type vm:ConditionStepViewModel}">
-            <StackPanel Orientation="Horizontal">
-                <TextBlock Text="{Binding Title}" Style="{StaticResource RowTitle}" />
-                <TextBox Style="{StaticResource Field}" materialDesign:HintAssist.Hint="{x:Static t:UiText.DesignPreRampTime}"
-                         Text="{Binding RampTime, UpdateSourceTrigger=PropertyChanged}" />
-                <TextBox Style="{StaticResource Field}" materialDesign:HintAssist.Hint="{x:Static t:UiText.DesignPreRampPower}"
-                         Text="{Binding RampPower, UpdateSourceTrigger=PropertyChanged}" />
-                <TextBox Style="{StaticResource Field}" materialDesign:HintAssist.Hint="{x:Static t:UiText.DesignPreHoldTime}"
-                         Text="{Binding HoldTime, UpdateSourceTrigger=PropertyChanged}" />
-                <Button Style="{StaticResource IconButton}" Command="{Binding RemoveCommand}" ToolTip="{x:Static t:UiText.DesignRemove}"
-                        Foreground="{DynamicResource MaterialDesign.Brush.ValidationError}">
-                    <materialDesign:PackIcon Kind="Close" />
-                </Button>
-            </StackPanel>
-        </DataTemplate>
-        <DataTemplate x:Key="PostStepTemplate" DataType="{x:Type vm:ConditionStepViewModel}">
-            <StackPanel Orientation="Horizontal">
-                <TextBlock Text="{Binding Title}" Style="{StaticResource RowTitle}" />
-                <TextBox Style="{StaticResource Field}" materialDesign:HintAssist.Hint="{x:Static t:UiText.DesignPostRampTime}"
-                         Text="{Binding RampTime, UpdateSourceTrigger=PropertyChanged}" />
-                <TextBox Style="{StaticResource Field}" materialDesign:HintAssist.Hint="{x:Static t:UiText.DesignPostRampPower}"
-                         Text="{Binding RampPower, UpdateSourceTrigger=PropertyChanged}" />
-                <TextBox Style="{StaticResource Field}" materialDesign:HintAssist.Hint="{x:Static t:UiText.DesignPostHoldTime}"
-                         Text="{Binding HoldTime, UpdateSourceTrigger=PropertyChanged}" />
-                <Button Style="{StaticResource IconButton}" Command="{Binding RemoveCommand}" ToolTip="{x:Static t:UiText.DesignRemove}"
-                        Foreground="{DynamicResource MaterialDesign.Brush.ValidationError}">
+        <!-- 预熔、后处理表格的一行:序号、三个值、删除 (列宽与 ConditionHeader 相同) -->
+        <DataTemplate x:Key="ConditionStepTemplate" DataType="{x:Type vm:ConditionStepViewModel}">
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                <TextBlock Text="{Binding Number}" Style="{StaticResource RowNumber}" />
+                <TextBox Style="{StaticResource Cell}" Width="118" Text="{Binding RampTime, UpdateSourceTrigger=PropertyChanged}" />
+                <TextBox Style="{StaticResource Cell}" Width="92" Text="{Binding RampPower, UpdateSourceTrigger=PropertyChanged}" />
+                <TextBox Style="{StaticResource Cell}" Width="118" Text="{Binding HoldTime, UpdateSourceTrigger=PropertyChanged}" />
+                <Button Style="{StaticResource RemoveButton}" Command="{Binding RemoveCommand}">
                     <materialDesign:PackIcon Kind="Close" />
                 </Button>
             </StackPanel>
         </DataTemplate>
     </Window.Resources>
 
-    <DockPanel Margin="16">
+    <DockPanel Margin="16,8,16,16">
         <!-- 底部:保存位置、结果、进度、按钮 -->
         <DockPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Bottom">
@@ -179,53 +217,55 @@
             </StackPanel>
         </DockPanel>
 
-        <TabControl SelectedIndex="{Binding SelectedTabIndex}">
+        <!-- 页签靠左 (不平分宽度) -->
+        <TabControl SelectedIndex="{Binding SelectedTabIndex}" materialDesign:TabAssist.HasUniformTabWidth="False" HorizontalContentAlignment="Left">
             <!-- 材料:每种材料在设备上是一个材料和一个膜系 -->
             <TabItem Header="{x:Static t:UiText.DesignMaterialsTab}">
-                <Grid Margin="0,8,0,0">
+                <Grid Margin="0,12,0,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="230" />
                         <ColumnDefinition Width="12" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
-                    <materialDesign:Card Grid.Column="0" UniformCornerRadius="8">
-                        <DockPanel>
-                            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="8">
-                                <Button Command="{Binding AddMaterialCommand}" Style="{StaticResource MaterialDesignFlatButton}" Padding="8,0">
+                    <HeaderedContentControl Grid.Column="0" Style="{StaticResource ListGroup}">
+                        <HeaderedContentControl.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <Button Command="{Binding AddMaterialCommand}" Style="{StaticResource HeaderButton}">
                                     <StackPanel Orientation="Horizontal">
                                         <materialDesign:PackIcon Kind="Plus" VerticalAlignment="Center" />
                                         <TextBlock Text="{x:Static t:UiText.DesignNew}" Margin="4,0,0,0" />
                                     </StackPanel>
                                 </Button>
-                                <Button Command="{Binding DeleteMaterialCommand}" Style="{StaticResource MaterialDesignFlatButton}" Padding="8,0"
-                                        Foreground="{DynamicResource MaterialDesign.Brush.ValidationError}">
+                                <Button Command="{Binding DeleteMaterialCommand}" Style="{StaticResource HeaderDeleteButton}">
                                     <StackPanel Orientation="Horizontal">
                                         <materialDesign:PackIcon Kind="Delete" VerticalAlignment="Center" />
                                         <TextBlock Text="{x:Static t:UiText.DesignDelete}" Margin="4,0,0,0" />
                                     </StackPanel>
                                 </Button>
                             </StackPanel>
-                            <ListBox ItemsSource="{Binding Materials}" SelectedItem="{Binding SelectedMaterial}" ItemTemplate="{StaticResource LocalItemTemplate}"
-                                     IsEnabled="{Binding IsEditable}" Margin="0,0,0,8" />
-                        </DockPanel>
-                    </materialDesign:Card>
+                        </HeaderedContentControl.Header>
+                        <ListBox ItemsSource="{Binding Materials}" SelectedItem="{Binding SelectedMaterial}" ItemTemplate="{StaticResource LocalItemTemplate}"
+                                 IsEnabled="{Binding IsEditable}" />
+                    </HeaderedContentControl>
 
-                    <materialDesign:Card Grid.Column="2" UniformCornerRadius="8">
-                        <Grid>
-                            <TextBlock Text="{x:Static t:UiText.DesignNoSelection}" Margin="16" Foreground="{DynamicResource MaterialDesign.Brush.ForegroundLight}" />
-                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
-                                          Visibility="{Binding HasSelectedMaterial, Converter={StaticResource BooleanToVisibility}}"
-                                          Background="{DynamicResource MaterialDesign.Brush.Card.Background}">
-                                <StackPanel Margin="16,12,16,4" DataContext="{Binding SelectedMaterial}" IsEnabled="{Binding IsEditable}">
-                                    <TextBlock Text="{x:Static t:UiText.DesignMaterialSection}" Style="{StaticResource SectionTitle}" />
+                    <Grid Grid.Column="2">
+                        <TextBlock Style="{StaticResource NoSelection}" />
+                        <!--
+                            按设定顺序分组:材料 (先搜索材料库,填入名称、密度、Z 比)、传感器与输出源、控制、延迟 (选项不为 0 时才有其余设置)、
+                            预熔与后处理并排 (表格)。
+                        -->
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                                      Background="{DynamicResource MaterialDesign.Brush.Background}"
+                                      Visibility="{Binding HasSelectedMaterial, Converter={StaticResource BooleanToVisibility}}">
+                            <WrapPanel DataContext="{Binding SelectedMaterial}" IsEnabled="{Binding IsEditable}">
+                                <HeaderedContentControl Style="{StaticResource Group}" Header="{x:Static t:UiText.DesignMaterialSection}">
                                     <WrapPanel>
-                                        <TextBox Style="{StaticResource Field}" materialDesign:HintAssist.Hint="{x:Static t:UiText.DesignName}"
-                                                 ToolTip="{x:Static t:UiText.DesignNameToolTip}" MaxLength="30"
-                                                 Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
                                         <!-- 材料库:输入关键字 (化学式、英文名、中文名) 筛选,选择后填入名称、密度、Z 比;展开时不全选 (见代码隐藏) -->
-                                        <ComboBox Style="{StaticResource Choice}" Width="396" IsEditable="True" IsTextSearchEnabled="False"
+                                        <ComboBox Style="{StaticResource Choice}" IsEditable="True" IsTextSearchEnabled="False"
                                                   DropDownOpened="OnLibraryDropDownOpened"
                                                   materialDesign:HintAssist.Hint="{x:Static t:UiText.DesignLibrary}"
+                                                  materialDesign:TextFieldAssist.HasLeadingIcon="True"
+                                                  materialDesign:TextFieldAssist.LeadingIcon="Magnify"
                                                   ToolTip="{x:Static t:UiText.DesignLibraryToolTip}"
                                                   ItemsSource="{Binding LibraryMatches}" DisplayMemberPath="Text"
                                                   Text="{Binding LibrarySearch, UpdateSourceTrigger=PropertyChanged}"
@@ -238,8 +278,9 @@
                                                 </Style>
                                             </ComboBox.ItemContainerStyle>
                                         </ComboBox>
-                                    </WrapPanel>
-                                    <WrapPanel>
+                                        <TextBox Style="{StaticResource Field}" materialDesign:HintAssist.Hint="{x:Static t:UiText.DesignName}"
+                                                 ToolTip="{x:Static t:UiText.DesignNameToolTip}" MaxLength="30" materialDesign:TextFieldAssist.CharacterCounterVisibility="Collapsed"
+                                                 Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
                                         <TextBox Style="{StaticResource Field}" materialDesign:HintAssist.Hint="{x:Static t:UiText.DesignDensity}"
                                                  Text="{Binding Density, UpdateSourceTrigger=PropertyChanged}" />
                                         <TextBox Style="{StaticResource Field}" materialDesign:HintAssist.Hint="{x:Static t:UiText.DesignZRatio}"
@@ -247,8 +288,9 @@
                                         <TextBox Style="{StaticResource Field}" materialDesign:HintAssist.Hint="{x:Static t:UiText.DesignTooling}"
                                                  Text="{Binding Tooling, UpdateSourceTrigger=PropertyChanged}" />
                                     </WrapPanel>
+                                </HeaderedContentControl>
 
-                                    <TextBlock Text="{x:Static t:UiText.DesignSensorSection}" Style="{StaticResource SectionTitle}" />
+                                <HeaderedContentControl Style="{StaticResource Group}" Header="{x:Static t:UiText.DesignSensorSection}">
                                     <WrapPanel>
                                         <ComboBox Style="{StaticResource Choice}" materialDesign:HintAssist.Hint="{x:Static t:UiText.DesignSensor}"
                                                   ItemsSource="{Binding SensorChoices}" DisplayMemberPath="Text" SelectedValuePath="Value"
@@ -262,8 +304,9 @@
                                                   ItemsSource="{Binding CrucibleChoices}" DisplayMemberPath="Text" SelectedValuePath="Value"
                                                   SelectedValue="{Binding Crucible}" />
                                     </WrapPanel>
+                                </HeaderedContentControl>
 
-                                    <TextBlock Text="{x:Static t:UiText.DesignControlSection}" Style="{StaticResource SectionTitle}" />
+                                <HeaderedContentControl Style="{StaticResource Group}" Header="{x:Static t:UiText.DesignControlSection}">
                                     <WrapPanel>
                                         <TextBox Style="{StaticResource Field}" materialDesign:HintAssist.Hint="{x:Static t:UiText.DesignPTerm}"
                                                  Text="{Binding PTerm, UpdateSourceTrigger=PropertyChanged}" />
@@ -271,185 +314,258 @@
                                                  Text="{Binding ITerm, UpdateSourceTrigger=PropertyChanged}" />
                                         <TextBox Style="{StaticResource Field}" materialDesign:HintAssist.Hint="{x:Static t:UiText.DesignDTerm}"
                                                  Text="{Binding DTerm, UpdateSourceTrigger=PropertyChanged}" />
-                                    </WrapPanel>
-                                    <WrapPanel>
                                         <TextBox Style="{StaticResource Field}" materialDesign:HintAssist.Hint="{x:Static t:UiText.DesignMaxPower}"
                                                  Text="{Binding MaxPower, UpdateSourceTrigger=PropertyChanged}" />
                                         <ComboBox Style="{StaticResource Choice}" materialDesign:HintAssist.Hint="{x:Static t:UiText.DesignMaxPowerOption}"
                                                   ItemsSource="{Binding MaxPowerOptions}" DisplayMemberPath="Label" SelectedValuePath="Value"
                                                   SelectedValue="{Binding MaxPowerOption}" />
+                                    </WrapPanel>
+                                </HeaderedContentControl>
+
+                                <!-- 延迟:选项不为 0 时才显示其余设置 (为 0 时不写入设备) -->
+                                <HeaderedContentControl Style="{StaticResource Group}" Header="{x:Static t:UiText.DesignDelaySection}">
+                                    <WrapPanel>
                                         <ComboBox Style="{StaticResource Choice}" materialDesign:HintAssist.Hint="{x:Static t:UiText.DesignDelayOption}"
                                                   ItemsSource="{Binding DelayOptions}" DisplayMemberPath="Label" SelectedValuePath="Value"
                                                   SelectedValue="{Binding DelayOption}" />
+                                        <TextBox Style="{StaticResource Field}" materialDesign:HintAssist.Hint="{x:Static t:UiText.DesignControlDelayTime}"
+                                                 Visibility="{Binding HasDelaySettings, Converter={StaticResource BooleanToVisibility}}"
+                                                 Text="{Binding ControlDelayTime, UpdateSourceTrigger=PropertyChanged}" />
+                                        <TextBox Style="{StaticResource Field}" materialDesign:HintAssist.Hint="{x:Static t:UiText.DesignShutterDelayAccuracy}"
+                                                 Visibility="{Binding HasDelaySettings, Converter={StaticResource BooleanToVisibility}}"
+                                                 Text="{Binding ShutterDelayAccuracy, UpdateSourceTrigger=PropertyChanged}" />
+                                        <TextBox Style="{StaticResource Field}" materialDesign:HintAssist.Hint="{x:Static t:UiText.DesignShutterDelayTimeout}"
+                                                 Visibility="{Binding HasDelaySettings, Converter={StaticResource BooleanToVisibility}}"
+                                                 Text="{Binding ShutterDelayTimeout, UpdateSourceTrigger=PropertyChanged}" />
+                                        <ComboBox Style="{StaticResource Choice}" materialDesign:HintAssist.Hint="{x:Static t:UiText.DesignTransferSensor}"
+                                                  Visibility="{Binding HasDelaySettings, Converter={StaticResource BooleanToVisibility}}"
+                                                  ItemsSource="{Binding TransferSensorChoices}" DisplayMemberPath="Text" SelectedValuePath="Value"
+                                                  SelectedValue="{Binding TransferSensor}" />
+                                        <TextBox Style="{StaticResource Field}" materialDesign:HintAssist.Hint="{x:Static t:UiText.DesignTransferTooling}"
+                                                 Visibility="{Binding HasDelaySettings, Converter={StaticResource BooleanToVisibility}}"
+                                                 Text="{Binding TransferTooling, UpdateSourceTrigger=PropertyChanged}" />
                                     </WrapPanel>
+                                </HeaderedContentControl>
 
-                                    <!-- 延迟设置:延迟选项不为 0 时显示 (为 0 时不写入设备) -->
-                                    <StackPanel Visibility="{Binding HasDelaySettings, Converter={StaticResource BooleanToVisibility}}">
-                                        <TextBlock Text="{x:Static t:UiText.DesignDelaySection}" Style="{StaticResource SectionTitle}" />
-                                        <WrapPanel>
-                                            <TextBox Style="{StaticResource Field}" materialDesign:HintAssist.Hint="{x:Static t:UiText.DesignControlDelayTime}"
-                                                     Text="{Binding ControlDelayTime, UpdateSourceTrigger=PropertyChanged}" />
-                                            <TextBox Style="{StaticResource Field}" materialDesign:HintAssist.Hint="{x:Static t:UiText.DesignShutterDelayAccuracy}"
-                                                     Text="{Binding ShutterDelayAccuracy, UpdateSourceTrigger=PropertyChanged}" />
-                                            <TextBox Style="{StaticResource Field}" materialDesign:HintAssist.Hint="{x:Static t:UiText.DesignShutterDelayTimeout}"
-                                                     Text="{Binding ShutterDelayTimeout, UpdateSourceTrigger=PropertyChanged}" />
-                                        </WrapPanel>
-                                        <WrapPanel>
-                                            <ComboBox Style="{StaticResource Choice}" materialDesign:HintAssist.Hint="{x:Static t:UiText.DesignTransferSensor}"
-                                                      ItemsSource="{Binding TransferSensorChoices}" DisplayMemberPath="Text" SelectedValuePath="Value"
-                                                      SelectedValue="{Binding TransferSensor}" />
-                                            <TextBox Style="{StaticResource Field}" materialDesign:HintAssist.Hint="{x:Static t:UiText.DesignTransferTooling}"
-                                                     Text="{Binding TransferTooling, UpdateSourceTrigger=PropertyChanged}" />
-                                        </WrapPanel>
+                                <HeaderedContentControl Style="{StaticResource Group}">
+                                    <HeaderedContentControl.Header>
+                                        <DockPanel>
+                                            <Button DockPanel.Dock="Right" Style="{StaticResource HeaderButton}" Command="{Binding AddPreConditionCommand}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="Plus" VerticalAlignment="Center" />
+                                                    <TextBlock Text="{x:Static t:UiText.DesignAddPreCondition}" Margin="4,0,0,0" />
+                                                </StackPanel>
+                                            </Button>
+                                            <TextBlock Text="{x:Static t:UiText.DesignPreConditions}" Style="{StaticResource GroupTitle}" />
+                                        </DockPanel>
+                                    </HeaderedContentControl.Header>
+                                    <StackPanel Margin="0,0,0,4">
+                                        <StackPanel Orientation="Horizontal">
+                                            <StackPanel.Style>
+                                                <Style TargetType="StackPanel">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding PreConditions.Count}" Value="0">
+                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </StackPanel.Style>
+                                            <TextBlock Style="{StaticResource ColumnHeader}" Width="26" Margin="0,0,0,6" Text="#" />
+                                            <TextBlock Style="{StaticResource ColumnHeader}" Width="118" Text="{x:Static t:UiText.DesignPreRampTime}" />
+                                            <TextBlock Style="{StaticResource ColumnHeader}" Width="92" Text="{x:Static t:UiText.DesignPreRampPower}" />
+                                            <TextBlock Style="{StaticResource ColumnHeader}" Width="118" Text="{x:Static t:UiText.DesignPreHoldTime}" />
+                                        </StackPanel>
+                                        <ItemsControl ItemsSource="{Binding PreConditions}" ItemTemplate="{StaticResource ConditionStepTemplate}" Focusable="False" />
                                     </StackPanel>
+                                </HeaderedContentControl>
 
-                                    <TextBlock Text="{x:Static t:UiText.DesignPreConditions}" Style="{StaticResource SectionTitle}" />
-                                    <ItemsControl ItemsSource="{Binding PreConditions}" ItemTemplate="{StaticResource PreStepTemplate}" Focusable="False" />
-                                    <Button Style="{StaticResource AddButton}" Command="{Binding AddPreConditionCommand}">
+                                <HeaderedContentControl Style="{StaticResource Group}">
+                                    <HeaderedContentControl.Header>
+                                        <DockPanel>
+                                            <Button DockPanel.Dock="Right" Style="{StaticResource HeaderButton}" Command="{Binding AddPostConditionCommand}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="Plus" VerticalAlignment="Center" />
+                                                    <TextBlock Text="{x:Static t:UiText.DesignAddPostCondition}" Margin="4,0,0,0" />
+                                                </StackPanel>
+                                            </Button>
+                                            <TextBlock Text="{x:Static t:UiText.DesignPostConditions}" Style="{StaticResource GroupTitle}" />
+                                        </DockPanel>
+                                    </HeaderedContentControl.Header>
+                                    <StackPanel Margin="0,0,0,4">
                                         <StackPanel Orientation="Horizontal">
-                                            <materialDesign:PackIcon Kind="Plus" VerticalAlignment="Center" />
-                                            <TextBlock Text="{x:Static t:UiText.DesignAddPreCondition}" Margin="4,0,0,0" />
+                                            <StackPanel.Style>
+                                                <Style TargetType="StackPanel">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding PostConditions.Count}" Value="0">
+                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </StackPanel.Style>
+                                            <TextBlock Style="{StaticResource ColumnHeader}" Width="26" Margin="0,0,0,6" Text="#" />
+                                            <TextBlock Style="{StaticResource ColumnHeader}" Width="118" Text="{x:Static t:UiText.DesignPostRampTime}" />
+                                            <TextBlock Style="{StaticResource ColumnHeader}" Width="92" Text="{x:Static t:UiText.DesignPostRampPower}" />
+                                            <TextBlock Style="{StaticResource ColumnHeader}" Width="118" Text="{x:Static t:UiText.DesignPostHoldTime}" />
                                         </StackPanel>
-                                    </Button>
-
-                                    <TextBlock Text="{x:Static t:UiText.DesignPostConditions}" Style="{StaticResource SectionTitle}" />
-                                    <ItemsControl ItemsSource="{Binding PostConditions}" ItemTemplate="{StaticResource PostStepTemplate}" Focusable="False" />
-                                    <Button Style="{StaticResource AddButton}" Command="{Binding AddPostConditionCommand}">
-                                        <StackPanel Orientation="Horizontal">
-                                            <materialDesign:PackIcon Kind="Plus" VerticalAlignment="Center" />
-                                            <TextBlock Text="{x:Static t:UiText.DesignAddPostCondition}" Margin="4,0,0,0" />
-                                        </StackPanel>
-                                    </Button>
-                                </StackPanel>
-                            </ScrollViewer>
-                        </Grid>
-                    </materialDesign:Card>
+                                        <ItemsControl ItemsSource="{Binding PostConditions}" ItemTemplate="{StaticResource ConditionStepTemplate}" Focusable="False" />
+                                    </StackPanel>
+                                </HeaderedContentControl>
+                            </WrapPanel>
+                        </ScrollViewer>
+                    </Grid>
                 </Grid>
             </TabItem>
 
             <!-- 工艺:每一步在设备上是一个膜层,工艺的膜层列表按步骤顺序 -->
             <TabItem Header="{x:Static t:UiText.DesignProcessesTab}">
-                <Grid Margin="0,8,0,0">
+                <Grid Margin="0,12,0,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="230" />
                         <ColumnDefinition Width="12" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
-                    <materialDesign:Card Grid.Column="0" UniformCornerRadius="8">
-                        <DockPanel>
-                            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="8">
-                                <Button Command="{Binding AddProcessCommand}" Style="{StaticResource MaterialDesignFlatButton}" Padding="8,0">
+                    <HeaderedContentControl Grid.Column="0" Style="{StaticResource ListGroup}">
+                        <HeaderedContentControl.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <Button Command="{Binding AddProcessCommand}" Style="{StaticResource HeaderButton}">
                                     <StackPanel Orientation="Horizontal">
                                         <materialDesign:PackIcon Kind="Plus" VerticalAlignment="Center" />
                                         <TextBlock Text="{x:Static t:UiText.DesignNew}" Margin="4,0,0,0" />
                                     </StackPanel>
                                 </Button>
-                                <Button Command="{Binding DeleteProcessCommand}" Style="{StaticResource MaterialDesignFlatButton}" Padding="8,0"
-                                        Foreground="{DynamicResource MaterialDesign.Brush.ValidationError}">
+                                <Button Command="{Binding DeleteProcessCommand}" Style="{StaticResource HeaderDeleteButton}">
                                     <StackPanel Orientation="Horizontal">
                                         <materialDesign:PackIcon Kind="Delete" VerticalAlignment="Center" />
                                         <TextBlock Text="{x:Static t:UiText.DesignDelete}" Margin="4,0,0,0" />
                                     </StackPanel>
                                 </Button>
                             </StackPanel>
-                            <ListBox ItemsSource="{Binding Processes}" SelectedItem="{Binding SelectedProcess}" ItemTemplate="{StaticResource LocalItemTemplate}"
-                                     IsEnabled="{Binding IsEditable}" Margin="0,0,0,8" />
-                        </DockPanel>
-                    </materialDesign:Card>
+                        </HeaderedContentControl.Header>
+                        <ListBox ItemsSource="{Binding Processes}" SelectedItem="{Binding SelectedProcess}" ItemTemplate="{StaticResource LocalItemTemplate}"
+                                 IsEnabled="{Binding IsEditable}" />
+                    </HeaderedContentControl>
 
-                    <materialDesign:Card Grid.Column="2" UniformCornerRadius="8">
-                        <Grid>
-                            <TextBlock Text="{x:Static t:UiText.DesignNoSelection}" Margin="16" Foreground="{DynamicResource MaterialDesign.Brush.ForegroundLight}" />
-                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
-                                          Visibility="{Binding HasSelectedProcess, Converter={StaticResource BooleanToVisibility}}"
-                                          Background="{DynamicResource MaterialDesign.Brush.Card.Background}">
-                                <StackPanel Margin="16,12,16,4" DataContext="{Binding SelectedProcess}" IsEnabled="{Binding IsEditable}">
-                                    <WrapPanel>
-                                        <!-- 设备的帮助表只显示名称的前 30 个字符 (DesignRules.MaxNameLength) -->
-                                        <TextBox Style="{StaticResource WideField}" materialDesign:HintAssist.Hint="{x:Static t:UiText.DesignName}"
-                                                 ToolTip="{x:Static t:UiText.DesignProcessNameToolTip}" MaxLength="30"
-                                                 Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
-                                        <CheckBox Content="{x:Static t:UiText.DesignAutoStartNext}" IsChecked="{Binding AutoStartNext}"
-                                                  VerticalAlignment="Center" Margin="0,0,12,12" />
-                                    </WrapPanel>
-                                    <TextBlock Margin="0,0,0,8" Foreground="{DynamicResource MaterialDesign.Brush.ForegroundLight}"
-                                               Visibility="{Binding HasLastUpload, Converter={StaticResource BooleanToVisibility}}">
-                                        <Run Text="{x:Static t:UiText.DesignLastUpload}" /><Run Text="{Binding LastUpload, Mode=OneWay}" />
-                                    </TextBlock>
+                    <Grid Grid.Column="2">
+                        <TextBlock Style="{StaticResource NoSelection}" />
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                                      Background="{DynamicResource MaterialDesign.Brush.Background}"
+                                      Visibility="{Binding HasSelectedProcess, Converter={StaticResource BooleanToVisibility}}">
+                            <StackPanel DataContext="{Binding SelectedProcess}" IsEnabled="{Binding IsEditable}">
+                                <HeaderedContentControl Style="{StaticResource WideGroup}" Margin="0,0,0,12" Header="{x:Static t:UiText.Design}">
+                                    <StackPanel>
+                                        <WrapPanel>
+                                            <!-- 设备的帮助表只显示名称的前 30 个字符 (DesignRules.MaxNameLength) -->
+                                            <TextBox Style="{StaticResource Field}" Width="260" materialDesign:HintAssist.Hint="{x:Static t:UiText.DesignName}"
+                                                     ToolTip="{x:Static t:UiText.DesignProcessNameToolTip}" MaxLength="30" materialDesign:TextFieldAssist.CharacterCounterVisibility="Collapsed"
+                                                     Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
+                                            <CheckBox Content="{x:Static t:UiText.DesignAutoStartNext}" IsChecked="{Binding AutoStartNext}"
+                                                      VerticalAlignment="Center" Margin="0,0,12,12" />
+                                        </WrapPanel>
+                                        <TextBlock Margin="0,0,12,12" Foreground="{DynamicResource MaterialDesign.Brush.ForegroundLight}"
+                                                   Visibility="{Binding HasLastUpload, Converter={StaticResource BooleanToVisibility}}">
+                                            <Run Text="{x:Static t:UiText.DesignLastUpload}" /><Run Text="{Binding LastUpload, Mode=OneWay}" />
+                                        </TextBlock>
+                                    </StackPanel>
+                                </HeaderedContentControl>
 
-                                    <TextBlock Text="{x:Static t:UiText.DesignSteps}" Style="{StaticResource SectionTitle}" />
-                                    <ItemsControl ItemsSource="{Binding Steps}" Focusable="False">
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate DataType="{x:Type vm:ProcessStepViewModel}">
-                                                <StackPanel>
-                                                    <!-- 下边距留出输入框下方的错误提示 (如“最多 3 位小数”) -->
-                                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                                                        <TextBlock Text="{Binding Number}" Width="28" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,0,12" />
-                                                        <ComboBox Style="{StaticResource Choice}" materialDesign:HintAssist.Hint="{x:Static t:UiText.DesignStepMaterial}"
-                                                                  ItemsSource="{Binding Materials}" DisplayMemberPath="DisplayName"
-                                                                  SelectedItem="{Binding Material}" />
-                                                        <TextBox Style="{StaticResource Field}" Width="140" materialDesign:HintAssist.Hint="{x:Static t:UiText.DesignRate}"
-                                                                 Text="{Binding Rate, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}" />
-                                                        <TextBox Style="{StaticResource Field}" Width="150" materialDesign:HintAssist.Hint="{x:Static t:UiText.DesignThickness}"
-                                                                 Text="{Binding Thickness, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}" />
-                                                        <Button Style="{StaticResource IconButton}" Command="{Binding MoveUpCommand}" ToolTip="{x:Static t:UiText.DesignMoveUp}">
-                                                            <materialDesign:PackIcon Kind="ArrowUp" />
-                                                        </Button>
-                                                        <Button Style="{StaticResource IconButton}" Command="{Binding MoveDownCommand}" ToolTip="{x:Static t:UiText.DesignMoveDown}">
-                                                            <materialDesign:PackIcon Kind="ArrowDown" />
-                                                        </Button>
-                                                        <Button Style="{StaticResource IconButton}" Command="{Binding AddRampCommand}" ToolTip="{x:Static t:UiText.DesignAddRampToolTip}">
-                                                            <StackPanel Orientation="Horizontal">
-                                                                <materialDesign:PackIcon Kind="Plus" VerticalAlignment="Center" />
-                                                                <TextBlock Text="{x:Static t:UiText.DesignAddRamp}" Margin="2,0,0,0" />
-                                                            </StackPanel>
-                                                        </Button>
-                                                        <Button Style="{StaticResource IconButton}" Command="{Binding RemoveCommand}" ToolTip="{x:Static t:UiText.DesignRemove}"
-                                                                Foreground="{DynamicResource MaterialDesign.Brush.ValidationError}">
-                                                            <materialDesign:PackIcon Kind="Close" />
-                                                        </Button>
-                                                    </StackPanel>
-                                                    <!-- 速率斜坡:缩进在步骤下面 -->
-                                                    <ItemsControl ItemsSource="{Binding RateRamps}" Margin="28,0,0,0" Focusable="False">
-                                                        <ItemsControl.ItemTemplate>
-                                                            <DataTemplate DataType="{x:Type vm:RateRampViewModel}">
-                                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
-                                                                    <TextBlock Text="{Binding Title}" Width="100" VerticalAlignment="Center" Margin="0,0,8,8"
-                                                                               Foreground="{DynamicResource MaterialDesign.Brush.ForegroundLight}" />
-                                                                    <TextBox Style="{StaticResource SmallField}" materialDesign:HintAssist.Hint="{x:Static t:UiText.DesignRampStart}"
-                                                                             Text="{Binding StartThickness, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}" />
-                                                                    <TextBox Style="{StaticResource SmallField}" Width="190" materialDesign:HintAssist.Hint="{x:Static t:UiText.DesignRampDuration}"
-                                                                             Text="{Binding RampTime, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}" />
-                                                                    <TextBox Style="{StaticResource SmallField}" materialDesign:HintAssist.Hint="{x:Static t:UiText.DesignNewRate}"
-                                                                             Text="{Binding NewRate, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}" />
-                                                                    <Button Style="{StaticResource IconButton}" Command="{Binding RemoveCommand}" ToolTip="{x:Static t:UiText.DesignRemove}"
-                                                                            Foreground="{DynamicResource MaterialDesign.Brush.ValidationError}" Margin="0,8,0,0">
-                                                                        <materialDesign:PackIcon Kind="Close" />
-                                                                    </Button>
-                                                                </StackPanel>
-                                                            </DataTemplate>
-                                                        </ItemsControl.ItemTemplate>
-                                                    </ItemsControl>
+                                <!-- 步骤表格:序号、材料、速率、最终厚度;速率斜坡缩进在步骤下面 -->
+                                <HeaderedContentControl Style="{StaticResource WideGroup}">
+                                    <HeaderedContentControl.Header>
+                                        <DockPanel>
+                                            <Button DockPanel.Dock="Right" Style="{StaticResource HeaderButton}" Command="{Binding AddStepCommand}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="Plus" VerticalAlignment="Center" />
+                                                    <TextBlock Text="{x:Static t:UiText.DesignAddStep}" Margin="4,0,0,0" />
                                                 </StackPanel>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                    <Button Style="{StaticResource AddButton}" Command="{Binding AddStepCommand}">
+                                            </Button>
+                                            <TextBlock Text="{x:Static t:UiText.DesignSteps}" Style="{StaticResource GroupTitle}" />
+                                        </DockPanel>
+                                    </HeaderedContentControl.Header>
+                                    <StackPanel Margin="0,0,0,4">
                                         <StackPanel Orientation="Horizontal">
-                                            <materialDesign:PackIcon Kind="Plus" VerticalAlignment="Center" />
-                                            <TextBlock Text="{x:Static t:UiText.DesignAddStep}" Margin="4,0,0,0" />
+                                            <StackPanel.Style>
+                                                <Style TargetType="StackPanel">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Steps.Count}" Value="0">
+                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </StackPanel.Style>
+                                            <TextBlock Style="{StaticResource ColumnHeader}" Width="26" Margin="0,0,0,6" Text="#" />
+                                            <TextBlock Style="{StaticResource ColumnHeader}" Width="192" Text="{x:Static t:UiText.DesignStepMaterial}" />
+                                            <TextBlock Style="{StaticResource ColumnHeader}" Width="140" Text="{x:Static t:UiText.DesignRate}" />
+                                            <TextBlock Style="{StaticResource ColumnHeader}" Width="140" Text="{x:Static t:UiText.DesignThickness}" />
                                         </StackPanel>
-                                    </Button>
-                                </StackPanel>
-                            </ScrollViewer>
-                        </Grid>
-                    </materialDesign:Card>
+                                        <ItemsControl ItemsSource="{Binding Steps}" Focusable="False">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type vm:ProcessStepViewModel}">
+                                                    <StackPanel>
+                                                        <!-- 下边距留出输入框下方的错误提示 (如“最多 3 位小数”,可能两行) -->
+                                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,24">
+                                                            <TextBlock Text="{Binding Number}" Style="{StaticResource RowNumber}" />
+                                                            <ComboBox Style="{StaticResource ChoiceCell}"
+                                                                      ItemsSource="{Binding Materials}" DisplayMemberPath="DisplayName"
+                                                                      SelectedItem="{Binding Material}" />
+                                                            <TextBox Style="{StaticResource Cell}" Width="140"
+                                                                     Text="{Binding Rate, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}" />
+                                                            <TextBox Style="{StaticResource Cell}" Width="140"
+                                                                     Text="{Binding Thickness, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}" />
+                                                            <Button Style="{StaticResource IconButton}" Command="{Binding MoveUpCommand}" ToolTip="{x:Static t:UiText.DesignMoveUp}">
+                                                                <materialDesign:PackIcon Kind="ArrowUp" />
+                                                            </Button>
+                                                            <Button Style="{StaticResource IconButton}" Command="{Binding MoveDownCommand}" ToolTip="{x:Static t:UiText.DesignMoveDown}">
+                                                                <materialDesign:PackIcon Kind="ArrowDown" />
+                                                            </Button>
+                                                            <Button Style="{StaticResource IconButton}" Command="{Binding AddRampCommand}" ToolTip="{x:Static t:UiText.DesignAddRampToolTip}">
+                                                                <StackPanel Orientation="Horizontal">
+                                                                    <materialDesign:PackIcon Kind="Plus" VerticalAlignment="Center" />
+                                                                    <TextBlock Text="{x:Static t:UiText.DesignAddRamp}" Margin="2,0,0,0" />
+                                                                </StackPanel>
+                                                            </Button>
+                                                            <Button Style="{StaticResource RemoveButton}" Command="{Binding RemoveCommand}">
+                                                                <materialDesign:PackIcon Kind="Close" />
+                                                            </Button>
+                                                        </StackPanel>
+                                                        <!-- 速率斜坡:标题在材料列,三个值在其后 (有提示文字) -->
+                                                        <ItemsControl ItemsSource="{Binding RateRamps}" Margin="26,0,0,0" Focusable="False">
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate DataType="{x:Type vm:RateRampViewModel}">
+                                                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,24">
+                                                                        <StackPanel Orientation="Horizontal" Width="192" Margin="0,0,8,0" VerticalAlignment="Center">
+                                                                            <materialDesign:PackIcon Kind="SubdirectoryArrowRight" VerticalAlignment="Center"
+                                                                                                     Foreground="{DynamicResource MaterialDesign.Brush.ForegroundLight}" />
+                                                                            <TextBlock Text="{Binding Title}" Margin="6,0,0,0" VerticalAlignment="Center"
+                                                                                       Foreground="{DynamicResource MaterialDesign.Brush.ForegroundLight}" />
+                                                                        </StackPanel>
+                                                                        <TextBox Style="{StaticResource Cell}" Width="140" materialDesign:HintAssist.Hint="{x:Static t:UiText.DesignRampStart}"
+                                                                                 Text="{Binding StartThickness, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}" />
+                                                                        <TextBox Style="{StaticResource Cell}" Width="140" materialDesign:HintAssist.Hint="{x:Static t:UiText.DesignRampDuration}"
+                                                                                 Text="{Binding RampTime, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}" />
+                                                                        <TextBox Style="{StaticResource Cell}" Width="140" materialDesign:HintAssist.Hint="{x:Static t:UiText.DesignNewRate}"
+                                                                                 Text="{Binding NewRate, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}" />
+                                                                        <Button Style="{StaticResource RemoveButton}" Command="{Binding RemoveCommand}">
+                                                                            <materialDesign:PackIcon Kind="Close" />
+                                                                        </Button>
+                                                                    </StackPanel>
+                                                                </DataTemplate>
+                                                            </ItemsControl.ItemTemplate>
+                                                        </ItemsControl>
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </HeaderedContentControl>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
                 </Grid>
             </TabItem>
 
             <!-- 设备:设备上的工艺和材料 (只读,可以刷新、删除;不改动本地的材料和工艺) -->
             <TabItem Header="{x:Static t:UiText.DesignDeviceTab}">
-                <DockPanel Margin="0,8,0,0" DataContext="{Binding Device}">
+                <DockPanel Margin="0,12,0,0" DataContext="{Binding Device}">
                     <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
                         <Button DockPanel.Dock="Right" Command="{Binding RefreshCommand}" Style="{StaticResource MaterialDesignOutlinedButton}"
                                 Padding="10,0" Height="30" ToolTip="{x:Static t:UiText.DesignRefreshToolTip}">
@@ -467,38 +583,38 @@
                             <ColumnDefinition Width="12" />
                             <ColumnDefinition Width="2*" />
                         </Grid.ColumnDefinitions>
-                        <materialDesign:Card Grid.Column="0" UniformCornerRadius="8">
-                            <DockPanel>
-                                <DockPanel DockPanel.Dock="Top" Margin="8">
-                                    <Button DockPanel.Dock="Right" Command="{Binding DeleteProcessCommand}" Style="{StaticResource MaterialDesignFlatButton}" Padding="8,0"
-                                            Foreground="{DynamicResource MaterialDesign.Brush.ValidationError}" ToolTip="{x:Static t:UiText.DesignDeleteDeviceProcessToolTip}">
+                        <HeaderedContentControl Grid.Column="0" Style="{StaticResource ListGroup}">
+                            <HeaderedContentControl.Header>
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Command="{Binding DeleteProcessCommand}" Style="{StaticResource HeaderDeleteButton}"
+                                            ToolTip="{x:Static t:UiText.DesignDeleteDeviceProcessToolTip}">
                                         <StackPanel Orientation="Horizontal">
                                             <materialDesign:PackIcon Kind="Delete" VerticalAlignment="Center" />
                                             <TextBlock Text="{x:Static t:UiText.DesignDelete}" Margin="4,0,0,0" />
                                         </StackPanel>
                                     </Button>
-                                    <TextBlock Text="{Binding ProcessesTitle}" Style="{StaticResource SectionTitle}" Margin="8,0,0,0" VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding ProcessesTitle}" Style="{StaticResource GroupTitle}" />
                                 </DockPanel>
-                                <ListBox ItemsSource="{Binding Processes}" SelectedItem="{Binding SelectedProcess}" ItemTemplate="{StaticResource DeviceObjectTemplate}"
-                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled" IsEnabled="{Binding IsEditable}" Margin="0,0,0,8" />
-                            </DockPanel>
-                        </materialDesign:Card>
-                        <materialDesign:Card Grid.Column="2" UniformCornerRadius="8">
-                            <DockPanel>
-                                <DockPanel DockPanel.Dock="Top" Margin="8">
-                                    <Button DockPanel.Dock="Right" Command="{Binding DeleteMaterialCommand}" Style="{StaticResource MaterialDesignFlatButton}" Padding="8,0"
-                                            Foreground="{DynamicResource MaterialDesign.Brush.ValidationError}" ToolTip="{x:Static t:UiText.DesignDeleteDeviceMaterialToolTip}">
+                            </HeaderedContentControl.Header>
+                            <ListBox ItemsSource="{Binding Processes}" SelectedItem="{Binding SelectedProcess}" ItemTemplate="{StaticResource DeviceObjectTemplate}"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled" IsEnabled="{Binding IsEditable}" />
+                        </HeaderedContentControl>
+                        <HeaderedContentControl Grid.Column="2" Style="{StaticResource ListGroup}">
+                            <HeaderedContentControl.Header>
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Command="{Binding DeleteMaterialCommand}" Style="{StaticResource HeaderDeleteButton}"
+                                            ToolTip="{x:Static t:UiText.DesignDeleteDeviceMaterialToolTip}">
                                         <StackPanel Orientation="Horizontal">
                                             <materialDesign:PackIcon Kind="Delete" VerticalAlignment="Center" />
                                             <TextBlock Text="{x:Static t:UiText.DesignDelete}" Margin="4,0,0,0" />
                                         </StackPanel>
                                     </Button>
-                                    <TextBlock Text="{Binding MaterialsTitle}" Style="{StaticResource SectionTitle}" Margin="8,0,0,0" VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding MaterialsTitle}" Style="{StaticResource GroupTitle}" />
                                 </DockPanel>
-                                <ListBox ItemsSource="{Binding Materials}" SelectedItem="{Binding SelectedMaterial}" ItemTemplate="{StaticResource DeviceObjectTemplate}"
-                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled" IsEnabled="{Binding IsEditable}" Margin="0,0,0,8" />
-                            </DockPanel>
-                        </materialDesign:Card>
+                            </HeaderedContentControl.Header>
+                            <ListBox ItemsSource="{Binding Materials}" SelectedItem="{Binding SelectedMaterial}" ItemTemplate="{StaticResource DeviceObjectTemplate}"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled" IsEnabled="{Binding IsEditable}" />
+                        </HeaderedContentControl>
                     </Grid>
                 </DockPanel>
             </TabItem>

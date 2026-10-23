@@ -235,7 +235,7 @@
                         <TextBlock Text="{Binding Status}" VerticalAlignment="Center"
                                    Foreground="{DynamicResource MaterialDesign.Brush.ForegroundLight}" />
                     </DockPanel>
-                    <materialDesign:Card UniformCornerRadius="8">
+                    <materialDesign:Card>
                         <!-- 虚拟化:只生成可见的节 (ScrollViewer 在 ItemsControl 的模板中,按像素滚动) -->
                         <ItemsControl ItemsSource="{Binding Sections}" Style="{StaticResource VirtualizingList}" Padding="16,8">
                                 <ItemsControl.ItemTemplate>
@@ -276,7 +276,7 @@
                         </TabControl.ItemTemplate>
                         <TabControl.ContentTemplate>
                             <DataTemplate DataType="{x:Type vm:RecipeTabViewModel}">
-                                <materialDesign:Card UniformCornerRadius="8" Margin="0,8,0,0">
+                                <materialDesign:Card Margin="0,8,0,0">
                                     <DockPanel>
                                     <!-- 实机数据模式的材料/膜/工艺页:在设备上新建对象,完成后重新读取并刷新页面 -->
                                     <DockPanel DockPanel.Dock="Top" Margin="8,8,8,0"

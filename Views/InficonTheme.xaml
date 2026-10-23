@@ -1,0 +1,61 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
+    <!--
+        INFICON 配色 (取自 inficon.com 的样式表, 2026-10-23):
+        主色 深蓝 #124477 (网站的标题、品牌色), 辅色 蓝 #055FE0 (网站的按钮、链接);
+        背景 #F2F2F3, 正文 #2A2C2F, 次要文字 #55595E, 边框 #D6D8DA, 成功 #32B473, 警告 #FA961E。
+        错误色用比网站的 #F06350 深一些的 #D23C28, 红字在白底上才清楚。
+        视图只通过 DynamicResource 使用这里的画刷, 不写颜色值。
+    -->
+    <ResourceDictionary.MergedDictionaries>
+        <materialDesign:CustomColorTheme BaseTheme="Light" PrimaryColor="#124477" SecondaryColor="#055FE0" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesign3.Defaults.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+
+    <!-- 覆盖 Material Design 的基础画刷:灰底、深灰文字、较淡的输入框边框、浅蓝的选中项 -->
+    <SolidColorBrush x:Key="MaterialDesign.Brush.Background" Color="#F2F2F3" />
+    <SolidColorBrush x:Key="MaterialDesign.Brush.Foreground" Color="#2A2C2F" />
+    <SolidColorBrush x:Key="MaterialDesign.Brush.ForegroundLight" Color="#55595E" />
+    <SolidColorBrush x:Key="MaterialDesign.Brush.Separator.Background" Color="#D6D8DA" />
+    <SolidColorBrush x:Key="MaterialDesign.Brush.Card.Border" Color="#D6D8DA" />
+    <SolidColorBrush x:Key="MaterialDesign.Brush.ValidationError" Color="#D23C28" />
+    <SolidColorBrush x:Key="MaterialDesign.Brush.TextBox.OutlineBorder" Color="#94999E" />
+    <SolidColorBrush x:Key="MaterialDesign.Brush.TextBox.HoverBorder" Color="#2A2C2F" />
+    <SolidColorBrush x:Key="MaterialDesign.Brush.ComboBox.OutlineBorder" Color="#94999E" />
+    <SolidColorBrush x:Key="MaterialDesign.Brush.ComboBox.HoverBorder" Color="#2A2C2F" />
+
+    <!-- 状态色:已连接为绿色,正在连接为橙色;列表的选中项为浅蓝 -->
+    <SolidColorBrush x:Key="Zevision.Brush.Success" Color="#32B473" />
+    <SolidColorBrush x:Key="Zevision.Brush.Warning" Color="#FA961E" />
+    <SolidColorBrush x:Key="Zevision.Brush.Selection" Color="#DCE5F0" />
+
+    <!--
+        列表的选中项:浅蓝底 (Material Design 默认为前景色的 18% 灰)。
+        Material Design 的 ListBox 样式直接指定 ItemContainerStyle,所以 ListBox 的默认样式也要改。
+    -->
+    <Style x:Key="Zevision.ListBoxItem" TargetType="ListBoxItem" BasedOn="{StaticResource MaterialDesignListBoxItem}">
+        <Setter Property="materialDesign:ListBoxItemAssist.SelectedFocusedBackground" Value="{DynamicResource Zevision.Brush.Selection}" />
+        <Setter Property="materialDesign:ListBoxItemAssist.SelectedUnfocusedBackground" Value="{DynamicResource Zevision.Brush.Selection}" />
+    </Style>
+    <Style TargetType="ListBoxItem" BasedOn="{StaticResource Zevision.ListBoxItem}" />
+    <Style TargetType="ListBox" BasedOn="{StaticResource MaterialDesignListBox}">
+        <Setter Property="ItemContainerStyle" Value="{StaticResource Zevision.ListBoxItem}" />
+    </Style>
+
+    <!-- 紧凑的输入框和下拉框:比 Material Design 默认的矮 (内边距 10,8) -->
+    <Style x:Key="Zevision.OutlinedTextBox" TargetType="TextBox" BasedOn="{StaticResource MaterialDesignOutlinedTextBox}">
+        <Setter Property="Padding" Value="10,8" />
+    </Style>
+    <Style x:Key="Zevision.OutlinedComboBox" TargetType="ComboBox" BasedOn="{StaticResource MaterialDesignOutlinedComboBox}">
+        <Setter Property="Padding" Value="10,8" />
+    </Style>
+
+    <!-- 卡片:小圆角、细边框、无阴影 -->
+    <Style TargetType="materialDesign:Card" BasedOn="{StaticResource {x:Type materialDesign:Card}}">
+        <Setter Property="UniformCornerRadius" Value="4" />
+        <Setter Property="materialDesign:ElevationAssist.Elevation" Value="Dp0" />
+        <Setter Property="BorderBrush" Value="{DynamicResource MaterialDesign.Brush.Card.Border}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+</ResourceDictionary>

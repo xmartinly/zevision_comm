@@ -85,14 +85,18 @@ namespace Zevision.Tests
         }
 
         [Fact]
-        public void Process_ActiveOrLinked_IsBlocked()
+        public void Process_Active_NotBlocked_Reported_Linked_IsBlocked()
         {
             var active = DeviceDeletion.ForProcessNamed("Shared", Processes());
+            var other = DeviceDeletion.ForProcessNamed("P1", Processes());
             var linked = DeviceDeletion.ForProcesses(new[] { "P0203" }, Processes(("P02010A", "3")));
             var self = DeviceDeletion.ForProcesses(new[] { "P0203" }, Processes(("P02030A", "3")));
 
-            Assert.Equal(new[] { "设置活动工艺 P01 = 2" }, active.References);
+            // 活动工艺可以删除 (用户决定 2026-10-23;设备删除后把 P01 改为 0)。
+            Assert.False(active.IsBlocked);
+            Assert.Equal("P0202", active.ActiveProcess);
             Assert.Equal(new[] { "P0202" }, active.Objects.Select(o => o.Id)); // L02 也被 P0201 使用
+            Assert.Null(other.ActiveProcess);
             Assert.Equal(new[] { "工艺 P0201 P1: P02010A = 3" }, linked.References);
             Assert.False(self.IsBlocked); // 自己的设置项不算
         }

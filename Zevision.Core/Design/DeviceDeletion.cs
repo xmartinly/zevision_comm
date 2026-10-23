@@ -13,7 +13,8 @@ namespace Zevision.Core.Design
     /// <item>删除材料:这些材料、引用它们的膜系 (<c>F**02</c>)、用到这些膜系的膜层 (不论名称和膜系数量)。
     /// 工艺用到这些膜层时不能删除 (<see cref="References"/>)。</item>
     /// <item>删除工艺:这些工艺,以及只被它们使用的膜层;其他工艺也在用的膜层保留 (<see cref="Kept"/>)。
-    /// 活动工艺 (<c>P01</c>) 或其他工艺的链接工艺 (<c>P02**0A</c>) 是它时不能删除。</item>
+    /// 其他工艺的链接工艺 (<c>P02**0A</c>) 是它时不能删除。活动工艺 (<c>P01</c>) 是它时可以删除 (<see cref="ActiveProcess"/>,
+    /// 用户决定 2026-10-23):设备接受删除并把 <c>P01</c> 改为 0 (实测,ZEV-STR-01 的 STR-2026-10-23-05)。</item>
     /// </list>
     /// </summary>
     /// <param name="Objects">
@@ -24,8 +25,14 @@ namespace Zevision.Core.Design
     /// <param name="References">设备上其他设置对要删除的对象的引用,如"工艺 P0201 P1: P02010701 = 10";有引用时不能删除。</param>
     public sealed record DeviceDeletion(IReadOnlyList<DesignObject> Objects, IReadOnlyList<DesignObject> Kept, IReadOnlyList<string> References)
     {
+        /// <summary>设置活动工艺的设置项;值为工艺编号,0 为没有活动工艺。</summary>
+        public const string ActiveProcessSetting = "P01";
+
         /// <summary>有其他设置引用要删除的对象:不能删除。</summary>
         public bool IsBlocked => References.Count > 0;
+
+        /// <summary>要删除的工艺中设备的活动工艺 (<see cref="ActiveProcessSetting"/> 指向它),如 <c>P0201</c>;没有时为 null。删除后设备没有活动工艺。</summary>
+        public string? ActiveProcess { get; init; }
 
         /// <summary>删除名称为 <paramref name="name"/> 的材料 (去掉首尾空格后比较,区分大小写;设备上可能有几个)。纯函数。</summary>
         /// <param name="name">材料名称。</param>
@@ -102,7 +109,18 @@ namespace Zevision.Core.Design
             var objects = Descending(processes.Select(p => new DesignObject(p.Id, ObjectTypes.Process.Group, p.Name, false)))
                 .Concat(Descending(layers.Where(l => !keptIds.Contains(l.Id)).Select(l => new DesignObject(l.Id, ObjectTypes.Layer.Group, l.Name, false))))
                 .ToList();
-            return new DeviceDeletion(objects, kept, ExternalReferences(entries, objects, references));
+
+            // 活动工艺不阻止删除,单独给出 (确认时说明,删除后读回 P01)。
+            var active = entries.FirstOrDefault(e => e.Id == ActiveProcessSetting) is { } setting
+                && DeviceIds.TryParseCount(setting.Value, out var number)
+                && number > 0
+                && deletedProcesses.Contains(DeviceIds.Item(ObjectTypes.Process.Prefix, number))
+                    ? DeviceIds.Item(ObjectTypes.Process.Prefix, number)
+                    : null;
+            return new DeviceDeletion(objects, kept, ExternalReferences(entries, objects, references, e => e.Id == ActiveProcessSetting))
+            {
+                ActiveProcess = active,
+            };
         }
 
         /// <summary>组内按编号从大到小 (ID 等长,按序数比较即按编号)。</summary>
@@ -110,10 +128,11 @@ namespace Zevision.Core.Design
             objects.OrderByDescending(o => o.Id, StringComparer.Ordinal);
 
         /// <summary>
-        /// 要删除的集合之外对它们的引用 (集合中对象自己的设置项,如膜系引用材料,不算)。
-        /// 属于对象的设置项写为"工艺 P0202 P2: P02020701 = 1",其他设置项写为"设置活动工艺 P01 = 1"。
+        /// 要删除的集合之外对它们的引用 (集合中对象自己的设置项,如膜系引用材料,不算;<paramref name="ignore"/> 的也不算)。
+        /// 属于对象的设置项写为"工艺 P0202 P2: P02020701 = 1",其他设置项写为"坩埚 1 · 材料 ID S010901 = 1"。
         /// </summary>
-        private static IReadOnlyList<string> ExternalReferences(IReadOnlyList<RecipeEntry> entries, IReadOnlyList<DesignObject> objects, ILookup<string, RecipeEntry> references)
+        private static IReadOnlyList<string> ExternalReferences(
+            IReadOnlyList<RecipeEntry> entries, IReadOnlyList<DesignObject> objects, ILookup<string, RecipeEntry> references, Func<RecipeEntry, bool>? ignore = null)
         {
             var names = new Dictionary<string, string>(StringComparer.Ordinal);
             foreach (var entry in entries)
@@ -128,7 +147,7 @@ namespace Zevision.Core.Design
             var found = new List<string>();
             foreach (var target in objects)
             {
-                foreach (var entry in references[target.Id])
+                foreach (var entry in references[target.Id].Where(e => ignore?.Invoke(e) != true))
                 {
                     var setting = entry.Id + " = " + entry.Value;
                     if (!ObjectTypes.TryGetObject(entry.Id, out var type, out var owner))

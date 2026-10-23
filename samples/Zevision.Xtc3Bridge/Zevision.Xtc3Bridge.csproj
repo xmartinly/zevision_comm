@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{D199CDFB-E045-41C0-8F60-8E9494B1CA89}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Zevision.BridgeHost</RootNamespace>
+    <AssemblyName>Zevision.Xtc3Bridge</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Zevision.Communication\Zevision.Communication.csproj">
+      <Project>{1ACAC66E-C64B-430E-8B62-41B782BE2C87}</Project>
+      <Name>Zevision.Communication</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Zevision.Commands\Zevision.Commands.csproj">
+      <Project>{1B185778-1AB1-48A0-B5FC-179BFDC0C006}</Project>
+      <Name>Zevision.Commands</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Zevision.Core\Zevision.Core.csproj">
+      <Project>{3E348A08-77E1-4D8D-916B-A10B168EB5E4}</Project>
+      <Name>Zevision.Core</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Zevision.Storage\Zevision.Storage.csproj">
+      <Project>{872590BF-6C50-4116-9027-76C2F0ACC1D5}</Project>
+      <Name>Zevision.Storage</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Zevision.Xtc3\Zevision.Xtc3.csproj">
+      <Project>{11268715-AFEA-4D2A-A29C-9520DAA69777}</Project>
+      <Name>Zevision.Xtc3</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Zevision.Bridge.Hosting\Zevision.Bridge.Hosting.csproj">
+      <Project>{00B9FAE6-0AB3-45C0-91A2-1101734062F1}</Project>
+      <Name>Zevision.Bridge.Hosting</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Zevision.Bridge\Zevision.Bridge.csproj">
+      <Project>{AB7D05A4-5E41-4E6C-946E-4E4A40DA5B30}</Project>
+      <Name>Zevision.Bridge</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.402" PrivateAssets="all" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

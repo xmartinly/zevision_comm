@@ -543,7 +543,7 @@ namespace Zevision.ViewModels.Design
             }
 
             RemoveProcess(process);
-            var result = DesignMessages.ProcessDeleted(process.Model, deletion);
+            var result = DesignMessages.ProcessDeleted(process.Model, deletion) + ActiveProcessNote(deletion);
             ShowResult(result);
             if (deletion.Objects.Count > 0)
             {
@@ -600,7 +600,7 @@ namespace Zevision.ViewModels.Design
 
             if (outcome.Deletion is DeviceDeletion deletion)
             {
-                var result = deletion.Objects.Count == 0 ? DesignMessages.AlreadyGone(item.Id) : DesignMessages.DeletedOnDevice(deletion);
+                var result = deletion.Objects.Count == 0 ? DesignMessages.AlreadyGone(item.Id) : DesignMessages.DeletedOnDevice(deletion) + ActiveProcessNote(deletion);
                 ShowResult(result);
                 if (deletion.Objects.Count > 0)
                 {
@@ -726,6 +726,12 @@ namespace Zevision.ViewModels.Design
 
             return new DeleteOutcome(result, readError);
         }
+
+        /// <summary>删除了设备的活动工艺时,删除后重新读取的 P01 (设备改为 0);其他情况为空。</summary>
+        private string ActiveProcessNote(DeviceDeletion deletion) =>
+            deletion.ActiveProcess == null || deletion.Objects.Count == 0
+                ? string.Empty
+                : " " + DesignMessages.ActiveProcessAfterDelete(_device.Entries.FirstOrDefault(e => e.Id == DeviceDeletion.ActiveProcessSetting)?.Value);
 
         /// <summary>删除没有全部完成:已删除的对象写入 <see cref="CompletionMessage"/> (数据显示区留下记录)。</summary>
         private void AddPartialDeletion(IReadOnlyList<DesignObject> deleted)
