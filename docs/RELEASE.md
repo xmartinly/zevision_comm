@@ -294,7 +294,38 @@ powershell -ExecutionPolicy Bypass -File tools\package.ps1
 | 9 | 语言 | 将 `settings.json` 的 `language` 改为 `en` 后重启：界面、对话框和日志为英文，修改配置窗口的名称为设备帮助表的 DESCRIPTION；改回 `auto` 后按系统语言和地区显示。 |
 | 10 | 工艺编辑 | 打开“工艺”：“设备”页列出设备上的工艺和材料。从材料库新建一种材料，新建两步的工艺并上传：确认框列出新建的对象，上传后“设备”页显示新工艺。再次上传：只新建工艺。在写入阶段单击“取消上传”：本次新建的对象被删除。删除工艺和材料并同时删除设备上的数据：设备上的对象数回到测试前。 |
 
-__BRIDGE_SECTION__
+### 4.7 XTC/3S 中间层打包
+
+中间层自 1.0.0 起使用打包脚本，输出到 `dist\`：
+
+```
+powershell -ExecutionPolicy Bypass -File tools\package-bridge.ps1
+```
+
+脚本按以下顺序执行：
+
+1. 以 Release 配置重新构建并运行全部单元测试（参数 `-SkipBuild` 跳过此步）。
+2. 核对 `Zevision.Xtc3`、`Zevision.Bridge`、`Zevision.Bridge.Hosting` 和 `Zevision.Xtc3Bridge.exe` 的版本相同。
+3. 组装发布文件夹，压缩为发布包并输出 SHA256；pdb 存档。
+4. 将发布包解压到临时目录检查：不带参数运行时显示用法；`init` 写出设置文件；只引用解压出的 7 个 dll 编译 `sample\Program.cs`。不连接设备。
+
+同一版本的输出已存在时，脚本拒绝覆盖。与设备的联调见 ZEV-STR-01（1.0.0 为 STR-2026-10-23-06）。
+
+表 14  中间层打包输出
+
+| 输出 | 内容 |
+|---|---|
+| `dist\Zevision.Xtc3Bridge-<版本>\` | `Zevision.Xtc3Bridge.exe`；`Zevision.Xtc3.dll`、`Zevision.Bridge.dll`、`Zevision.Bridge.Hosting.dll` 和依赖的 `Zevision.Core.dll`、`Zevision.Storage.dll`、`Zevision.Communication.dll`、`Zevision.Commands.dll`，以及这 7 个 dll 的 XML 文档；`Texts.json`；`XTC3中间层编程手册.md`（ZEV-CPM-03）；`sample\Program.cs`（独立程序的源代码） |
+| `dist\Zevision.Xtc3Bridge-<版本>.zip` | 上述文件夹的压缩包，即中间层发布包。脚本输出的 SHA256 填入表 15 |
+| `dist\symbols\Zevision.Xtc3Bridge-<版本>\` | 独立程序和 7 个 dll 的 pdb，存档，不发布 |
+
+注：不应在 `dist\Zevision.Xtc3Bridge-<版本>\` 中运行 `init` 或启动中间层，运行会在该目录生成设置文件、本地参数文件和 `logs\`。
+
+表 15  中间层发布包 SHA256
+
+| 版本 | 日期 | 包含的库 | 发布包 SHA256 |
+|---|---|---|---|
+| 1.0.0 | 2026-10-23 | `Zevision.Xtc3`、`Zevision.Bridge`、`Zevision.Bridge.Hosting` 1.0.0；`Zevision.Core`、`Zevision.Storage` 1.3.1；`Zevision.Communication` 1.2.0；`Zevision.Commands` 1.1.1 | `689657C42660D284486469BC70BE192E2E3A3A22333399AAE52FD8567463DF86` |
 
 ## 5 运行环境
 
