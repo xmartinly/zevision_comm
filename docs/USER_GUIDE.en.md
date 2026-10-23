@@ -458,7 +458,7 @@ The local deletion is written to the files with "Save"; the deletion on the devi
 1. Click "Save" (Ctrl+S). The software checks all materials and processes: names shall not be empty or repeated, values shall be in the range of the device, and each process shall have at least one step with a material selected. Problems are listed in red at the bottom of the window and nothing is saved; otherwise the content is saved to the `recipes` folder.
 2. To upload, select the process on the "Processes" page and click "Upload process name". The software saves as in step 1, reads the device configuration (about 10 s), checks that the selected sensors and sources exist on the device and that the crucible numbers do not exceed the number of crucibles of the sources, and assigns free numbers on the device. Failed checks are explained in red at the bottom of the window and nothing is uploaded.
 3. The confirmation lists the materials, films and layers to be created and those to be reused, with their numbers, and the new process; when the device already has a process of the same name, it says that another one is created. "OK" uploads; "Cancel" does not upload (the content is already saved locally).
-4. The software creates the objects, appends the list entries (pre and post conditions, sensors, the film of each layer, the layers of the process), writes all settings of the new objects and reads every setting back for verification (about 30 s).
+4. The software creates the objects, appends the list entries (pre and post conditions, sensors, the film of each layer, the layers of the process), writes all settings of the new objects and reads every setting back for verification (about 15 s to 25 s over RS232, about 3 s over Ethernet).
 
 Rules:
 
@@ -562,7 +562,7 @@ Table 10  Keyboard shortcuts
 | Edit window | Ctrl+S | Save |
 | Edit window | Ctrl+F | Move to the filter box |
 | Edit window | Esc | Close the window; cancel writing while writing |
-| Process editor | Ctrl+S | Save (and upload the selected process) |
+| Process editor | Ctrl+S | Save locally (no upload) |
 | Process editor | Esc | Close the window; cancel the upload while uploading |
 
 ## 6 Notes
