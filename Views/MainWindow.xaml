@@ -348,6 +348,11 @@
                 <DockPanel>
                     <!-- 高度与左侧顶部标题栏一致 (共用 PanelHeaderHeight) -->
                     <DockPanel x:Name="LogHeader" DockPanel.Dock="Top" Margin="16,0,8,0" Height="{StaticResource PanelHeaderHeight}">
+                        <!-- 项目主页 (GitHub):用默认浏览器打开 (见代码隐藏);配置操作期间也可用 -->
+                        <Button DockPanel.Dock="Right" Click="OnOpenProjectPage" VerticalAlignment="Center" Padding="8,0"
+                                Style="{StaticResource MaterialDesignFlatButton}" ToolTip="{x:Static t:UiText.ProjectPageToolTip}">
+                            <materialDesign:PackIcon Kind="Github" Width="20" Height="20" VerticalAlignment="Center" />
+                        </Button>
                         <!-- 切换中英文 (确认后保存配置并重启程序) -->
                         <Button DockPanel.Dock="Right" Command="{Binding SwitchLanguageCommand}" VerticalAlignment="Center"
                                 Style="{StaticResource MaterialDesignFlatButton}" ToolTip="{Binding SwitchLanguageToolTip}">

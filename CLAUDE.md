@@ -49,7 +49,7 @@ User request 2026-10-23: "开始开发XTC3S-Zevision中间层库文件, 使用�
   - Rule: Chinese if the Windows display language is Chinese or the region format is China (CN); English otherwise.
   - `settings.json` `language` (`auto`/`zh`/`en`) overrides it. `MainViewModel` keeps that value when saving.
   - Switching at runtime is a restart, not live re-translation (texts and `x:Static` XAML are fixed at load).
-    - The "EN"/"中" button (`SwitchLanguageCommand`) is in the data-display header and is disabled while a configuration operation runs.
+    - The "EN"/"中" button (`SwitchLanguageCommand`) is in the data-display header and is disabled while a configuration operation runs. To its right is a GitHub icon button (user request 2026-10-26; `PackIconKind.Github`, tooltip `UiText.ProjectPageToolTip`), a plain `Click` handler in `MainWindow.xaml.cs` (`OnOpenProjectPage`, always enabled) that opens `AppInfo.ProjectUrl` (https://github.com/xmartinly/zevision_comm) with `Process.Start` (shell execute); a failure (no browser) is a red log line, no message box. Added after the 1.3.2 package, so it ships with the next version.
     - It confirms, sets the target language and raises `RestartRequested`.
     - `App.OnRestartRequested` then:
       1. Saves preferences, so the new process reads the new language.

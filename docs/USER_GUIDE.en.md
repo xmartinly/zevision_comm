@@ -3,8 +3,8 @@
 | Item | Content |
 |---|---|
 | Document identifier | ZEV-SUM-01-EN |
-| Document version | 1.4 |
-| Applicable software | Zevision 1.3.2 (user interface language: English) |
+| Document version | 1.5 |
+| Applicable software | Zevision 1.3.3 (user interface language: English) |
 | Prepared by | INFICON |
 | Date | 2026-10-26 |
 
@@ -14,8 +14,8 @@
 
 This document applies to the following software:
 
-- Software name: Zevision (window title `IMC300 Communication Test - Zevision 1.3.2`);
-- Software version: 1.3.2;
+- Software name: Zevision (window title `IMC300 Communication Test - Zevision 1.3.3`);
+- Software version: 1.3.3;
 - Contact: martin.liang@inficon.com.
 
 The user manual for the Chinese user interface is ZEV-SUM-01 (docs/USER_GUIDE.md). Its content corresponds to this document section by section.
@@ -100,7 +100,7 @@ Table 4  Areas of the main window
 | Left, "Protocol options" | "Response timeout (ms)"; switches "Checksum", "Length bytes", "Handshake on connect", "Reconnect automatically", "Save communication data" |
 | Left, "Instrument configuration" | "Save", "Restore", "Process" and "Edit" buttons, the drop-down for the data source to edit, operation progress and "Cancel" button |
 | Bottom left | "Connect" and "Disconnect" buttons, status line |
-| Right, "Data display" | Records of the data sent and received, TX, RX and ERR counters, "Clear" button, language button "中" (or "EN" in the Chinese interface) |
+| Right, "Data display" | Records of the data sent and received, TX, RX and ERR counters, "Clear" button, language button "中" (or "EN" in the Chinese interface), GitHub icon button (opens the project page `https://github.com/xmartinly/zevision_comm` in the default browser) |
 | Bottom right | "Display format", "Repeat send", "Interval (ms)", quick command buttons, command input box, "Send" button |
 
 "Edit" opens the edit configuration window with the "Information" and "Settings" tabs, see 5.3.11.

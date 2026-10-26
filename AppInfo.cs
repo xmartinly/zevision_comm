@@ -12,6 +12,9 @@ namespace Zevision
         /// <summary>产品名称。</summary>
         public const string ProductName = "Zevision";
 
+        /// <summary>项目主页 (GitHub),主窗口数据显示区标题栏的 GitHub 按钮打开它。</summary>
+        public const string ProjectUrl = "https://github.com/xmartinly/zevision_comm";
+
         /// <summary>版本号,如 <c>0.9.6</c> (AssemblyInformationalVersion)。</summary>
         public static string Version { get; } =
             typeof(AppInfo).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion

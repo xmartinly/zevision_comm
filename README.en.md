@@ -12,11 +12,11 @@ Table 1  Assemblies and versions
 
 | Assembly | Purpose | Version |
 |---|---|---|
-| `Zevision.exe` | WPF application (Material Design UI, INFICON colors) | 1.3.2 |
+| `Zevision.exe` | WPF application (Material Design UI, INFICON colors) | 1.3.3 |
 | `Zevision.Communication.dll` | Communication library: serial and TCP transports, framing, multi-packet reassembly, response parsing, `ZevisionClient` (session, retries, heartbeat) | 1.2.0 |
 | `Zevision.Commands.dll` | Command set library: ID pattern, actions, names (Chinese and English), unit, range and options of every command | 1.1.1 |
-| `Zevision.Core.dll` | Business logic: device service, handshake, rules for saving, restoring and editing configurations, process editor | 1.3.2 |
-| `Zevision.Storage.dll` | Storage: configuration files (with MD5), settings, error log, communication data files, process editor files | 1.3.2 |
+| `Zevision.Core.dll` | Business logic: device service, handshake, rules for saving, restoring and editing configurations, process editor | 1.3.3 |
+| `Zevision.Storage.dll` | Storage: configuration files (with MD5), settings, error log, communication data files, process editor files | 1.3.3 |
 | `Zevision.Xtc3.dll` | XTC/3 Standard Protocol: packet format, command syntax, parameters, response encoding | 1.0.0 |
 | `Zevision.Bridge.dll` | XTC/3S bridge: command execution, shadow objects, sampling and derived states | 1.0.0 |
 | `Zevision.Bridge.Hosting.dll` | Bridge composition: settings file, one-call start | 1.0.0 |

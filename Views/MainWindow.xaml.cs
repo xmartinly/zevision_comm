@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Diagnostics;
+using System.IO;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -177,6 +179,24 @@ namespace Zevision.Views
             if (DataContext is MainViewModel viewModel && viewModel.SendCommand.CanExecute(null))
             {
                 viewModel.SendCommand.Execute(null);
+            }
+        }
+
+        /// <summary>
+        /// GitHub 按钮:用默认浏览器打开项目主页 (<see cref="AppInfo.ProjectUrl"/>)。
+        /// 打不开时 (如没有关联的浏览器) 在数据显示区写一条错误,不弹出消息框 (没有改变设备和文件)。
+        /// </summary>
+        private void OnOpenProjectPage(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                using (Process.Start(new ProcessStartInfo(AppInfo.ProjectUrl) { UseShellExecute = true }))
+                {
+                }
+            }
+            catch (Exception ex) when (ex is Win32Exception || ex is InvalidOperationException || ex is FileNotFoundException)
+            {
+                (DataContext as MainViewModel)?.Log.Add(LogKind.Error, UiText.ProjectPageFailed(AppInfo.ProjectUrl, ex.Message));
             }
         }
 

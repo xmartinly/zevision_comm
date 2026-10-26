@@ -144,6 +144,12 @@ namespace Zevision.Views
         /// <summary>清空</summary>
         public static string Clear => Lang.T("清空", "Clear");
 
+        /// <summary>打开 GitHub 上的项目主页</summary>
+        public static string ProjectPageToolTip => Lang.T("GitHub 项目主页", "Project page on GitHub");
+
+        /// <summary>项目主页打不开 (如没有默认浏览器);{0} 为地址,{1} 为原因</summary>
+        public static string ProjectPageFailed(string url, string reason) => Lang.T($"无法打开 {url}: {reason}", $"Cannot open {url}: {reason}");
+
         /// <summary>数据显示</summary>
         public static string DataDisplay => Lang.T("数据显示", "Data display");
 
