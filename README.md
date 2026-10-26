@@ -12,11 +12,11 @@ Zevision 是 INFICON IMC300 膜厚控制仪的上位机软件（“IMC300 通讯
 
 | 程序集 | 用途 | 版本 |
 |---|---|---|
-| `Zevision.exe` | WPF 应用（Material Design 界面，INFICON 配色） | 1.3.1 |
+| `Zevision.exe` | WPF 应用（Material Design 界面，INFICON 配色） | 1.3.2 |
 | `Zevision.Communication.dll` | 通信库：串口和 TCP 传输、分帧、多包重组、响应解析、`ZevisionClient`（会话、重发、心跳） | 1.2.0 |
 | `Zevision.Commands.dll` | 指令集库：全部指令的 ID 模式、动作、名称（中、英文）、单位、范围和选项 | 1.1.1 |
-| `Zevision.Core.dll` | 业务层：设备服务、握手、配置的保存/恢复/修改规则、工艺编辑 | 1.3.1 |
-| `Zevision.Storage.dll` | 存储层：配置文件（带 MD5）、设置、错误日志、通讯数据文件、工艺文件 | 1.3.1 |
+| `Zevision.Core.dll` | 业务层：设备服务、握手、配置的保存/恢复/修改规则、工艺编辑 | 1.3.2 |
+| `Zevision.Storage.dll` | 存储层：配置文件（带 MD5）、设置、错误日志、通讯数据文件、工艺文件 | 1.3.2 |
 | `Zevision.Xtc3.dll` | XTC/3 Standard Protocol：包格式、命令语法、参数、响应编码 | 1.0.0 |
 | `Zevision.Bridge.dll` | XTC/3S 中间层：命令执行、影子对象、采样和推导状态 | 1.0.0 |
 | `Zevision.Bridge.Hosting.dll` | 中间层的组装：设置文件、一步启动 | 1.0.0 |
@@ -164,10 +164,11 @@ using (var client = new ZevisionClient(options))
 
 | 发布包 | 命令 | 内容 |
 |---|---|---|
+| 链接库 | `powershell -ExecutionPolicy Bypass -File tools\package-libraries.ps1` | `dist\Zevision.Libraries-<版本>.zip`：两个链接库、XML 文档、编程手册、示例源代码 |
 | 应用 | `powershell -ExecutionPolicy Bypass -File tools\package.ps1` | `dist\Zevision-<版本>_wDotnet.zip`（含 .NET Framework 4.8 离线安装包）和 `_woDotnet.zip` |
 | XTC/3S 中间层 | `powershell -ExecutionPolicy Bypass -File tools\package-bridge.ps1` | `dist\Zevision.Xtc3Bridge-<版本>.zip`：独立程序、7 个 dll、`Texts.json`、编程手册、示例源代码 |
 
-两个脚本均先以 Release 配置重新构建并运行全部单元测试，输出 SHA256，并把 pdb 存档到 `dist\symbols\`。发布材料、更改记录、校验值和发布前的实机检查见 [`docs/RELEASE.md`](docs/RELEASE.md)。
+三个脚本均先以 Release 配置重新构建并运行全部单元测试，输出 SHA256，并把 pdb 存档到 `dist\symbols\`。发布材料、更改记录、校验值和发布前的实机检查见 [`docs/RELEASE.md`](docs/RELEASE.md)。
 
 ## 10 文档
 

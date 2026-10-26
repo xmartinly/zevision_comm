@@ -4,9 +4,9 @@
 |---|---|
 | 文档标识 | ZEV-CPM-02 |
 | 文档版本 | 1.3 |
-| 适用软件 | `Zevision.Core` 1.3.1、`Zevision.Storage` 1.3.1（随 Zevision 1.3.1） |
+| 适用软件 | `Zevision.Core` 1.3.2、`Zevision.Storage` 1.3.2（随 Zevision 1.3.2） |
 | 编制单位 | INFICON |
-| 日期 | 2026-10-23 |
+| 日期 | 2026-10-26 |
 
 ## 目次
 

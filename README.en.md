@@ -12,11 +12,11 @@ Table 1  Assemblies and versions
 
 | Assembly | Purpose | Version |
 |---|---|---|
-| `Zevision.exe` | WPF application (Material Design UI, INFICON colors) | 1.3.1 |
+| `Zevision.exe` | WPF application (Material Design UI, INFICON colors) | 1.3.2 |
 | `Zevision.Communication.dll` | Communication library: serial and TCP transports, framing, multi-packet reassembly, response parsing, `ZevisionClient` (session, retries, heartbeat) | 1.2.0 |
 | `Zevision.Commands.dll` | Command set library: ID pattern, actions, names (Chinese and English), unit, range and options of every command | 1.1.1 |
-| `Zevision.Core.dll` | Business logic: device service, handshake, rules for saving, restoring and editing configurations, process editor | 1.3.1 |
-| `Zevision.Storage.dll` | Storage: configuration files (with MD5), settings, error log, communication data files, process editor files | 1.3.1 |
+| `Zevision.Core.dll` | Business logic: device service, handshake, rules for saving, restoring and editing configurations, process editor | 1.3.2 |
+| `Zevision.Storage.dll` | Storage: configuration files (with MD5), settings, error log, communication data files, process editor files | 1.3.2 |
 | `Zevision.Xtc3.dll` | XTC/3 Standard Protocol: packet format, command syntax, parameters, response encoding | 1.0.0 |
 | `Zevision.Bridge.dll` | XTC/3S bridge: command execution, shadow objects, sampling and derived states | 1.0.0 |
 | `Zevision.Bridge.Hosting.dll` | Bridge composition: settings file, one-call start | 1.0.0 |
@@ -164,10 +164,11 @@ Table 4  Release packages
 
 | Package | Command | Content |
 |---|---|---|
+| Libraries | `powershell -ExecutionPolicy Bypass -File tools\package-libraries.ps1` | `dist\Zevision.Libraries-<version>.zip`: the two libraries, XML documentation, programming manual, sample source code |
 | Application | `powershell -ExecutionPolicy Bypass -File tools\package.ps1` | `dist\Zevision-<version>_wDotnet.zip` (with the .NET Framework 4.8 offline installer) and `_woDotnet.zip` |
 | XTC/3S bridge | `powershell -ExecutionPolicy Bypass -File tools\package-bridge.ps1` | `dist\Zevision.Xtc3Bridge-<version>.zip`: standalone program, 7 dlls, `Texts.json`, programming manual, sample source code |
 
-Both scripts first rebuild in the Release configuration and run all unit tests, then print the SHA256 of each package and archive the pdbs in `dist\symbols\`. Release contents, changes, checksums and the pre-release checks on the device are in [`docs/RELEASE.md`](docs/RELEASE.md) (Chinese).
+All three scripts first rebuild in the Release configuration and run all unit tests, then print the SHA256 of each package and archive the pdbs in `dist\symbols\`. Release contents, changes, checksums and the pre-release checks on the device are in [`docs/RELEASE.md`](docs/RELEASE.md) (Chinese).
 
 ## 10 Documents
 

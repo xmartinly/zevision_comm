@@ -3,10 +3,10 @@
 | Item | Content |
 |---|---|
 | Document identifier | ZEV-SUM-01-EN |
-| Document version | 1.3 |
-| Applicable software | Zevision 1.3.1 (user interface language: English) |
+| Document version | 1.4 |
+| Applicable software | Zevision 1.3.2 (user interface language: English) |
 | Prepared by | INFICON |
-| Date | 2026-10-23 |
+| Date | 2026-10-26 |
 
 ## 1 Scope
 
@@ -14,8 +14,8 @@
 
 This document applies to the following software:
 
-- Software name: Zevision (window title `IMC300 Communication Test - Zevision 1.3.1`);
-- Software version: 1.3.1;
+- Software name: Zevision (window title `IMC300 Communication Test - Zevision 1.3.2`);
+- Software version: 1.3.2;
 - Contact: martin.liang@inficon.com.
 
 The user manual for the Chinese user interface is ZEV-SUM-01 (docs/USER_GUIDE.md). Its content corresponds to this document section by section.
